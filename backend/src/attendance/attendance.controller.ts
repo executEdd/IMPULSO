@@ -1,0 +1,81 @@
+import { Controller, Get, Post, Body, Param, Query, ParseIntPipe, BadRequestException } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { AttendanceService } from './attendance.service';
+import { CreateAttendanceDto } from './dto/create-attendance.dto';
+import { QrScanDto } from './dto/qr-scan.dto';
+import { Roles } from '../common/decorators/roles.decorator';
+import { UserRole } from '../common/enums/roles.enum';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+
+@ApiTags('Asistencias')
+@Controller('attendance')
+@ApiBearerAuth()
+export class AttendanceController {
+  constructor(private attendanceService: AttendanceService) {}
+
+  @Post('scan-qr')
+  @Roles(UserRole.TEACHER)
+  @ApiOperation({ summary: 'Escanear QR para registrar asistencia (QR Smart-Check)' })
+  async scanQr(
+    @Body() qrScanDto: QrScanDto,
+    @CurrentUser('teacherProfile') teacherProfile: any,
+  ) {
+    if (!teacherProfile?.id) {
+      throw new BadRequestException('Perfil de docente no encontrado');
+    }
+    return this.attendanceService.scanQr(qrScanDto, teacherProfile.id);
+  }
+
+  @Post('mark-absent/:studentId/:scheduleId')
+  @Roles(UserRole.TEACHER)
+  @ApiOperation({ summary: 'Marcar falta manualmente' })
+  async markAbsent(
+    @Param('studentId', ParseIntPipe) studentId: number,
+    @Param('scheduleId', ParseIntPipe) scheduleId: number,
+    @CurrentUser('teacherProfile') teacherProfile: any,
+  ) {
+    if (!teacherProfile?.id) {
+      throw new BadRequestException('Perfil de docente no encontrado');
+    }
+    return this.attendanceService.markAbsent(studentId, scheduleId, teacherProfile.id);
+  }
+
+  @Get()
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  @ApiOperation({ summary: 'Listar registros de asistencia' })
+  @ApiQuery({ name: 'studentId', required: false, type: Number })
+  @ApiQuery({ name: 'scheduleId', required: false, type: Number })
+  @ApiQuery({ name: 'date', required: false, type: String })
+  async findAll(
+    @Query('studentId') studentId?: string,
+    @Query('scheduleId') scheduleId?: string,
+    @Query('date') date?: string,
+  ) {
+    return this.attendanceService.findAll({
+      studentId: studentId ? parseInt(studentId) : undefined,
+      scheduleId: scheduleId ? parseInt(scheduleId) : undefined,
+      date: date ? new Date(date) : undefined,
+    });
+  }
+
+  @Get('student/:studentId')
+  @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT, UserRole.PARENT)
+  @ApiOperation({ summary: 'Obtener asistencias de un alumno' })
+  async findByStudent(@Param('studentId', ParseIntPipe) studentId: number) {
+    return this.attendanceService.findByStudent(studentId);
+  }
+
+  @Get('student/:studentId/absences')
+  @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT, UserRole.PARENT)
+  @ApiOperation({ summary: 'Contar faltas de un alumno (últimos 30 días)' })
+  async getAbsenceCount(@Param('studentId', ParseIntPipe) studentId: number) {
+    return this.attendanceService.getStudentAbsenceCount(studentId);
+  }
+
+  @Get('red-semaphore')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Listar alumnos en Semáforo Rojo (3+ faltas)' })
+  async getRedSemaphoreStudents() {
+    return this.attendanceService.getRedSemaphoreStudents();
+  }
+}
