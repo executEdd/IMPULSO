@@ -35,7 +35,7 @@ yarn-debug.log*
 yarn-error.log*
 
 # Prisma
-/backend/prisma/migrations/
+# /backend/prisma/migrations/
 # Note: Keeping migrations is usually better, but I'll follow standard practice if they are large.
 # Actually, it's better to keep migrations. I'll comment that out.
 # /backend/prisma/migrations/
