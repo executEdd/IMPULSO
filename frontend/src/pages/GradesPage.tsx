@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Edit2, Save, X, GraduationCap, Search, Filter } from 'lucide-react';
+import { Edit2, Save, GraduationCap, Search, Filter } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
-import { Input } from '../components/common/Input';
-import { Badge } from '../components/common/Badge';
 import { Modal } from '../components/common/Modal';
 import { useToast } from '../components/common/Toast';
 import { getGradeStatusColor } from '../utils';
@@ -13,8 +11,6 @@ import { getGradeStatusColor } from '../utils';
 export const GradesPage: React.FC = () => {
   const { user, hasRole } = useAuth();
   const [grades, setGrades] = useState<any[]>([]);
-  const [students, setStudents] = useState<any[]>([]);
-  const [subjects, setSubjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPeriod, setSelectedPeriod] = useState('2024-2025');
@@ -35,11 +31,8 @@ export const GradesPage: React.FC = () => {
 
       if (hasRole(['ADMIN'])) {
         gradesData = await api.getGrades({ period: selectedPeriod });
-        const users = await api.getUsers('STUDENT');
-        setStudents(users);
       } else if (hasRole(['TEACHER']) && user?.teacherProfile?.id) {
         // Obtener materias del docente y sus calificaciones
-        const teacherSubjects = await api.getSchedules(); // Simplificado
         gradesData = await api.getGrades({ period: selectedPeriod });
         // Filtrar por materias del docente
       } else if (hasRole(['STUDENT']) && user?.studentProfile?.id) {
@@ -56,13 +49,6 @@ export const GradesPage: React.FC = () => {
       }
 
       setGrades(gradesData);
-      setSubjects([
-        { id: 1, name: 'Matemáticas IV' },
-        { id: 2, name: 'Física III' },
-        { id: 3, name: 'Programación Web' },
-        { id: 4, name: 'Base de Datos' },
-        { id: 5, name: 'Inglés IV' },
-      ]);
     } catch (error) {
       showToast('Error al cargar calificaciones', 'error');
     } finally {

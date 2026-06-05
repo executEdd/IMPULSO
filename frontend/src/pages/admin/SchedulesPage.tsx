@@ -3,6 +3,7 @@ import { Plus, Edit2, Trash2, AlertCircle, Clock, Calendar, User, BookOpen } fro
 import { api } from '../../services/api';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
+import { Badge } from '../../components/common/Badge';
 import { Input } from '../../components/common/Input';
 import { Select } from '../../components/common/Select';
 import { Modal } from '../../components/common/Modal';
@@ -38,7 +39,7 @@ export const SchedulesPage: React.FC = () => {
 
   const loadData = async () => {
     try {
-      const [schedulesData, subjectsData, teachersData, groupsData] = await Promise.all([
+      const [schedulesData, , teachersData] = await Promise.all([
         api.getSchedules(),
         api.getUsers('TEACHER'),
         api.getUsers('TEACHER'),

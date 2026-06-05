@@ -6,7 +6,7 @@ import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
 import { Modal } from '../../components/common/Modal';
 import { useToast } from '../../components/common/Toast';
-import { formatDate, getAttendanceStatusColor } from '../../utils';
+import { formatDate } from '../../utils';
 
 export const RedSemaphorePage: React.FC = () => {
   const [students, setStudents] = useState<any[]>([]);

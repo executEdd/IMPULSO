@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, User } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
 export const Header: React.FC = () => {

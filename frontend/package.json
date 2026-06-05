@@ -14,9 +14,9 @@
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.0.0",
     "axios": "^1.7.0",
-    "lucide-react": "^0.460.0",
+    "lucide-react": "^1.17.0",
     "qrcode.react": "^4.1.0",
-    "recharts": "^2.13.0",
+    "recharts": "^3.8.1",
     "date-fns": "^4.1.0",
     "clsx": "^2.1.1",
     "tailwind-merge": "^2.6.0"

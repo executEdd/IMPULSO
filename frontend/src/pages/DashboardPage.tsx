@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Users, Calendar, ClipboardList, GraduationCap, Bell,
+  Users, GraduationCap, Bell,
   TrendingUp, AlertTriangle, BookOpen, Clock
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { api } from '../services/api';
 import { Card } from '../components/common/Card';
 import { Badge } from '../components/common/Badge';
-import { getSemaphoreColor, formatDate, getDayName } from '../utils';
+import { getSemaphoreColor, formatDate } from '../utils';
 
 interface DashboardStats {
   totalUsers?: number;
@@ -141,7 +141,7 @@ export const DashboardPage: React.FC = () => {
 
       {/* Student Semaphore */}
       {hasRole(['STUDENT']) && user?.studentProfile && (
-        <Card className="border-l-4" style={{ borderLeftColor: getSemaphoreColor(user.studentProfile.semaphore).bg.replace('bg-', '') }}>
+        <Card className={`border-l-4 ${getSemaphoreColor(user.studentProfile.semaphore).bg.replace('bg-', 'border-')}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className={`w-12 h-12 rounded-full flex items-center justify-center ${getSemaphoreColor(user.studentProfile.semaphore).bg}`}>

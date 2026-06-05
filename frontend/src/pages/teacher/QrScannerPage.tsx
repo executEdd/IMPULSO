@@ -1,13 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { QrCode, CheckCircle, XCircle, Camera, Keyboard } from 'lucide-react';
+import { QrCode, CheckCircle, XCircle, Keyboard } from 'lucide-react';
 import { api } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import { Card } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
-import { Input } from '../../components/common/Input';
 import { Badge } from '../../components/common/Badge';
 import { useToast } from '../../components/common/Toast';
-import { getAttendanceStatusColor } from '../../utils';
 
 export const QrScannerPage: React.FC = () => {
   const { user } = useAuth();
@@ -66,17 +64,6 @@ export const QrScannerPage: React.FC = () => {
     } finally {
       setScanning(false);
       inputRef.current?.focus();
-    }
-  };
-
-  const handleMarkAbsent = async (studentId: number) => {
-    if (!selectedSchedule) return;
-    try {
-      const result = await api.markAbsent(studentId, selectedSchedule.id);
-      setRecentScans((prev) => [result.attendance, ...prev].slice(0, 10));
-      showToast(result.message, 'success');
-    } catch (error: any) {
-      showToast(error.response?.data?.message || 'Error al marcar falta', 'error');
     }
   };
 

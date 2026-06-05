@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Users, TrendingUp, AlertTriangle, Bell, Calendar, GraduationCap } from 'lucide-react';
+import { Users, AlertTriangle, Bell, Calendar, GraduationCap } from 'lucide-react';
 import { api } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import { Card } from '../../components/common/Card';
@@ -71,7 +71,7 @@ export const ParentDashboardPage: React.FC = () => {
         {children.map((child) => {
           const semaphore = getSemaphoreColor(child.semaphore);
           return (
-            <Card key={child.id} className="border-l-4" style={{ borderLeftColor: semaphore.bg.includes('green') ? '#22c55e' : semaphore.bg.includes('yellow') ? '#eab308' : '#ef4444' }}>
+            <Card key={child.id} className={`border-l-4 ${semaphore.bg.replace('bg-', 'border-')}`}>
               <div className="flex items-center gap-3 mb-3">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${semaphore.bg}`}>
                   {child.user?.firstName?.[0]}
