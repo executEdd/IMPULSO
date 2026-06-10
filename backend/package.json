@@ -1,8 +1,8 @@
 {
-  "name": "cbtis61-backend",
+  "name": "impulso-backend",
   "version": "1.0.0",
   "description": "Sistema de Gestión Académica CBTIS 61",
-  "author": "CBTIS 61",
+  "author": "Edgar Flores",
   "private": true,
   "license": "MIT",
   "scripts": {

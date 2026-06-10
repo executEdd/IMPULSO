@@ -30,22 +30,29 @@ export class GradesController {
   @ApiQuery({ name: 'subjectId', required: false, type: Number })
   @ApiQuery({ name: 'period', required: false, type: String })
   async findAll(
-    @Query('studentId') studentId?: string,
-    @Query('subjectId') subjectId?: string,
+    @Query('studentId', new ParseIntPipe({ optional: true })) studentId?: number,
+    @Query('subjectId', new ParseIntPipe({ optional: true })) subjectId?: number,
     @Query('period') period?: string,
   ) {
     return this.gradesService.findAll({
-      studentId: studentId ? parseInt(studentId) : undefined,
-      subjectId: subjectId ? parseInt(subjectId) : undefined,
+      studentId,
+      subjectId,
       period,
     });
   }
 
-  @Get(':id')
-  @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT, UserRole.PARENT)
-  @ApiOperation({ summary: 'Obtener calificación por ID' })
-  async findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.gradesService.findOne(id);
+  @Get('logs/all')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Obtener todos los logs de auditoría' })
+  async getAllLogs() {
+    return this.gradesService.getAllLogs();
+  }
+
+  @Get('logs/:gradeId')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Obtener logs de auditoría de una calificación' })
+  async getGradeLogs(@Param('gradeId', ParseIntPipe) gradeId: number) {
+    return this.gradesService.getGradeLogs(gradeId);
   }
 
   @Get('student/:studentId')
@@ -53,6 +60,13 @@ export class GradesController {
   @ApiOperation({ summary: 'Obtener calificaciones de un alumno' })
   async findByStudent(@Param('studentId', ParseIntPipe) studentId: number) {
     return this.gradesService.findByStudent(studentId);
+  }
+
+  @Get(':id')
+  @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT, UserRole.PARENT)
+  @ApiOperation({ summary: 'Obtener calificación por ID' })
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.gradesService.findOne(id);
   }
 
   @Put(':id')
@@ -71,19 +85,5 @@ export class GradesController {
   @ApiOperation({ summary: 'Eliminar calificación' })
   async remove(@Param('id', ParseIntPipe) id: number) {
     return this.gradesService.remove(id);
-  }
-
-  @Get('logs/:gradeId')
-  @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Obtener logs de auditoría de una calificación' })
-  async getGradeLogs(@Param('gradeId', ParseIntPipe) gradeId: number) {
-    return this.gradesService.getGradeLogs(gradeId);
-  }
-
-  @Get('logs/all')
-  @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Obtener todos los logs de auditoría' })
-  async getAllLogs() {
-    return this.gradesService.getAllLogs();
   }
 }

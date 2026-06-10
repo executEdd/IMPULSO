@@ -1,7 +1,8 @@
 import { Controller, Get, Post, Put, Body, Param, ParseIntPipe } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiOkResponse, ApiCreatedResponse, ApiNotFoundResponse, ApiBadRequestResponse } from '@nestjs/swagger';
 import { NotificationsService } from './notifications.service';
 import { CreateNotificationDto } from './dto/create-notification.dto';
+import { SendManualNotificationDto } from './dto/send-manual-notification.dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '../common/enums/roles.enum';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -15,6 +16,8 @@ export class NotificationsController {
   @Post()
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Crear notificación' })
+  @ApiCreatedResponse({ description: 'Notificación creada y registrada exitosamente.' })
+  @ApiBadRequestResponse({ description: 'Error al validar los parámetros de la notificación.' })
   async create(
     @Body() createNotificationDto: CreateNotificationDto,
     @CurrentUser('id') senderId: number,
@@ -25,6 +28,7 @@ export class NotificationsController {
   @Get()
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Listar todas las notificaciones' })
+  @ApiOkResponse({ description: 'Listado completo de todas las notificaciones registradas.' })
   async findAll() {
     return this.notificationsService.findAll();
   }
@@ -32,6 +36,7 @@ export class NotificationsController {
   @Get('my-notifications')
   @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT, UserRole.PARENT)
   @ApiOperation({ summary: 'Obtener notificaciones del usuario autenticado' })
+  @ApiOkResponse({ description: 'Listado de notificaciones dirigidas al usuario autenticado actual.' })
   async findByRecipient(
     @CurrentUser('id') recipientId: number,
     @CurrentUser('role') recipientType: string,
@@ -42,6 +47,7 @@ export class NotificationsController {
   @Get('unread-count')
   @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT, UserRole.PARENT)
   @ApiOperation({ summary: 'Contar notificaciones no leídas' })
+  @ApiOkResponse({ description: 'Número total de notificaciones pendientes de leer.' })
   async getUnreadCount(
     @CurrentUser('id') recipientId: number,
     @CurrentUser('role') recipientType: string,
@@ -52,6 +58,8 @@ export class NotificationsController {
   @Get(':id')
   @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT, UserRole.PARENT)
   @ApiOperation({ summary: 'Obtener notificación por ID' })
+  @ApiOkResponse({ description: 'Notificación encontrada.' })
+  @ApiNotFoundResponse({ description: 'Notificación no encontrada.' })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return this.notificationsService.findOne(id);
   }
@@ -59,6 +67,8 @@ export class NotificationsController {
   @Put(':id/read')
   @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT, UserRole.PARENT)
   @ApiOperation({ summary: 'Marcar notificación como leída' })
+  @ApiOkResponse({ description: 'Notificación marcada como leída exitosamente.' })
+  @ApiNotFoundResponse({ description: 'Notificación no encontrada.' })
   async markAsRead(@Param('id', ParseIntPipe) id: number) {
     return this.notificationsService.markAsRead(id);
   }
@@ -66,15 +76,17 @@ export class NotificationsController {
   @Post('send-manual')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Enviar notificación manual a padre de familia' })
+  @ApiCreatedResponse({ description: 'Notificación manual encolada y enviada correctamente.' })
+  @ApiBadRequestResponse({ description: 'Datos de envío incorrectos o canal inválido.' })
   async sendManualNotification(
-    @Body() body: { studentId: number; recipientType: string; channel: string; content: string },
+    @Body() sendManualNotificationDto: SendManualNotificationDto,
     @CurrentUser('id') senderId: number,
   ) {
     return this.notificationsService.sendManualNotification(
-      body.studentId,
-      body.recipientType,
-      body.channel,
-      body.content,
+      sendManualNotificationDto.studentId,
+      sendManualNotificationDto.recipientType,
+      sendManualNotificationDto.channel,
+      sendManualNotificationDto.content,
       senderId,
     );
   }
