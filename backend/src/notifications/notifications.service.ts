@@ -1,6 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma.service';
-import { CreateNotificationDto } from './dto/create-notification.dto';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
+import { PrismaService } from "../prisma.service";
+import { CreateNotificationDto } from "./dto/create-notification.dto";
 
 @Injectable()
 export class NotificationsService {
@@ -11,7 +15,7 @@ export class NotificationsService {
       data: {
         ...createNotificationDto,
         senderId,
-        status: 'SENT',
+        status: "SENT",
         sentAt: new Date(),
       },
       include: {
@@ -35,7 +39,7 @@ export class NotificationsService {
         },
         sender: { select: { firstName: true, lastName: true } },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 
@@ -58,7 +62,7 @@ export class NotificationsService {
         },
         sender: { select: { firstName: true, lastName: true } },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 
@@ -72,21 +76,23 @@ export class NotificationsService {
     });
 
     if (!notification) {
-      throw new NotFoundException('Notificación no encontrada');
+      throw new NotFoundException("Notificación no encontrada");
     }
 
     return notification;
   }
 
   async markAsRead(id: number) {
-    const notification = await this.prisma.notification.findUnique({ where: { id } });
+    const notification = await this.prisma.notification.findUnique({
+      where: { id },
+    });
     if (!notification) {
-      throw new NotFoundException('Notificación no encontrada');
+      throw new NotFoundException("Notificación no encontrada");
     }
 
     return this.prisma.notification.update({
       where: { id },
-      data: { status: 'READ' },
+      data: { status: "READ" },
     });
   }
 
@@ -95,7 +101,7 @@ export class NotificationsService {
       where: {
         recipientId,
         recipientType,
-        status: { not: 'READ' },
+        status: { not: "READ" },
       },
     });
   }
@@ -107,54 +113,65 @@ export class NotificationsService {
     content: string,
     senderId: number,
   ) {
-    const alert = await this.prisma.alert.create({
-      data: {
-        studentId,
-        type: 'GENERAL',
-        priority: 'MEDIUM',
-        message: content,
-      },
-    });
-
     let recipientId: number;
 
-    if (recipientType === 'PARENT') {
+    if (recipientType === "PARENT") {
       const student = await this.prisma.studentProfile.findUnique({
         where: { id: studentId },
         select: { parentId: true },
       });
-      if (!student?.parentId) {
-        throw new NotFoundException('El alumno no tiene tutor asignado');
+      if (!student) {
+        throw new NotFoundException("Alumno no encontrado");
+      }
+      if (!student.parentId) {
+        throw new NotFoundException("El alumno no tiene tutor asignado");
       }
       const parent = await this.prisma.parentProfile.findUnique({
         where: { id: student.parentId },
         select: { userId: true },
       });
-      recipientId = parent!.userId;
-    } else if (recipientType === 'STUDENT') {
+      if (!parent) {
+        throw new NotFoundException("Perfil de tutor no encontrado");
+      }
+      recipientId = parent.userId;
+    } else if (recipientType === "STUDENT") {
       const student = await this.prisma.studentProfile.findUnique({
         where: { id: studentId },
         select: { userId: true },
       });
-      recipientId = student!.userId;
+      if (!student) {
+        throw new NotFoundException("Perfil de alumno no encontrado");
+      }
+      recipientId = student.userId;
     } else {
-      throw new NotFoundException('Tipo de destinatario no válido');
+      throw new BadRequestException("Tipo de destinatario no válido");
     }
 
-    return this.prisma.notification.create({
-      data: {
-        alertId: alert.id,
-        senderId,
-        recipientType,
-        recipientId,
-        channel,
-        status: 'SENT',
-        content,
-        sentAt: new Date(),
-      },
-      include: {
-        alert: true,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const alert = await tx.alert.create({
+        data: {
+          studentId,
+          type: "GENERAL",
+          priority: "MEDIUM",
+          message: content,
+        },
+      });
+
+      return tx.notification.create({
+        data: {
+          alertId: alert.id,
+          senderId,
+          recipientType,
+          recipientId,
+          channel,
+          status: "SENT",
+          content,
+          sentAt: new Date(),
+        },
+        include: {
+          alert: true,
+        },
+      });
     });
   }
 }

@@ -1,6 +1,6 @@
-import { Module } from '@nestjs/common';
-import { SchedulesService } from './schedules.service';
-import { SchedulesController } from './schedules.controller';
+import { Module } from "@nestjs/common";
+import { SchedulesService } from "./schedules.service";
+import { SchedulesController } from "./schedules.controller";
 
 @Module({
   providers: [SchedulesService],

@@ -1,10 +1,16 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
-import * as bcrypt from 'bcryptjs';
-import { PrismaService } from '../prisma.service';
-import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+  BadRequestException,
+} from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import { ConfigService } from "@nestjs/config";
+import * as bcrypt from "bcryptjs";
+import { PrismaService } from "../prisma.service";
+import { LoginDto } from "./dto/login.dto";
+import { RegisterDto } from "./dto/register.dto";
+import { UserRole } from "../common/enums/roles.enum";
 
 @Injectable()
 export class AuthService {
@@ -17,7 +23,7 @@ export class AuthService {
   async validateUser(email: string, password: string) {
     console.log(`[AuthService] Validando usuario: ${email}`);
     const user = await this.prisma.user.findUnique({ where: { email } });
-    
+
     if (!user) {
       console.log(`[AuthService] Usuario no encontrado: ${email}`);
       return null;
@@ -25,29 +31,29 @@ export class AuthService {
 
     console.log(`[AuthService] Usuario encontrado, comparando contraseñas...`);
     const isPasswordValid = await bcrypt.compare(password, user.password);
-    
+
     if (!isPasswordValid) {
       console.log(`[AuthService] Contraseña inválida para: ${email}`);
-      // Log temporal para ver si hay un error de tipeo (borrar en prod)
-      console.log(`[AuthService] Intentó con: "${password}"`);
       return null;
     }
 
     console.log(`[AuthService] Login exitoso para: ${email}`);
-    const { password: _, ...result } = user;
+    const result = { ...user };
+    delete (result as any).password;
     return result;
   }
 
   async login(loginDto: LoginDto) {
     const user = await this.validateUser(loginDto.email, loginDto.password);
     if (!user) {
-      throw new UnauthorizedException('Credenciales inválidas');
+      throw new UnauthorizedException("Credenciales inválidas");
     }
 
     const payload = { sub: user.id, email: user.email, role: user.role };
     const accessToken = this.jwtService.sign(payload, {
-      secret: this.configService.get<string>('JWT_SECRET'),
-      expiresIn: (this.configService.get<string>('JWT_EXPIRATION') || '24h') as any,
+      secret: this.configService.get<string>("JWT_SECRET"),
+      expiresIn: (this.configService.get<string>("JWT_EXPIRATION") ||
+        "24h") as any,
     });
 
     return {
@@ -63,12 +69,21 @@ export class AuthService {
   }
 
   async register(registerDto: RegisterDto) {
+    if (
+      registerDto.role === UserRole.ADMIN ||
+      registerDto.role === UserRole.TEACHER
+    ) {
+      throw new BadRequestException(
+        "No está permitido registrarse con este rol",
+      );
+    }
+
     const existingUser = await this.prisma.user.findUnique({
       where: { email: registerDto.email },
     });
 
     if (existingUser) {
-      throw new ConflictException('El correo electrónico ya está registrado');
+      throw new ConflictException("El correo electrónico ya está registrado");
     }
 
     const hashedPassword = await bcrypt.hash(registerDto.password, 12);
@@ -93,7 +108,7 @@ export class AuthService {
     });
 
     return {
-      message: 'Usuario registrado exitosamente',
+      message: "Usuario registrado exitosamente",
       user,
     };
   }
@@ -139,7 +154,7 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('Usuario no encontrado');
+      throw new UnauthorizedException("Usuario no encontrado");
     }
 
     return user;

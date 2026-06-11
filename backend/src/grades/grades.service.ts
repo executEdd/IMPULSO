@@ -1,15 +1,60 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { GradeStatus } from '@prisma/client';
-import { PrismaService } from '../prisma.service';
-import { CreateGradeDto } from './dto/create-grade.dto';
-import { UpdateGradeDto } from './dto/update-grade.dto';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from "@nestjs/common";
+import { GradeStatus } from "@prisma/client";
+import { PrismaService } from "../prisma.service";
+import { CreateGradeDto } from "./dto/create-grade.dto";
+import { UpdateGradeDto } from "./dto/update-grade.dto";
 
 @Injectable()
 export class GradesService {
   constructor(private prisma: PrismaService) {}
 
-  private calculateFinalGrade(partial1?: number, partial2?: number, partial3?: number): number | null {
-    const grades = [partial1, partial2, partial3].filter((g) => g !== undefined && g !== null);
+  async verifyStudentAccess(user: any, studentId: number) {
+    if (user.role === "ADMIN" || user.role === "TEACHER") {
+      return;
+    }
+    if (user.role === "STUDENT") {
+      if (user.studentProfile?.id !== studentId) {
+        throw new ForbiddenException(
+          "No autorizado para acceder a este alumno",
+        );
+      }
+      return;
+    }
+    if (user.role === "PARENT") {
+      if (!user.parentProfile) {
+        throw new ForbiddenException(
+          "No autorizado: Perfil de tutor no encontrado",
+        );
+      }
+      const child = await this.prisma.studentProfile.findFirst({
+        where: {
+          id: studentId,
+          parentId: user.parentProfile.id,
+        },
+      });
+      if (!child) {
+        throw new ForbiddenException(
+          "No autorizado para acceder a este alumno (no es su tutorado)",
+        );
+      }
+      return;
+    }
+    throw new ForbiddenException("Rol no reconocido");
+  }
+
+  private calculateFinalGrade(
+    partial1?: number,
+    partial2?: number,
+    partial3?: number,
+  ): number | null {
+    const grades = [partial1, partial2, partial3].filter(
+      (g) => g !== undefined && g !== null,
+    );
     if (grades.length === 0) return null;
     const sum = grades.reduce((acc, g) => acc + g, 0);
     return parseFloat((sum / grades.length).toFixed(2));
@@ -29,8 +74,10 @@ export class GradesService {
     oldValue: string | null,
     newValue: string | null,
     action: string,
+    tx?: any,
   ) {
-    await this.prisma.gradeLog.create({
+    const client = tx || this.prisma;
+    await client.gradeLog.create({
       data: {
         gradeId,
         userId,
@@ -43,7 +90,8 @@ export class GradesService {
   }
 
   async create(createGradeDto: CreateGradeDto, userId: number) {
-    const { studentId, subjectId, partial1, partial2, partial3, period } = createGradeDto;
+    const { studentId, subjectId, partial1, partial2, partial3, period } =
+      createGradeDto;
 
     // Verificar que no exista ya una calificación para este estudiante, materia y periodo
     const existing = await this.prisma.grade.findUnique({
@@ -57,41 +105,57 @@ export class GradesService {
     });
 
     if (existing) {
-      throw new BadRequestException('Ya existe una calificación para este alumno, materia y periodo');
+      throw new BadRequestException(
+        "Ya existe una calificación para este alumno, materia y periodo",
+      );
     }
 
     const finalGrade = this.calculateFinalGrade(partial1, partial2, partial3);
     const status = this.determineStatus(finalGrade);
 
-    const grade = await this.prisma.grade.create({
-      data: {
-        studentId,
-        subjectId,
-        partial1,
-        partial2,
-        partial3,
-        finalGrade,
-        status,
-        period,
-      },
-      include: {
-        student: {
-          include: {
-            user: { select: { firstName: true, lastName: true } },
-            group: true,
-          },
+    return this.prisma.$transaction(async (tx) => {
+      const grade = await tx.grade.create({
+        data: {
+          studentId,
+          subjectId,
+          partial1,
+          partial2,
+          partial3,
+          finalGrade,
+          status,
+          period,
         },
-        subject: true,
-      },
+        include: {
+          student: {
+            include: {
+              user: { select: { firstName: true, lastName: true } },
+              group: true,
+            },
+          },
+          subject: true,
+        },
+      });
+
+      // AUDIT LOG: Registrar creación de calificación dentro de la transacción
+      await this.createGradeLog(
+        grade.id,
+        userId,
+        "ALL_FIELDS",
+        null,
+        JSON.stringify({ partial1, partial2, partial3, finalGrade, status }),
+        "CREATE",
+        tx,
+      );
+
+      return grade;
     });
-
-    // AUDIT LOG: Registrar creación de calificación
-    await this.createGradeLog(grade.id, userId, 'ALL_FIELDS', null, JSON.stringify({ partial1, partial2, partial3, finalGrade, status }), 'CREATE');
-
-    return grade;
   }
 
-  async findAll(filters?: { studentId?: number; subjectId?: number; period?: string }) {
+  async findAll(filters?: {
+    studentId?: number;
+    subjectId?: number;
+    period?: string;
+  }) {
     const where: any = {};
     if (filters?.studentId) where.studentId = filters.studentId;
     if (filters?.subjectId) where.subjectId = filters.subjectId;
@@ -111,10 +175,10 @@ export class GradesService {
           include: {
             user: { select: { firstName: true, lastName: true } },
           },
-          orderBy: { timestamp: 'desc' },
+          orderBy: { timestamp: "desc" },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 
@@ -133,13 +197,13 @@ export class GradesService {
           include: {
             user: { select: { firstName: true, lastName: true } },
           },
-          orderBy: { timestamp: 'desc' },
+          orderBy: { timestamp: "desc" },
         },
       },
     });
 
     if (!grade) {
-      throw new NotFoundException('Calificación no encontrada');
+      throw new NotFoundException("Calificación no encontrada");
     }
 
     return grade;
@@ -154,121 +218,153 @@ export class GradesService {
           include: {
             user: { select: { firstName: true, lastName: true } },
           },
-          orderBy: { timestamp: 'desc' },
+          orderBy: { timestamp: "desc" },
         },
       },
-      orderBy: { period: 'desc' },
+      orderBy: { period: "desc" },
     });
   }
 
   async update(id: number, updateGradeDto: UpdateGradeDto, userId: number) {
     const existing = await this.prisma.grade.findUnique({ where: { id } });
     if (!existing) {
-      throw new NotFoundException('Calificación no encontrada');
+      throw new NotFoundException("Calificación no encontrada");
     }
 
     const updateData: any = {};
 
-    // Verificar cambios y registrar logs de auditoría
-    if (updateGradeDto.partial1 !== undefined && updateGradeDto.partial1 !== existing.partial1) {
-      await this.createGradeLog(
-        id,
-        userId,
-        'partial1',
-        existing.partial1?.toString() || null,
-        updateGradeDto.partial1.toString(),
-        'UPDATE',
-      );
-      updateData.partial1 = updateGradeDto.partial1;
-    }
-
-    if (updateGradeDto.partial2 !== undefined && updateGradeDto.partial2 !== existing.partial2) {
-      await this.createGradeLog(
-        id,
-        userId,
-        'partial2',
-        existing.partial2?.toString() || null,
-        updateGradeDto.partial2.toString(),
-        'UPDATE',
-      );
-      updateData.partial2 = updateGradeDto.partial2;
-    }
-
-    if (updateGradeDto.partial3 !== undefined && updateGradeDto.partial3 !== existing.partial3) {
-      await this.createGradeLog(
-        id,
-        userId,
-        'partial3',
-        existing.partial3?.toString() || null,
-        updateGradeDto.partial3.toString(),
-        'UPDATE',
-      );
-      updateData.partial3 = updateGradeDto.partial3;
-    }
-
-    // Recalcular calificación final y estatus si hubo cambios
-    if (Object.keys(updateData).length > 0) {
-      const newPartial1 = updateData.partial1 !== undefined ? updateData.partial1 : existing.partial1;
-      const newPartial2 = updateData.partial2 !== undefined ? updateData.partial2 : existing.partial2;
-      const newPartial3 = updateData.partial3 !== undefined ? updateData.partial3 : existing.partial3;
-
-      const finalGrade = this.calculateFinalGrade(newPartial1, newPartial2, newPartial3);
-      const status = this.determineStatus(finalGrade);
-
-      if (finalGrade !== existing.finalGrade) {
+    return this.prisma.$transaction(async (tx) => {
+      // Verificar cambios y registrar logs de auditoría dentro de la transacción
+      if (
+        updateGradeDto.partial1 !== undefined &&
+        updateGradeDto.partial1 !== existing.partial1
+      ) {
         await this.createGradeLog(
           id,
           userId,
-          'finalGrade',
-          existing.finalGrade?.toString() || null,
-          finalGrade?.toString() || null,
-          'UPDATE',
+          "partial1",
+          existing.partial1?.toString() || null,
+          updateGradeDto.partial1.toString(),
+          "UPDATE",
+          tx,
         );
-        updateData.finalGrade = finalGrade;
+        updateData.partial1 = updateGradeDto.partial1;
       }
 
-      if (status !== existing.status) {
+      if (
+        updateGradeDto.partial2 !== undefined &&
+        updateGradeDto.partial2 !== existing.partial2
+      ) {
         await this.createGradeLog(
           id,
           userId,
-          'status',
-          existing.status,
-          status,
-          'UPDATE',
+          "partial2",
+          existing.partial2?.toString() || null,
+          updateGradeDto.partial2.toString(),
+          "UPDATE",
+          tx,
         );
-        updateData.status = status;
+        updateData.partial2 = updateGradeDto.partial2;
       }
-    }
 
-    return this.prisma.grade.update({
-      where: { id },
-      data: updateData,
-      include: {
-        student: {
-          include: {
-            user: { select: { firstName: true, lastName: true } },
-            group: true,
+      if (
+        updateGradeDto.partial3 !== undefined &&
+        updateGradeDto.partial3 !== existing.partial3
+      ) {
+        await this.createGradeLog(
+          id,
+          userId,
+          "partial3",
+          existing.partial3?.toString() || null,
+          updateGradeDto.partial3.toString(),
+          "UPDATE",
+          tx,
+        );
+        updateData.partial3 = updateGradeDto.partial3;
+      }
+
+      // Recalcular calificación final y estatus si hubo cambios
+      if (Object.keys(updateData).length > 0) {
+        const newPartial1 =
+          updateData.partial1 !== undefined
+            ? updateData.partial1
+            : existing.partial1;
+        const newPartial2 =
+          updateData.partial2 !== undefined
+            ? updateData.partial2
+            : existing.partial2;
+        const newPartial3 =
+          updateData.partial3 !== undefined
+            ? updateData.partial3
+            : existing.partial3;
+
+        const finalGrade = this.calculateFinalGrade(
+          newPartial1,
+          newPartial2,
+          newPartial3,
+        );
+        const status = this.determineStatus(finalGrade);
+
+        if (finalGrade !== existing.finalGrade) {
+          await this.createGradeLog(
+            id,
+            userId,
+            "finalGrade",
+            existing.finalGrade?.toString() || null,
+            finalGrade?.toString() || null,
+            "UPDATE",
+            tx,
+          );
+          updateData.finalGrade = finalGrade;
+        }
+
+        if (status !== existing.status) {
+          await this.createGradeLog(
+            id,
+            userId,
+            "status",
+            existing.status,
+            status,
+            "UPDATE",
+            tx,
+          );
+          updateData.status = status;
+        }
+      }
+
+      return tx.grade.update({
+        where: { id },
+        data: updateData,
+        include: {
+          student: {
+            include: {
+              user: { select: { firstName: true, lastName: true } },
+              group: true,
+            },
+          },
+          subject: true,
+          logs: {
+            include: {
+              user: { select: { firstName: true, lastName: true } },
+            },
+            orderBy: { timestamp: "desc" },
           },
         },
-        subject: true,
-        logs: {
-          include: {
-            user: { select: { firstName: true, lastName: true } },
-          },
-          orderBy: { timestamp: 'desc' },
-        },
-      },
+      });
     });
   }
 
   async remove(id: number) {
     const existing = await this.prisma.grade.findUnique({ where: { id } });
     if (!existing) {
-      throw new NotFoundException('Calificación no encontrada');
+      throw new NotFoundException("Calificación no encontrada");
     }
 
-    await this.prisma.grade.delete({ where: { id } });
-    return { message: 'Calificación eliminada exitosamente' };
+    await this.prisma.$transaction(async (tx) => {
+      await tx.gradeLog.deleteMany({ where: { gradeId: id } });
+      await tx.grade.delete({ where: { id } });
+    });
+    return { message: "Calificación eliminada exitosamente" };
   }
 
   async getGradeLogs(gradeId: number) {
@@ -287,7 +383,7 @@ export class GradesService {
           },
         },
       },
-      orderBy: { timestamp: 'desc' },
+      orderBy: { timestamp: "desc" },
     });
   }
 
@@ -306,7 +402,7 @@ export class GradesService {
           },
         },
       },
-      orderBy: { timestamp: 'desc' },
+      orderBy: { timestamp: "desc" },
       take: 100,
     });
   }

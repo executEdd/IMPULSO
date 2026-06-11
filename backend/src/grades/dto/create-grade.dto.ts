@@ -1,4 +1,12 @@
-import { IsInt, IsNumber, IsString, IsOptional, IsNotEmpty, Min, Max } from 'class-validator';
+import {
+  IsInt,
+  IsNumber,
+  IsString,
+  IsOptional,
+  IsNotEmpty,
+  Min,
+  Max,
+} from "class-validator";
 
 export class CreateGradeDto {
   @IsInt()

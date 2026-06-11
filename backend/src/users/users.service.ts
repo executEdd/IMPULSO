@@ -1,9 +1,13 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
-import * as bcrypt from 'bcryptjs';
-import { PrismaService } from '../prisma.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { UserRole } from '../common/enums/roles.enum';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from "@nestjs/common";
+import * as bcrypt from "bcryptjs";
+import { PrismaService } from "../prisma.service";
+import { CreateUserDto } from "./dto/create-user.dto";
+import { UpdateUserDto } from "./dto/update-user.dto";
+import { UserRole } from "../common/enums/roles.enum";
 
 @Injectable()
 export class UsersService {
@@ -28,7 +32,7 @@ export class UsersService {
         },
         parentProfile: true,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     });
   }
 
@@ -50,7 +54,9 @@ export class UsersService {
             group: true,
             parent: {
               include: {
-                user: { select: { firstName: true, lastName: true, email: true } },
+                user: {
+                  select: { firstName: true, lastName: true, email: true },
+                },
               },
             },
           },
@@ -69,7 +75,7 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException('Usuario no encontrado');
+      throw new NotFoundException("Usuario no encontrado");
     }
 
     return user;
@@ -81,12 +87,22 @@ export class UsersService {
     });
 
     if (existingUser) {
-      throw new ConflictException('El correo electrónico ya está registrado');
+      throw new ConflictException("El correo electrónico ya está registrado");
     }
 
     const hashedPassword = await bcrypt.hash(createUserDto.password, 12);
 
-    const { password, role, employeeId, enrollmentId, phone, specialty, groupId, parentId, ...userData } = createUserDto;
+    const {
+      role,
+      employeeId,
+      enrollmentId,
+      phone,
+      specialty,
+      groupId,
+      parentId,
+      ...userData
+    } = createUserDto;
+    delete (userData as any).password;
 
     const user = await this.prisma.user.create({
       data: {
@@ -94,14 +110,16 @@ export class UsersService {
         password: hashedPassword,
         role,
         ...(role === UserRole.ADMIN && {
-          adminProfile: { create: { position: 'Administrador', phone: phone || '' } },
+          adminProfile: {
+            create: { position: "Administrador", phone: phone || "" },
+          },
         }),
         ...(role === UserRole.TEACHER && {
           teacherProfile: {
             create: {
               employeeId: employeeId || `EMP-${Date.now()}`,
-              specialty: specialty || '',
-              phone: phone || '',
+              specialty: specialty || "",
+              phone: phone || "",
             },
           },
         }),
@@ -117,7 +135,7 @@ export class UsersService {
         ...(role === UserRole.PARENT && {
           parentProfile: {
             create: {
-              phone: phone || '',
+              phone: phone || "",
             },
           },
         }),
@@ -139,7 +157,7 @@ export class UsersService {
   async update(id: number, updateUserDto: UpdateUserDto) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) {
-      throw new NotFoundException('Usuario no encontrado');
+      throw new NotFoundException("Usuario no encontrado");
     }
 
     const data: any = { ...updateUserDto };
@@ -165,11 +183,11 @@ export class UsersService {
   async remove(id: number) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) {
-      throw new NotFoundException('Usuario no encontrado');
+      throw new NotFoundException("Usuario no encontrado");
     }
 
     await this.prisma.user.delete({ where: { id } });
-    return { message: 'Usuario eliminado exitosamente' };
+    return { message: "Usuario eliminado exitosamente" };
   }
 
   async findByRole(role: UserRole) {
@@ -182,7 +200,8 @@ export class UsersService {
         lastName: true,
         role: true,
         teacherProfile: role === UserRole.TEACHER,
-        studentProfile: role === UserRole.STUDENT ? { include: { group: true } } : false,
+        studentProfile:
+          role === UserRole.STUDENT ? { include: { group: true } } : false,
         parentProfile: role === UserRole.PARENT,
       },
     });

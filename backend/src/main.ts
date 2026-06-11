@@ -9,13 +9,18 @@ import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Seguridad (Desactivado temporalmente para depuración)
-  // app.use(helmet());
-  // app.use(compression());
+  // Seguridad
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+    }),
+  );
+  app.use(compression());
 
-  // CORS - Permitir todo en desarrollo
+  // CORS - Configuración segura
+  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
   app.enableCors({
-    origin: true,
+    origin: process.env.NODE_ENV === "production" ? frontendUrl : true,
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
     credentials: true,
   });
@@ -27,6 +32,9 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  // Filtros globales
+  app.useGlobalFilters(new HttpExceptionFilter());
 
   // Prefijo global
   app.setGlobalPrefix("api");
@@ -54,7 +62,7 @@ async function bootstrap() {
   const port = process.env.PORT || 3000;
   await app.listen(port);
 
-  console.log(`Servidor corriendo en: http://localhost:${port}/api`);
+  console.log(`Servidor ,corriendo en: http://localhost:${port}/api`);
 }
 
 bootstrap();
