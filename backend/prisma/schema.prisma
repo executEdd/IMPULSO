@@ -191,19 +191,21 @@ model Semester {
 }
 
 model Attendance {
-  id        Int              @id @default(autoincrement())
-  studentId Int
-  classId   Int
-  date      DateTime         @default(now())
-  status    AttendanceStatus
-  qrToken   String?
-  notes     String?
-  createdAt DateTime         @default(now())
+  id              Int              @id @default(autoincrement())
+  studentId       Int
+  classId         Int
+  classScheduleId Int
+  date            DateTime         @default(now())
+  status          AttendanceStatus
+  qrToken         String?
+  notes           String?
+  createdAt       DateTime         @default(now())
 
-  student StudentProfile @relation(fields: [studentId], references: [id])
-  classes Class          @relation(fields: [classId], references: [id])
+  student       StudentProfile @relation(fields: [studentId], references: [id])
+  classes       Class          @relation(fields: [classId], references: [id])
+  classSchedule ClassSchedule  @relation(fields: [classScheduleId], references: [id])
 
-  @@unique([studentId, classId, date])
+  @@unique([studentId, classScheduleId, date])
   @@map("attendances")
 }
 
@@ -315,8 +317,9 @@ model ClassSchedule {
   startTime   String
   endTime     String
   //Referencias
-  class       Class      @relation(fields: [classId], references: [id])
-  classroom   Classroom? @relation(fields: [classroomId], references: [id])
+  class       Class        @relation(fields: [classId], references: [id])
+  classroom   Classroom?   @relation(fields: [classroomId], references: [id])
+  attendances Attendance[]
 
   @@map("classes_schedules")
 }

@@ -11,24 +11,34 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("Iniciando seed de datos...");
 
-  // Limpiar datos existentes (en orden inverso de dependencias para evitar errores de FK)
-  await prisma.gradeLog.deleteMany();
-  await prisma.notification.deleteMany();
-  await prisma.alert.deleteMany();
-  await prisma.grade.deleteMany();
-  await prisma.attendance.deleteMany();
-  await prisma.classSchedule.deleteMany();
-  await prisma.class.deleteMany();
-  await prisma.classroom.deleteMany();
-  await prisma.semester.deleteMany();
-  await prisma.schoolCycle.deleteMany();
-  await prisma.studentProfile.deleteMany();
-  await prisma.parentProfile.deleteMany();
-  await prisma.teacherProfile.deleteMany();
-  await prisma.adminProfile.deleteMany();
-  await prisma.subject.deleteMany();
-  await prisma.group.deleteMany();
-  await prisma.user.deleteMany();
+  // Safe cleanup for the old schedules table if it still exists in the database (outside transaction to avoid aborting it)
+  try {
+    await prisma.$executeRawUnsafe('DELETE FROM "schedules";');
+  } catch (error) {
+    // If the table schedules does not exist, ignore error
+  }
+
+  // Limpiar datos existentes (en una sola transacción para evitar problemas con el pooler de Supabase)
+  await prisma.$transaction(async (tx) => {
+    await tx.gradeLog.deleteMany();
+    await tx.notification.deleteMany();
+    await tx.alert.deleteMany();
+    await tx.grade.deleteMany();
+    await tx.attendance.deleteMany();
+
+    await tx.classSchedule.deleteMany();
+    await tx.class.deleteMany();
+    await tx.classroom.deleteMany();
+    await tx.semester.deleteMany();
+    await tx.schoolCycle.deleteMany();
+    await tx.studentProfile.deleteMany();
+    await tx.parentProfile.deleteMany();
+    await tx.teacherProfile.deleteMany();
+    await tx.adminProfile.deleteMany();
+    await tx.subject.deleteMany();
+    await tx.group.deleteMany();
+    await tx.user.deleteMany();
+  });
 
   console.log("Base de datos limpia");
 
@@ -211,6 +221,7 @@ async function main() {
   console.log("Materias creadas");
 
   // 6. Crear Usuarios Base
+  await prisma.$executeRawUnsafe('ALTER SEQUENCE users_id_seq RESTART WITH 1;');
   const adminPassword = await bcrypt.hash("admin123", 12);
   const teacherPassword = await bcrypt.hash("teacher123", 12);
   const studentPassword = await bcrypt.hash("student123", 12);

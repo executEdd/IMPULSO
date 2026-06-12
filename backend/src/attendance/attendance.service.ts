@@ -220,7 +220,7 @@ export class AttendanceService {
       const existingAttendance = await tx.attendance.findFirst({
         where: {
           studentId: student.id,
-          classId: schedule.class.id,
+          classScheduleId: qrScanDto.classScheduleId,
           date: {
             gte: todayStart,
             lt: todayEnd,
@@ -230,7 +230,7 @@ export class AttendanceService {
 
       if (existingAttendance) {
         throw new BadRequestException(
-          "La asistencia de este alumno ya fue registrada para esta clase hoy",
+          "La asistencia de este alumno ya fue registrada para este bloque de clase hoy",
         );
       }
       await tx.studentProfile.update({
@@ -245,6 +245,7 @@ export class AttendanceService {
         data: {
           studentId: student.id,
           classId: schedule.class.id,
+          classScheduleId: schedule.id,
           status: AttendanceStatus.PRESENT,
           qrToken: qrScanDto.qrToken,
           notes: `Registrado por QR a las ${currentTime}`,
@@ -334,14 +335,14 @@ export class AttendanceService {
       const existing = await tx.attendance.findFirst({
         where: {
           studentId,
-          classId: schedule.class.id,
+          classScheduleId: classScheduleId,
           date: { gte: todayStart, lt: todayEnd },
         },
       });
 
       if (existing) {
         throw new BadRequestException(
-          "Ya existe un registro para este alumno hoy",
+          "Ya existe un registro de asistencia para este alumno en este bloque hoy",
         );
       }
       // Registrar falta
@@ -349,6 +350,7 @@ export class AttendanceService {
         data: {
           studentId,
           classId: schedule.class.id,
+          classScheduleId: schedule.id,
           status: AttendanceStatus.ABSENT,
           notes: `Falta registrada manualmente por docente a las ${currentTime}`,
         },
