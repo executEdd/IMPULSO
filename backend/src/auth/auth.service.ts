@@ -21,23 +21,18 @@ export class AuthService {
   ) {}
 
   async validateUser(email: string, password: string) {
-    console.log(`[AuthService] Validando usuario: ${email}`);
     const user = await this.prisma.user.findUnique({ where: { email } });
 
     if (!user) {
-      console.log(`[AuthService] Usuario no encontrado: ${email}`);
       return null;
     }
 
-    console.log(`[AuthService] Usuario encontrado, comparando contraseñas...`);
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
-      console.log(`[AuthService] Contraseña inválida para: ${email}`);
       return null;
     }
 
-    console.log(`[AuthService] Login exitoso para: ${email}`);
     const result = { ...user };
     delete (result as any).password;
     return result;

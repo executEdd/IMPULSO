@@ -16,7 +16,6 @@ import {
   ApiOkResponse,
   ApiCreatedResponse,
   ApiNotFoundResponse,
-  ApiConflictResponse,
   ApiQuery,
   ApiBadRequestResponse,
 } from "@nestjs/swagger";
@@ -35,14 +34,13 @@ export class SchedulesController {
 
   @Post()
   @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: "Crear horario (con validación de conflictos)" })
-  @ApiCreatedResponse({ description: "Horario creado exitosamente." })
-  @ApiBadRequestResponse({
-    description: "Error en la validación de los datos enviados.",
+  @ApiOperation({
+    summary: "Crear horario de clase (con validación de conflictos)",
   })
-  @ApiConflictResponse({
+  @ApiCreatedResponse({ description: "Horario de clase creado exitosamente." })
+  @ApiBadRequestResponse({
     description:
-      "Conflicto de horario: El docente o el grupo ya tienen una clase asignada en ese bloque.",
+      "Error en la validación de los datos enviados o conflicto detectado.",
   })
   async create(@Body() createScheduleDto: CreateScheduleDto) {
     return this.schedulesService.create(createScheduleDto);
@@ -50,9 +48,9 @@ export class SchedulesController {
 
   @Get()
   @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT, UserRole.PARENT)
-  @ApiOperation({ summary: "Listar todos los horarios" })
+  @ApiOperation({ summary: "Listar todos los horarios de clases" })
   @ApiOkResponse({
-    description: "Listado completo de horarios de la institución.",
+    description: "Listado completo de bloques de horario de la institución.",
   })
   async findAll() {
     return this.schedulesService.findAll();
@@ -60,7 +58,7 @@ export class SchedulesController {
 
   @Get(":id")
   @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT, UserRole.PARENT)
-  @ApiOperation({ summary: "Obtener horario por ID" })
+  @ApiOperation({ summary: "Obtener un bloque de horario por ID" })
   @ApiOkResponse({ description: "Horario encontrado." })
   @ApiNotFoundResponse({ description: "Horario no encontrado." })
   async findOne(@Param("id", ParseIntPipe) id: number) {
@@ -69,7 +67,9 @@ export class SchedulesController {
 
   @Get("teacher/:teacherId")
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
-  @ApiOperation({ summary: "Obtener horarios de un docente" })
+  @ApiOperation({
+    summary: "Obtener horarios de clases asignados a un docente",
+  })
   @ApiOkResponse({ description: "Horarios asignados al docente recuperados." })
   async findByTeacher(@Param("teacherId", ParseIntPipe) teacherId: number) {
     return this.schedulesService.findByTeacher(teacherId);
@@ -77,7 +77,7 @@ export class SchedulesController {
 
   @Get("group/:groupId")
   @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT, UserRole.PARENT)
-  @ApiOperation({ summary: "Obtener horarios de un grupo" })
+  @ApiOperation({ summary: "Obtener horarios de clases asignados a un grupo" })
   @ApiOkResponse({
     description: "Horarios asignados al grupo de alumnos recuperados.",
   })
@@ -92,14 +92,10 @@ export class SchedulesController {
   @Put(":id")
   @Roles(UserRole.ADMIN)
   @ApiOperation({
-    summary: "Actualizar horario (con validación de conflictos)",
+    summary: "Actualizar un bloque de horario (con validación de conflictos)",
   })
   @ApiOkResponse({ description: "Horario actualizado exitosamente." })
   @ApiNotFoundResponse({ description: "Horario no encontrado." })
-  @ApiConflictResponse({
-    description:
-      "Conflicto de horario: La actualización colisiona con otra clase del docente o grupo.",
-  })
   async update(
     @Param("id", ParseIntPipe) id: number,
     @Body() updateScheduleDto: UpdateScheduleDto,
@@ -109,7 +105,7 @@ export class SchedulesController {
 
   @Delete(":id")
   @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: "Eliminar horario" })
+  @ApiOperation({ summary: "Eliminar bloque de horario" })
   @ApiOkResponse({ description: "Horario eliminado correctamente." })
   @ApiNotFoundResponse({ description: "Horario no encontrado." })
   async remove(@Param("id", ParseIntPipe) id: number) {
@@ -119,8 +115,7 @@ export class SchedulesController {
   @Get("check-conflicts")
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: "Verificar conflictos de horario antes de guardar" })
-  @ApiQuery({ name: "teacherId", type: Number, description: "ID del docente" })
-  @ApiQuery({ name: "groupId", type: Number, description: "ID del grupo" })
+  @ApiQuery({ name: "classId", type: Number, description: "ID de la clase" })
   @ApiQuery({
     name: "dayOfWeek",
     type: String,
@@ -136,23 +131,30 @@ export class SchedulesController {
     type: String,
     description: "Hora de fin en formato HH:mm",
   })
+  @ApiQuery({
+    name: "classroomId",
+    type: Number,
+    required: false,
+    description: "ID del aula (opcional)",
+  })
   @ApiOkResponse({
     description:
       "Verificación completada. Retorna información sobre si existe colisión.",
   })
   async checkConflicts(
-    @Query("teacherId", ParseIntPipe) teacherId: number,
-    @Query("groupId", ParseIntPipe) groupId: number,
+    @Query("classId", ParseIntPipe) classId: number,
     @Query("dayOfWeek") dayOfWeek: string,
     @Query("startTime") startTime: string,
     @Query("endTime") endTime: string,
+    @Query("classroomId", new ParseIntPipe({ optional: true }))
+    classroomId?: number,
   ) {
     return this.schedulesService.checkConflicts(
-      teacherId,
-      groupId,
+      classId,
       dayOfWeek,
       startTime,
       endTime,
+      classroomId,
     );
   }
 }

@@ -74,14 +74,14 @@ model User {
   studentProfile StudentProfile?
   parentProfile  ParentProfile?
   gradeLogs      GradeLog[]
-  notifications  Notification[] @relation("NotificationSender")
+  notifications  Notification[]  @relation("NotificationSender")
 
   @@map("users")
 }
 
 model AdminProfile {
-  id       Int    @id @default(autoincrement())
-  userId   Int    @unique
+  id       Int     @id @default(autoincrement())
+  userId   Int     @unique
   position String
   phone    String?
 
@@ -97,9 +97,9 @@ model TeacherProfile {
   specialty  String?
   phone      String?
 
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  schedules Schedule[]
-  subjects  Subject[]
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjects Subject[]
+  class    Class[]
 
   @@map("teacher_profiles")
 }
@@ -114,22 +114,22 @@ model StudentProfile {
   qrExpiresAt  DateTime?
   semaphore    SemaphoreStatus @default(GREEN)
 
-  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  group      Group        @relation(fields: [groupId], references: [id])
-  parent     ParentProfile @relation(fields: [parentId], references: [id])
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group       Group         @relation(fields: [groupId], references: [id])
+  parent      ParentProfile @relation(fields: [parentId], references: [id])
   attendances Attendance[]
-  grades     Grade[]
-  alerts     Alert[]
+  grades      Grade[]
+  alerts      Alert[]
 
   @@map("student_profiles")
 }
 
 model ParentProfile {
-  id       Int    @id @default(autoincrement())
-  userId   Int    @unique
-  phone    String
-  email    String?
-  address  String?
+  id      Int     @id @default(autoincrement())
+  userId  Int     @unique
+  phone   String
+  email   String?
+  address String?
 
   user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   children StudentProfile[]
@@ -138,15 +138,15 @@ model ParentProfile {
 }
 
 model Group {
-  id          Int    @id @default(autoincrement())
-  name        String @unique
+  id          Int     @id @default(autoincrement())
+  name        String  @unique
   gradeLevel  Int
   career      String
   classroom   String?
-  maxStudents Int    @default(40)
+  maxStudents Int     @default(40)
 
-  students  StudentProfile[]
-  schedules Schedule[]
+  class    Class[]
+  students StudentProfile[]
 
   @@map("groups")
 }
@@ -160,62 +160,65 @@ model Subject {
 
   teacherId Int?
   teacher   TeacherProfile? @relation(fields: [teacherId], references: [id])
-  schedules Schedule[]
   grades    Grade[]
+  class     Class[]
 
   @@map("subjects")
 }
 
-model Schedule {
-  id        Int       @id @default(autoincrement())
-  subjectId Int
-  teacherId Int
-  groupId   Int
-  dayOfWeek DayOfWeek
-  startTime String    // Format: "HH:mm"
-  endTime   String    // Format: "HH:mm"
-  classroom String?
+model SchoolCycle {
+  id         Int      @id @default(autoincrement())
+  cycleName  String
+  startDate  DateTime
+  finishDate DateTime
 
-  subject Subject        @relation(fields: [subjectId], references: [id])
-  teacher TeacherProfile @relation(fields: [teacherId], references: [id])
-  group   Group          @relation(fields: [groupId], references: [id])
+  Semesters Semester[]
 
-  attendances Attendance[]
+  @@map("school_cycle")
+}
 
-  @@unique([teacherId, dayOfWeek, startTime], name: "teacher_schedule_unique")
-  @@unique([groupId, dayOfWeek, startTime], name: "group_schedule_unique")
-  @@map("schedules")
+model Semester {
+  id           Int      @id @default(autoincrement())
+  semesterName String
+  startDate    DateTime
+  finishDate   DateTime
+
+  schoolCycleId Int
+  cycle         SchoolCycle @relation(fields: [schoolCycleId], references: [id])
+  classes       Class[]
+
+  @@map("semesters")
 }
 
 model Attendance {
-  id          Int              @id @default(autoincrement())
-  studentId   Int
-  scheduleId  Int
-  date        DateTime         @default(now())
-  status      AttendanceStatus
-  qrToken     String?
-  notes       String?
-  createdAt   DateTime         @default(now())
+  id        Int              @id @default(autoincrement())
+  studentId Int
+  classId   Int
+  date      DateTime         @default(now())
+  status    AttendanceStatus
+  qrToken   String?
+  notes     String?
+  createdAt DateTime         @default(now())
 
-  student  StudentProfile @relation(fields: [studentId], references: [id])
-  schedule Schedule       @relation(fields: [scheduleId], references: [id])
+  student StudentProfile @relation(fields: [studentId], references: [id])
+  classes Class          @relation(fields: [classId], references: [id])
 
-  @@unique([studentId, scheduleId, date])
+  @@unique([studentId, classId, date])
   @@map("attendances")
 }
 
 model Grade {
-  id          Int         @id @default(autoincrement())
-  studentId   Int
-  subjectId   Int
-  partial1    Float?
-  partial2    Float?
-  partial3    Float?
-  finalGrade  Float?
-  status      GradeStatus @default(REGULAR)
-  period      String      // e.g., "2024-2025"
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id         Int         @id @default(autoincrement())
+  studentId  Int
+  subjectId  Int
+  partial1   Float?
+  partial2   Float?
+  partial3   Float?
+  finalGrade Float?
+  status     GradeStatus @default(REGULAR)
+  period     String // e.g., "2024-2025"
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
 
   student StudentProfile @relation(fields: [studentId], references: [id])
   subject Subject        @relation(fields: [subjectId], references: [id])
@@ -226,14 +229,14 @@ model Grade {
 }
 
 model GradeLog {
-  id          Int      @id @default(autoincrement())
-  gradeId     Int
-  userId      Int
-  field       String   // e.g., "partial1", "partial2", "finalGrade"
-  oldValue    String?
-  newValue    String?
-  action      String   // "CREATE" or "UPDATE"
-  timestamp   DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  gradeId   Int
+  userId    Int
+  field     String // e.g., "partial1", "partial2", "finalGrade"
+  oldValue  String?
+  newValue  String?
+  action    String // "CREATE" or "UPDATE"
+  timestamp DateTime @default(now())
 
   grade Grade @relation(fields: [gradeId], references: [id])
   user  User  @relation(fields: [userId], references: [id])
@@ -242,34 +245,78 @@ model GradeLog {
 }
 
 model Alert {
-  id          Int           @id @default(autoincrement())
-  studentId   Int
-  type        AlertType
-  priority    AlertPriority
-  message     String
-  isRead      Boolean       @default(false)
-  createdAt   DateTime      @default(now())
+  id        Int           @id @default(autoincrement())
+  studentId Int
+  type      AlertType
+  priority  AlertPriority
+  message   String
+  isRead    Boolean       @default(false)
+  createdAt DateTime      @default(now())
 
-  student  StudentProfile @relation(fields: [studentId], references: [id])
+  student       StudentProfile @relation(fields: [studentId], references: [id])
   notifications Notification[]
 
   @@map("alerts")
 }
 
 model Notification {
-  id        Int      @id @default(autoincrement())
-  alertId   Int
-  senderId  Int
+  id            Int       @id @default(autoincrement())
+  alertId       Int
+  senderId      Int
   recipientType String // "STUDENT", "PARENT", "TEACHER", "ADMIN"
-  recipientId Int
-  channel   String   // "EMAIL", "SMS", "IN_APP"
-  status    String   @default("PENDING") // "PENDING", "SENT", "FAILED"
-  content   String
-  sentAt    DateTime?
-  createdAt DateTime @default(now())
+  recipientId   Int
+  channel       String // "EMAIL", "SMS", "IN_APP"
+  status        String    @default("PENDING") // "PENDING", "SENT", "FAILED"
+  content       String
+  sentAt        DateTime?
+  createdAt     DateTime  @default(now())
 
   alert  Alert @relation(fields: [alertId], references: [id])
   sender User  @relation("NotificationSender", fields: [senderId], references: [id])
 
   @@map("notifications")
+}
+
+model Class {
+  id          Int             @id @default(autoincrement())
+  subjectId   Int
+  groupId     Int
+  teacherId   Int
+  semesterId  Int
+  classroomId Int?
+  schedules   ClassSchedule[]
+  //Referencias a las FK
+  subject     Subject         @relation(fields: [subjectId], references: [id])
+  classroom   Classroom?      @relation(fields: [classroomId], references: [id])
+  group       Group           @relation(fields: [groupId], references: [id])
+  teacher     TeacherProfile  @relation(fields: [teacherId], references: [id])
+  semester    Semester        @relation(fields: [semesterId], references: [id])
+  attendances Attendance[]
+
+  @@map("classes")
+}
+
+model Classroom {
+  id          Int             @id @default(autoincrement())
+  name        String          @unique
+  capacity    Int?
+  description String?
+  classes     Class[]
+  schedule    ClassSchedule[]
+
+  @@map("classrooms")
+}
+
+model ClassSchedule {
+  id          Int        @id @default(autoincrement())
+  classId     Int
+  classroomId Int?
+  dayOfWeek   DayOfWeek
+  startTime   String
+  endTime     String
+  //Referencias
+  class       Class      @relation(fields: [classId], references: [id])
+  classroom   Classroom? @relation(fields: [classroomId], references: [id])
+
+  @@map("classes_schedules")
 }

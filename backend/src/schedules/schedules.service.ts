@@ -71,15 +71,17 @@ export class SchedulesService {
     tx?: any,
   ): Promise<boolean> {
     const client = tx || this.prisma;
-    const existingSchedules = await client.schedule.findMany({
+    const existing = await client.classSchedule.findMany({
       where: {
-        teacherId,
         dayOfWeek: dayOfWeek as any,
+        class: {
+          teacherId,
+        },
         ...(excludeId ? { id: { not: excludeId } } : {}),
       },
     });
 
-    return existingSchedules.some((schedule: any) =>
+    return existing.some((schedule: any) =>
       this.timesOverlap(
         startTime,
         endTime,
@@ -98,15 +100,17 @@ export class SchedulesService {
     tx?: any,
   ): Promise<boolean> {
     const client = tx || this.prisma;
-    const existingSchedules = await client.schedule.findMany({
+    const existing = await client.classSchedule.findMany({
       where: {
-        groupId,
         dayOfWeek: dayOfWeek as any,
+        class: {
+          groupId,
+        },
         ...(excludeId ? { id: { not: excludeId } } : {}),
       },
     });
 
-    return existingSchedules.some((schedule: any) =>
+    return existing.some((schedule: any) =>
       this.timesOverlap(
         startTime,
         endTime,
@@ -117,25 +121,23 @@ export class SchedulesService {
   }
 
   private async checkClassroomConflict(
-    classroom: string,
+    classroomId: number,
     dayOfWeek: string,
     startTime: string,
     endTime: string,
     excludeId?: number,
     tx?: any,
   ): Promise<boolean> {
-    if (!classroom) return false;
-
     const client = tx || this.prisma;
-    const existingSchedules = await client.schedule.findMany({
+    const existing = await client.classSchedule.findMany({
       where: {
-        classroom,
         dayOfWeek: dayOfWeek as any,
+        OR: [{ classroomId }, { classroomId: null, class: { classroomId } }],
         ...(excludeId ? { id: { not: excludeId } } : {}),
       },
     });
 
-    return existingSchedules.some((schedule: any) =>
+    return existing.some((schedule: any) =>
       this.timesOverlap(
         startTime,
         endTime,
@@ -146,23 +148,31 @@ export class SchedulesService {
   }
 
   async create(createScheduleDto: CreateScheduleDto) {
-    const { teacherId, groupId, dayOfWeek, startTime, endTime, classroom } =
+    const { classId, classroomId, dayOfWeek, startTime, endTime } =
       createScheduleDto;
 
-    // Validar que la hora de inicio sea menor que la de fin
     if (this.timeToMinutes(startTime) >= this.timeToMinutes(endTime)) {
       throw new BadRequestException(
         "La hora de inicio debe ser menor que la hora de fin",
       );
     }
 
-    return this.prisma.$transaction(async (tx) => {
-      // Adquirir un bloqueo exclusivo para evitar concurrencia
-      await tx.$executeRawUnsafe("LOCK TABLE schedules IN EXCLUSIVE MODE");
+    // Buscar información de la clase para validar conflictos de docente y grupo
+    const targetClass = await this.prisma.class.findUnique({
+      where: { id: classId },
+    });
+    if (!targetClass) {
+      throw new NotFoundException("Clase no encontrada");
+    }
 
-      // Verificar conflictos de docente
+    return this.prisma.$transaction(async (tx) => {
+      // Bloqueamos la tabla de horarios de clase para evitar concurrencia
+      await tx.$executeRawUnsafe(
+        "LOCK TABLE classes_schedules IN EXCLUSIVE MODE",
+      );
+
       const teacherConflict = await this.checkTeacherConflict(
-        teacherId,
+        targetClass.teacherId,
         dayOfWeek,
         startTime,
         endTime,
@@ -175,9 +185,8 @@ export class SchedulesService {
         );
       }
 
-      // Verificar conflictos de grupo
       const groupConflict = await this.checkGroupConflict(
-        groupId,
+        targetClass.groupId,
         dayOfWeek,
         startTime,
         endTime,
@@ -190,10 +199,9 @@ export class SchedulesService {
         );
       }
 
-      // Verificar conflictos de aula
-      if (classroom) {
+      if (classroomId) {
         const classroomConflict = await this.checkClassroomConflict(
-          classroom,
+          classroomId,
           dayOfWeek,
           startTime,
           endTime,
@@ -202,213 +210,305 @@ export class SchedulesService {
         );
         if (classroomConflict) {
           throw new BadRequestException(
-            `CONFLICTO DE AULA: El aula ${classroom} ya está ocupada el ${dayOfWeek} de ${startTime} a ${endTime}`,
+            `CONFLICTO DE AULA: El aula seleccionada ya está ocupada el ${dayOfWeek} de ${startTime} a ${endTime}`,
           );
         }
       }
 
-      return tx.schedule.create({
-        data: createScheduleDto,
+      return tx.classSchedule.create({
+        data: {
+          classId,
+          classroomId,
+          dayOfWeek,
+          startTime,
+          endTime,
+        },
         include: {
-          subject: true,
-          teacher: {
+          class: {
             include: {
-              user: { select: { firstName: true, lastName: true } },
+              subject: true,
+              teacher: {
+                include: {
+                  user: { select: { firstName: true, lastName: true } },
+                },
+              },
+              group: true,
+              semester: true,
+              classroom: true,
             },
           },
-          group: true,
+          classroom: true,
         },
       });
     });
   }
 
   async findAll() {
-    return this.prisma.schedule.findMany({
+    return this.prisma.classSchedule.findMany({
       include: {
-        subject: true,
-        teacher: {
+        class: {
           include: {
-            user: { select: { firstName: true, lastName: true } },
+            subject: true,
+            teacher: {
+              include: {
+                user: { select: { firstName: true, lastName: true } },
+              },
+            },
+            group: true,
+            semester: true,
+            classroom: true,
           },
         },
-        group: true,
+        classroom: true,
       },
       orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
     });
   }
 
   async findOne(id: number) {
-    const schedule = await this.prisma.schedule.findUnique({
+    const cs = await this.prisma.classSchedule.findUnique({
       where: { id },
       include: {
-        subject: true,
-        teacher: {
+        class: {
           include: {
-            user: { select: { firstName: true, lastName: true } },
+            subject: true,
+            teacher: {
+              include: {
+                user: { select: { firstName: true, lastName: true } },
+              },
+            },
+            group: true,
+            semester: true,
+            classroom: true,
           },
         },
-        group: true,
+        classroom: true,
       },
     });
 
-    if (!schedule) {
+    if (!cs) {
       throw new NotFoundException("Horario no encontrado");
     }
 
-    return schedule;
+    return cs;
   }
 
   async findByTeacher(teacherId: number) {
-    return this.prisma.schedule.findMany({
-      where: { teacherId },
+    return this.prisma.classSchedule.findMany({
+      where: {
+        class: {
+          teacherId,
+        },
+      },
       include: {
-        subject: true,
-        group: true,
+        class: {
+          include: {
+            subject: true,
+            teacher: {
+              include: {
+                user: { select: { firstName: true, lastName: true } },
+              },
+            },
+            group: true,
+            semester: true,
+            classroom: true,
+          },
+        },
+        classroom: true,
       },
       orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
     });
   }
 
   async findByGroup(groupId: number) {
-    return this.prisma.schedule.findMany({
-      where: { groupId },
+    return this.prisma.classSchedule.findMany({
+      where: {
+        class: {
+          groupId,
+        },
+      },
       include: {
-        subject: true,
-        teacher: {
+        class: {
           include: {
-            user: { select: { firstName: true, lastName: true } },
+            subject: true,
+            teacher: {
+              include: {
+                user: { select: { firstName: true, lastName: true } },
+              },
+            },
+            group: true,
+            semester: true,
+            classroom: true,
           },
         },
+        classroom: true,
       },
       orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
     });
   }
 
   async update(id: number, updateScheduleDto: UpdateScheduleDto) {
-    const existing = await this.prisma.schedule.findUnique({ where: { id } });
+    const existing = await this.prisma.classSchedule.findUnique({
+      where: { id },
+      include: { class: true },
+    });
     if (!existing) {
       throw new NotFoundException("Horario no encontrado");
     }
 
-    const newData = {
-      subjectId: updateScheduleDto.subjectId ?? existing.subjectId,
-      teacherId: updateScheduleDto.teacherId ?? existing.teacherId,
-      groupId: updateScheduleDto.groupId ?? existing.groupId,
-      dayOfWeek: updateScheduleDto.dayOfWeek ?? existing.dayOfWeek,
-      startTime: updateScheduleDto.startTime ?? existing.startTime,
-      endTime: updateScheduleDto.endTime ?? existing.endTime,
-      classroom: updateScheduleDto.classroom ?? existing.classroom,
-    };
+    const classId = updateScheduleDto.classId ?? existing.classId;
+    const classroomId =
+      updateScheduleDto.classroomId !== undefined
+        ? updateScheduleDto.classroomId
+        : existing.classroomId;
+    const dayOfWeek = updateScheduleDto.dayOfWeek ?? existing.dayOfWeek;
+    const startTime = updateScheduleDto.startTime ?? existing.startTime;
+    const endTime = updateScheduleDto.endTime ?? existing.endTime;
 
-    // Validar horas
-    if (
-      this.timeToMinutes(newData.startTime) >=
-      this.timeToMinutes(newData.endTime)
-    ) {
+    if (this.timeToMinutes(startTime) >= this.timeToMinutes(endTime)) {
       throw new BadRequestException(
         "La hora de inicio debe ser menor que la hora de fin",
       );
     }
 
-    return this.prisma.$transaction(async (tx) => {
-      // Adquirir un bloqueo exclusivo para evitar concurrencia
-      await tx.$executeRawUnsafe("LOCK TABLE schedules IN EXCLUSIVE MODE");
+    // Buscar información de la clase objetivo
+    const targetClass = await this.prisma.class.findUnique({
+      where: { id: classId },
+    });
+    if (!targetClass) {
+      throw new NotFoundException("Clase no encontrada");
+    }
 
-      // Verificar conflictos solo si cambió algo relevante
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe(
+        "LOCK TABLE classes_schedules IN EXCLUSIVE MODE",
+      );
+
       const teacherConflict = await this.checkTeacherConflict(
-        newData.teacherId,
-        newData.dayOfWeek,
-        newData.startTime,
-        newData.endTime,
+        targetClass.teacherId,
+        dayOfWeek,
+        startTime,
+        endTime,
         id,
         tx,
       );
       if (teacherConflict) {
         throw new BadRequestException(
-          `CONFLICTO DE HORARIO: El docente ya tiene una clase asignada el ${newData.dayOfWeek} de ${newData.startTime} a ${newData.endTime}`,
+          `CONFLICTO DE HORARIO: El docente ya tiene una clase asignada el ${dayOfWeek} de ${startTime} a ${endTime}`,
         );
       }
 
       const groupConflict = await this.checkGroupConflict(
-        newData.groupId,
-        newData.dayOfWeek,
-        newData.startTime,
-        newData.endTime,
+        targetClass.groupId,
+        dayOfWeek,
+        startTime,
+        endTime,
         id,
         tx,
       );
       if (groupConflict) {
         throw new BadRequestException(
-          `CONFLICTO DE HORARIO: El grupo ya tiene una clase asignada el ${newData.dayOfWeek} de ${newData.startTime} a ${newData.endTime}`,
+          `CONFLICTO DE HORARIO: El grupo ya tiene una clase asignada el ${dayOfWeek} de ${startTime} a ${endTime}`,
         );
       }
 
-      if (newData.classroom) {
+      if (classroomId) {
         const classroomConflict = await this.checkClassroomConflict(
-          newData.classroom,
-          newData.dayOfWeek,
-          newData.startTime,
-          newData.endTime,
+          classroomId,
+          dayOfWeek,
+          startTime,
+          endTime,
           id,
           tx,
         );
         if (classroomConflict) {
           throw new BadRequestException(
-            `CONFLICTO DE AULA: El aula ${newData.classroom} ya está ocupada el ${newData.dayOfWeek} de ${newData.startTime} a ${newData.endTime}`,
+            `CONFLICTO DE AULA: El aula seleccionada ya está ocupada el ${dayOfWeek} de ${startTime} a ${endTime}`,
           );
         }
       }
 
-      return tx.schedule.update({
+      return tx.classSchedule.update({
         where: { id },
-        data: updateScheduleDto,
+        data: {
+          classId,
+          classroomId,
+          dayOfWeek: dayOfWeek as any,
+          startTime,
+          endTime,
+        },
         include: {
-          subject: true,
-          teacher: {
+          class: {
             include: {
-              user: { select: { firstName: true, lastName: true } },
+              subject: true,
+              teacher: {
+                include: {
+                  user: { select: { firstName: true, lastName: true } },
+                },
+              },
+              group: true,
+              semester: true,
+              classroom: true,
             },
           },
-          group: true,
+          classroom: true,
         },
       });
     });
   }
 
   async remove(id: number) {
-    const existing = await this.prisma.schedule.findUnique({ where: { id } });
+    const existing = await this.prisma.classSchedule.findUnique({
+      where: { id },
+    });
     if (!existing) {
       throw new NotFoundException("Horario no encontrado");
     }
 
-    await this.prisma.schedule.delete({ where: { id } });
+    await this.prisma.classSchedule.delete({ where: { id } });
     return { message: "Horario eliminado exitosamente" };
   }
 
   async checkConflicts(
-    teacherId: number,
-    groupId: number,
+    classId: number,
     dayOfWeek: string,
     startTime: string,
     endTime: string,
+    classroomId?: number,
   ) {
+    const targetClass = await this.prisma.class.findUnique({
+      where: { id: classId },
+    });
+    if (!targetClass) {
+      throw new NotFoundException("Clase no encontrada");
+    }
+
     const teacherConflict = await this.checkTeacherConflict(
-      teacherId,
+      targetClass.teacherId,
       dayOfWeek,
       startTime,
       endTime,
     );
     const groupConflict = await this.checkGroupConflict(
-      groupId,
+      targetClass.groupId,
       dayOfWeek,
       startTime,
       endTime,
     );
+    const classroomConflict = classroomId
+      ? await this.checkClassroomConflict(
+          classroomId,
+          dayOfWeek,
+          startTime,
+          endTime,
+        )
+      : false;
 
     return {
-      hasConflicts: teacherConflict || groupConflict,
+      hasConflicts: teacherConflict || groupConflict || classroomConflict,
       teacherConflict,
       groupConflict,
+      classroomConflict,
     };
   }
 }

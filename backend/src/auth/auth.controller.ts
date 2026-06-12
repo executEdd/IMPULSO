@@ -13,7 +13,6 @@ import { LoginDto } from "./dto/login.dto";
 import { RegisterDto } from "./dto/register.dto";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { Public } from "../common/decorators/public.decorator";
-
 @ApiTags("Autenticación")
 @Controller("auth")
 export class AuthController {
@@ -28,11 +27,10 @@ export class AuthController {
   })
   @ApiUnauthorizedResponse({ description: "Credenciales inválidas." })
   async login(@Body() loginDto: LoginDto) {
-    console.log("[AuthController] Recibida petición de login:", loginDto.email);
     return this.authService.login(loginDto);
   }
 
-  @Public()
+  @ApiBearerAuth()
   @Post("register")
   @ApiOperation({ summary: "Registrar nuevo usuario" })
   @ApiCreatedResponse({ description: "Usuario registrado exitosamente." })

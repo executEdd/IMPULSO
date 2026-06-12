@@ -9,7 +9,6 @@ import {
   SemaphoreStatus,
   AlertType,
   AlertPriority,
-  DayOfWeek,
 } from "@prisma/client";
 import { PrismaService } from "../prisma.service";
 import { QrScanDto } from "./dto/qr-scan.dto";
@@ -17,6 +16,80 @@ import { QrScanDto } from "./dto/qr-scan.dto";
 @Injectable()
 export class AttendanceService {
   constructor(private prisma: PrismaService) {}
+
+  private getMexicoCityTimeInfo(date: Date) {
+    const formattedDateStr = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Mexico_City",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    }).format(date);
+
+    const match = formattedDateStr.match(
+      /(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/,
+    );
+    if (!match) {
+      throw new Error("Error al formatear la fecha para America/Mexico_City");
+    }
+
+    const [, month, day, year, hours, minutes] = match;
+
+    const localYear = parseInt(year);
+    const localMonth = parseInt(month) - 1;
+    const localDay = parseInt(day);
+
+    const days = [
+      "SUNDAY",
+      "MONDAY",
+      "TUESDAY",
+      "WEDNESDAY",
+      "THURSDAY",
+      "FRIDAY",
+      "SATURDAY",
+    ];
+    const tempDate = new Date(localYear, localMonth, localDay);
+    const currentDay = days[tempDate.getDay()];
+
+    const currentTime = `${hours.padStart(2, "0")}:${minutes.padStart(2, "0")}`;
+
+    const todayStart = new Date(
+      Date.UTC(localYear, localMonth, localDay, 0, 0, 0, 0),
+    );
+    const todayEnd = new Date(
+      Date.UTC(localYear, localMonth, localDay, 23, 59, 59, 999),
+    );
+
+    // Ajustar offsets para UTC en base a huso horario de CDMX (-6)
+    todayStart.setUTCHours(todayStart.getUTCHours() + 6);
+    todayEnd.setUTCHours(todayEnd.getUTCHours() + 6);
+
+    return {
+      currentTime,
+      currentDay,
+      todayStart,
+      todayEnd,
+    };
+  }
+
+  private isWithinTimeRange(
+    currentTime: string,
+    startTime: string,
+    endTime: string,
+  ): boolean {
+    const [currH, currM] = currentTime.split(":").map(Number);
+    const [startH, startM] = startTime.split(":").map(Number);
+    const [endH, endM] = endTime.split(":").map(Number);
+
+    const current = currH * 60 + currM;
+    const start = startH * 60 + startM;
+    const end = endH * 60 + endM;
+
+    return current >= start - 15 && current <= end + 15;
+  }
 
   async verifyStudentAccess(user: any, studentId: number) {
     if (user.role === "ADMIN" || user.role === "TEACHER") {
@@ -44,7 +117,7 @@ export class AttendanceService {
       });
       if (!child) {
         throw new ForbiddenException(
-          "No autorizado para acceder a este alumno (no es su tutorado)",
+          "No autorizado para acceder a este alumno",
         );
       }
       return;
@@ -52,101 +125,21 @@ export class AttendanceService {
     throw new ForbiddenException("Rol no reconocido");
   }
 
-  private getMexicoCityTimeInfo(date: Date = new Date()) {
-    const formatter = new Intl.DateTimeFormat("en-US", {
-      timeZone: "America/Mexico_City",
-      year: "numeric",
-      month: "numeric",
-      day: "numeric",
-      hour: "numeric",
-      minute: "numeric",
-      second: "numeric",
-      hour12: false,
-      weekday: "long",
-    });
-
-    const parts = formatter.formatToParts(date);
-    const partMap: Record<string, string> = {};
-    for (const part of parts) {
-      partMap[part.type] = part.value;
-    }
-
-    const year = parseInt(partMap.year, 10);
-    const month = parseInt(partMap.month, 10);
-    const day = parseInt(partMap.day, 10);
-    const hour = parseInt(partMap.hour, 10);
-    const minute = parseInt(partMap.minute, 10);
-
-    const weekdayMap: Record<string, DayOfWeek> = {
-      Monday: DayOfWeek.MONDAY,
-      Tuesday: DayOfWeek.TUESDAY,
-      Wednesday: DayOfWeek.WEDNESDAY,
-      Thursday: DayOfWeek.THURSDAY,
-      Friday: DayOfWeek.FRIDAY,
-      Saturday: DayOfWeek.SATURDAY,
-      Sunday: DayOfWeek.SUNDAY,
-    };
-
-    const currentDay = weekdayMap[partMap.weekday] || DayOfWeek.MONDAY;
-    const currentTime = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
-
-    const todayStart = new Date(Date.UTC(year, month - 1, day, 6, 0, 0));
-    const todayEnd = new Date(Date.UTC(year, month - 1, day, 29, 59, 59, 999));
-
-    return {
-      currentTime,
-      currentDay,
-      todayStart,
-      todayEnd,
-    };
-  }
-
-  private getDayOfWeek(date: Date): DayOfWeek {
-    const days: DayOfWeek[] = [
-      DayOfWeek.SUNDAY,
-      DayOfWeek.MONDAY,
-      DayOfWeek.TUESDAY,
-      DayOfWeek.WEDNESDAY,
-      DayOfWeek.THURSDAY,
-      DayOfWeek.FRIDAY,
-      DayOfWeek.SATURDAY,
-    ];
-    return days[date.getDay()];
-  }
-
-  private timeToMinutes(time: string): number {
-    const [hours, minutes] = time.split(":").map(Number);
-    return hours * 60 + minutes;
-  }
-
-  private isWithinTimeRange(
-    currentTime: string,
-    startTime: string,
-    endTime: string,
-  ): boolean {
-    const current = this.timeToMinutes(currentTime);
-    const start = this.timeToMinutes(startTime);
-    const end = this.timeToMinutes(endTime);
-    return current >= start && current <= end;
-  }
-
   async scanQr(qrScanDto: QrScanDto, teacherId: number) {
     const now = new Date();
     const { currentTime, currentDay, todayStart, todayEnd } =
       this.getMexicoCityTimeInfo(now);
 
-    // 1. Buscar estudiante por token QR
+    // 1. Buscar al alumno por su token QR
     const student = await this.prisma.studentProfile.findUnique({
       where: { qrToken: qrScanDto.qrToken },
       include: {
-        user: { select: { firstName: true, lastName: true, email: true } },
+        user: { select: { firstName: true, lastName: true } },
         group: true,
         parent: {
           include: {
             user: {
               select: {
-                firstName: true,
-                lastName: true,
                 email: true,
                 id: true,
               },
@@ -167,24 +160,32 @@ export class AttendanceService {
       );
     }
 
-    // 3. Obtener el horario y validar que el docente sea el asignado
-    const schedule = await this.prisma.schedule.findUnique({
-      where: { id: qrScanDto.scheduleId },
+    // 3. Obtener el bloque de horario
+    const schedule = await this.prisma.classSchedule.findUnique({
+      where: { id: qrScanDto.classScheduleId },
       include: {
-        subject: true,
-        teacher: {
-          include: { user: { select: { firstName: true, lastName: true } } },
+        class: {
+          include: {
+            subject: true,
+            teacher: {
+              include: {
+                user: { select: { firstName: true, lastName: true } },
+              },
+            },
+            group: true,
+            classroom: true,
+          },
         },
-        group: true,
+        classroom: true,
       },
     });
 
     if (!schedule) {
-      throw new NotFoundException("Horario no encontrado");
+      throw new NotFoundException("Horario de clase no encontrado");
     }
 
     // 4. Validar que el docente que escanea sea el asignado a la clase
-    if (schedule.teacherId !== teacherId) {
+    if (schedule.class.teacherId !== teacherId) {
       throw new BadRequestException(
         "No está autorizado para registrar asistencia en esta clase. El docente no coincide con el horario asignado.",
       );
@@ -207,9 +208,9 @@ export class AttendanceService {
     }
 
     // 7. Validar que el alumno pertenezca al grupo de la clase
-    if (student.groupId !== schedule.groupId) {
+    if (student.groupId !== schedule.class.groupId) {
       throw new BadRequestException(
-        `Inconsistencia de grupo: El alumno ${student.user.firstName} ${student.user.lastName} pertenece al grupo ${student.group.name}, pero esta clase es del grupo ${schedule.group.name}`,
+        `Inconsistencia de grupo: El alumno ${student.user.firstName} ${student.user.lastName} pertenece al grupo ${student.group.name}, pero esta clase es del grupo ${schedule.class.group.name}`,
       );
     }
 
@@ -219,7 +220,7 @@ export class AttendanceService {
       const existingAttendance = await tx.attendance.findFirst({
         where: {
           studentId: student.id,
-          scheduleId: schedule.id,
+          classId: schedule.class.id,
           date: {
             gte: todayStart,
             lt: todayEnd,
@@ -240,10 +241,10 @@ export class AttendanceService {
         },
       });
 
-      const attendance = await tx.attendance.create({
+      return tx.attendance.create({
         data: {
           studentId: student.id,
-          scheduleId: schedule.id,
+          classId: schedule.class.id,
           status: AttendanceStatus.PRESENT,
           qrToken: qrScanDto.qrToken,
           notes: `Registrado por QR a las ${currentTime}`,
@@ -255,49 +256,43 @@ export class AttendanceService {
               group: true,
             },
           },
-          schedule: {
+          classes: {
             include: {
               subject: true,
             },
           },
         },
       });
-
-      return {
-        success: true,
-        message: `Asistencia registrada exitosamente para ${student.user.firstName} ${student.user.lastName}`,
-        attendance: {
-          id: attendance.id,
-          studentName: `${student.user.firstName} ${student.user.lastName}`,
-          group: student.group.name,
-          subject: schedule.subject.name,
-          time: `${schedule.startTime} - ${schedule.endTime}`,
-          status: attendance.status,
-          date: attendance.date,
-        },
-      };
     });
   }
 
-  async markAbsent(studentId: number, scheduleId: number, teacherId: number) {
+  async markAbsent(
+    studentId: number,
+    classScheduleId: number,
+    teacherId: number,
+  ) {
     const now = new Date();
     const { currentTime, currentDay, todayStart, todayEnd } =
       this.getMexicoCityTimeInfo(now);
 
     // Validar horario y docente
-    const schedule = await this.prisma.schedule.findUnique({
-      where: { id: scheduleId },
+    const schedule = await this.prisma.classSchedule.findUnique({
+      where: { id: classScheduleId },
       include: {
-        subject: true,
-        group: true,
+        class: {
+          include: {
+            subject: true,
+            group: true,
+          },
+        },
       },
     });
 
     if (!schedule) {
-      throw new NotFoundException("Horario no encontrado");
+      throw new NotFoundException("Horario de clase no encontrado");
     }
 
-    if (schedule.teacherId !== teacherId) {
+    if (schedule.class.teacherId !== teacherId) {
       throw new BadRequestException("No autorizado para esta clase");
     }
 
@@ -330,17 +325,16 @@ export class AttendanceService {
       throw new NotFoundException("Alumno no encontrado");
     }
 
-    if (student.groupId !== schedule.groupId) {
+    if (student.groupId !== schedule.class.groupId) {
       throw new BadRequestException("El alumno no pertenece a este grupo");
     }
 
-    // Envolver todo en la misma transacción (Finding 4)
     return this.prisma.$transaction(async (tx) => {
       // Verificar duplicado dentro de la transacción
       const existing = await tx.attendance.findFirst({
         where: {
           studentId,
-          scheduleId,
+          classId: schedule.class.id,
           date: { gte: todayStart, lt: todayEnd },
         },
       });
@@ -354,7 +348,7 @@ export class AttendanceService {
       const attendance = await tx.attendance.create({
         data: {
           studentId,
-          scheduleId,
+          classId: schedule.class.id,
           status: AttendanceStatus.ABSENT,
           notes: `Falta registrada manualmente por docente a las ${currentTime}`,
         },
@@ -392,7 +386,6 @@ export class AttendanceService {
 
     // Si alcanza 3 faltas, activar semáforo rojo y alertas
     if (absencesCount >= 3) {
-      // 1. Check if student semaphore is already RED (Finding 9: alert flooding)
       const currentStudentProfile = await client.studentProfile.findUnique({
         where: { id: studentId },
         select: { semaphore: true },
@@ -402,18 +395,17 @@ export class AttendanceService {
         return;
       }
 
-      // Optimizamos: Obtenemos los administradores antes de abrir la transacción
       const admins = await client.user.findMany({
         where: { role: "ADMIN", isActive: true },
       });
 
-      // 2. Actualizar semáforo a ROJO
+      // Actualizar semáforo a ROJO
       await client.studentProfile.update({
         where: { id: studentId },
         data: { semaphore: SemaphoreStatus.RED },
       });
 
-      // 3. Crear alerta prioritaria
+      // Crear alerta prioritaria
       const alert = await client.alert.create({
         data: {
           studentId,
@@ -423,7 +415,7 @@ export class AttendanceService {
         },
       });
 
-      // 4. Enviar notificación al padre de familia (simulado)
+      // Enviar notificación al padre de familia (simulado)
       if (student.parent) {
         await client.notification.create({
           data: {
@@ -434,14 +426,14 @@ export class AttendanceService {
             channel: "EMAIL",
             status: "SENT",
             content: `Estimado padre/tutor de ${student.user.firstName} ${student.user.lastName}:
-
+ 
 Le informamos que su hijo(a) ha acumulado ${absencesCount} faltas en el periodo actual. El sistema ha activado el Semáforo Rojo de alerta académica.
-
+ 
 Por favor, comuníquese con la Subdirección Académica del CBTIS 61 para mayor información.
-
+ 
 Grupo: ${student.group.name}
 Fecha: ${new Date().toLocaleDateString("es-MX")}
-
+ 
 CBTIS 61 - Sistema de Gestión Académica`,
             sentAt: new Date(),
           },
@@ -462,7 +454,7 @@ CBTIS 61 - Sistema de Gestión Académica`,
         });
       }
 
-      // 5. Notificación a Subdirección (Admin)
+      // Notificación a Subdirección (Admin)
       for (const admin of admins) {
         await client.notification.create({
           data: {
@@ -482,12 +474,22 @@ CBTIS 61 - Sistema de Gestión Académica`,
 
   async findAll(filters?: {
     studentId?: number;
-    scheduleId?: number;
+    classId?: number;
+    classScheduleId?: number;
     date?: Date;
   }) {
     const where: any = {};
     if (filters?.studentId) where.studentId = filters.studentId;
-    if (filters?.scheduleId) where.scheduleId = filters.scheduleId;
+    if (filters?.classId) where.classId = filters.classId;
+    if (filters?.classScheduleId) {
+      where.classes = {
+        schedules: {
+          some: {
+            id: filters.classScheduleId,
+          },
+        },
+      };
+    }
     if (filters?.date) {
       const { todayStart, todayEnd } = this.getMexicoCityTimeInfo(filters.date);
       where.date = { gte: todayStart, lt: todayEnd };
@@ -502,7 +504,7 @@ CBTIS 61 - Sistema de Gestión Académica`,
             group: true,
           },
         },
-        schedule: {
+        classes: {
           include: {
             subject: true,
             teacher: {
@@ -510,6 +512,8 @@ CBTIS 61 - Sistema de Gestión Académica`,
                 user: { select: { firstName: true, lastName: true } },
               },
             },
+            schedules: true,
+            classroom: true,
           },
         },
       },
@@ -521,9 +525,10 @@ CBTIS 61 - Sistema de Gestión Académica`,
     return this.prisma.attendance.findMany({
       where: { studentId },
       include: {
-        schedule: {
+        classes: {
           include: {
             subject: true,
+            schedules: true,
           },
         },
       },
@@ -576,7 +581,12 @@ CBTIS 61 - Sistema de Gestión Académica`,
           orderBy: { date: "desc" },
           take: 10,
           include: {
-            schedule: { include: { subject: true } },
+            classes: {
+              include: {
+                subject: true,
+                schedules: true,
+              },
+            },
           },
         },
       },
