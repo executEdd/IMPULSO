@@ -16,6 +16,7 @@ import {
   ApiOkResponse,
   ApiCreatedResponse,
   ApiBadRequestResponse,
+  ApiNotFoundResponse,
 } from "@nestjs/swagger";
 import { AttendanceService } from "./attendance.service";
 import { QrScanDto } from "./dto/qr-scan.dto";
@@ -50,7 +51,7 @@ export class AttendanceController {
     return this.attendanceService.scanQr(qrScanDto, teacherProfile.id);
   }
 
-  @Post("mark-absent/:studentId/:scheduleId")
+  @Post("mark-absent/:studentId/:classScheduleId")
   @Roles(UserRole.TEACHER)
   @ApiOperation({ summary: "Marcar falta manualmente" })
   @ApiCreatedResponse({
@@ -61,7 +62,7 @@ export class AttendanceController {
   })
   async markAbsent(
     @Param("studentId", ParseIntPipe) studentId: number,
-    @Param("scheduleId", ParseIntPipe) scheduleId: number,
+    @Param("classScheduleId", ParseIntPipe) classScheduleId: number,
     @CurrentUser("teacherProfile") teacherProfile: any,
   ) {
     if (!teacherProfile?.id) {
@@ -69,7 +70,7 @@ export class AttendanceController {
     }
     return this.attendanceService.markAbsent(
       studentId,
-      scheduleId,
+      classScheduleId,
       teacherProfile.id,
     );
   }
@@ -78,7 +79,8 @@ export class AttendanceController {
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @ApiOperation({ summary: "Listar registros de asistencia" })
   @ApiQuery({ name: "studentId", required: false, type: Number })
-  @ApiQuery({ name: "scheduleId", required: false, type: Number })
+  @ApiQuery({ name: "classId", required: false, type: Number })
+  @ApiQuery({ name: "classScheduleId", required: false, type: Number })
   @ApiQuery({ name: "date", required: false, type: String })
   @ApiOkResponse({
     description: "Listado de asistencias recuperado exitosamente.",
@@ -86,13 +88,16 @@ export class AttendanceController {
   async findAll(
     @Query("studentId", new ParseIntPipe({ optional: true }))
     studentId?: number,
-    @Query("scheduleId", new ParseIntPipe({ optional: true }))
-    scheduleId?: number,
+    @Query("classId", new ParseIntPipe({ optional: true }))
+    classId?: number,
+    @Query("classScheduleId", new ParseIntPipe({ optional: true }))
+    classScheduleId?: number,
     @Query("date") date?: string,
   ) {
     return this.attendanceService.findAll({
       studentId,
-      scheduleId,
+      classId,
+      classScheduleId,
       date: date ? new Date(date) : undefined,
     });
   }
@@ -111,13 +116,17 @@ export class AttendanceController {
     return this.attendanceService.findByStudent(studentId);
   }
 
-  @Get("student/:studentId/absences")
+  @Get("stats/student/:studentId")
   @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT, UserRole.PARENT)
-  @ApiOperation({ summary: "Contar faltas de un alumno (últimos 30 días)" })
-  @ApiOkResponse({
-    description: "Conteo numérico de faltas en los últimos 30 días.",
+  @ApiOperation({
+    summary:
+      "Obtener estadísticas de asistencia de un alumno (últimos 30 días)",
   })
-  async getAbsenceCount(
+  @ApiOkResponse({
+    description:
+      "Estadísticas del alumno (total de clases, inasistencias, tasa de asistencia).",
+  })
+  async getStudentStats(
     @Param("studentId", ParseIntPipe) studentId: number,
     @CurrentUser() user: any,
   ) {
@@ -125,23 +134,22 @@ export class AttendanceController {
     return this.attendanceService.getStudentAbsenceCount(studentId);
   }
 
-  @Get("red-semaphore")
-  @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: "Listar alumnos en Semáforo Rojo (3+ faltas)" })
+  @Get("semaphore/red")
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  @ApiOperation({ summary: "Listar alumnos en Semáforo Rojo" })
   @ApiOkResponse({
     description:
-      "Listado de estudiantes con estatus de semáforo en Rojo debido a inasistencias.",
+      "Listado de alumnos con estado crítico de faltas y sus detalles.",
   })
   async getRedSemaphoreStudents() {
     return this.attendanceService.getRedSemaphoreStudents();
   }
 
-  @Post("student/:studentId/reset-semaphore")
+  @Post("semaphore/reset/:studentId")
   @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: "Restablecer semáforo de un alumno a VERDE" })
-  @ApiOkResponse({
-    description: "Semáforo restablecido con éxito.",
-  })
+  @ApiOperation({ summary: "Restablecer semáforo de un alumno a verde" })
+  @ApiOkResponse({ description: "Semáforo restablecido exitosamente." })
+  @ApiNotFoundResponse({ description: "Alumno no encontrado." })
   async resetSemaphore(@Param("studentId", ParseIntPipe) studentId: number) {
     return this.attendanceService.resetSemaphore(studentId);
   }

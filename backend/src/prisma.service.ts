@@ -7,7 +7,7 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   async onModuleInit() {
-    //await this.$connect(); //se desactivará temporalmente este método para evitar problemas de conexión durante el desarrollo.
+    await this.$connect(); //se desactivará temporalmente este método para evitar problemas de conexión durante el desarrollo.
   }
 
   async onModuleDestroy() {
