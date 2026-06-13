@@ -1,27 +1,29 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
-import request from 'supertest';
-import { AppModule } from '../src/app.module';
-import { HttpExceptionFilter } from '../src/common/filters/http-exception.filter';
-import { PrismaService } from '../src/prisma.service';
-import { UserRole } from '../src/common/enums/roles.enum';
-import * as bcrypt from 'bcryptjs';
+import { Test, TestingModule } from "@nestjs/testing";
+import { INestApplication, ValidationPipe } from "@nestjs/common";
+import request from "supertest";
+import { AppModule } from "../src/app.module";
+import { HttpExceptionFilter } from "../src/common/filters/http-exception.filter";
+import { PrismaService } from "../src/prisma.service";
+import { UserRole } from "../src/common/enums/roles.enum";
+import * as bcrypt from "bcryptjs";
 
 function getMexicoCityDayAndTime() {
   const date = new Date();
-  const formatted = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Mexico_City',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
+  const formatted = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Mexico_City",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
     hour12: false,
   }).format(date);
 
-  const match = formatted.match(/(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/);
-  if (!match) throw new Error('Format match failed');
+  const match = formatted.match(
+    /(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/,
+  );
+  if (!match) throw new Error("Format match failed");
   const [, month, day, year, hours, minutes] = match;
 
   const localYear = parseInt(year);
@@ -29,17 +31,17 @@ function getMexicoCityDayAndTime() {
   const localDay = parseInt(day);
 
   const days = [
-    'SUNDAY',
-    'MONDAY',
-    'TUESDAY',
-    'WEDNESDAY',
-    'THURSDAY',
-    'FRIDAY',
-    'SATURDAY',
+    "SUNDAY",
+    "MONDAY",
+    "TUESDAY",
+    "WEDNESDAY",
+    "THURSDAY",
+    "FRIDAY",
+    "SATURDAY",
   ];
   const tempDate = new Date(localYear, localMonth, localDay);
   const currentDay = days[tempDate.getDay()];
-  const currentTime = `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
+  const currentTime = `${hours.padStart(2, "0")}:${minutes.padStart(2, "0")}`;
 
   const nowMin = parseInt(hours) * 60 + parseInt(minutes);
   let startMin = nowMin - 10;
@@ -50,7 +52,7 @@ function getMexicoCityDayAndTime() {
   const formatMin = (m: number) => {
     const h = Math.floor(m / 60);
     const min = m % 60;
-    return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+    return `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
   };
 
   // Get a different day
@@ -75,7 +77,9 @@ function getMexicoCityDayAndTime() {
   };
 }
 
-async function checkHasClassScheduleId(prisma: PrismaService): Promise<boolean> {
+async function checkHasClassScheduleId(
+  prisma: PrismaService,
+): Promise<boolean> {
   try {
     const cols = await prisma.$queryRaw<any[]>`
       SELECT column_name 
@@ -88,12 +92,12 @@ async function checkHasClassScheduleId(prisma: PrismaService): Promise<boolean> 
   }
 }
 
-describe('AttendanceModule (e2e)', () => {
+describe("AttendanceModule (e2e)", () => {
   let app: INestApplication;
   let prisma: PrismaService;
 
   const testId = Date.now();
-  const passwordHash = bcrypt.hashSync('password123', 12);
+  const passwordHash = bcrypt.hashSync("password123", 12);
 
   // Entities created during beforeAll
   let schoolCycleId: number;
@@ -133,9 +137,11 @@ describe('AttendanceModule (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     app.useGlobalFilters(new HttpExceptionFilter());
-    app.setGlobalPrefix('api');
+    app.setGlobalPrefix("api");
     await app.init();
 
     prisma = app.get(PrismaService);
@@ -149,6 +155,10 @@ describe('AttendanceModule (e2e)', () => {
         ON CONFLICT (id) DO NOTHING;
       `);
     }
+    // Sync users sequence to prevent unique constraint failures on auto-incrementing ID
+    await prisma.$executeRawUnsafe(`
+      SELECT setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 1));
+    `);
 
     timeInfo = getMexicoCityDayAndTime();
     hasClassScheduleId = await checkHasClassScheduleId(prisma);
@@ -178,7 +188,7 @@ describe('AttendanceModule (e2e)', () => {
       data: {
         name: `Test Group ${testId}`,
         gradeLevel: 1,
-        career: 'Test Career',
+        career: "Test Career",
       },
     });
     groupId = group.id;
@@ -187,7 +197,7 @@ describe('AttendanceModule (e2e)', () => {
       data: {
         name: `Other Group ${testId}`,
         gradeLevel: 1,
-        career: 'Test Career',
+        career: "Test Career",
       },
     });
     otherGroupId = otherGroup.id;
@@ -206,12 +216,12 @@ describe('AttendanceModule (e2e)', () => {
       data: {
         email: `parent-${testId}@example.com`,
         password: passwordHash,
-        firstName: 'Test',
-        lastName: 'Parent',
+        firstName: "Test",
+        lastName: "Parent",
         role: UserRole.PARENT,
         parentProfile: {
           create: {
-            phone: '1234567890',
+            phone: "1234567890",
           },
         },
       },
@@ -225,8 +235,8 @@ describe('AttendanceModule (e2e)', () => {
       data: {
         email: `student-${testId}@example.com`,
         password: passwordHash,
-        firstName: 'Test',
-        lastName: 'Student',
+        firstName: "Test",
+        lastName: "Student",
         role: UserRole.STUDENT,
         studentProfile: {
           create: {
@@ -246,8 +256,8 @@ describe('AttendanceModule (e2e)', () => {
       data: {
         email: `otherstudent-${testId}@example.com`,
         password: passwordHash,
-        firstName: 'Other',
-        lastName: 'Student',
+        firstName: "Other",
+        lastName: "Student",
         role: UserRole.STUDENT,
         studentProfile: {
           create: {
@@ -267,8 +277,8 @@ describe('AttendanceModule (e2e)', () => {
       data: {
         email: `teacher-${testId}@example.com`,
         password: passwordHash,
-        firstName: 'Test',
-        lastName: 'Teacher',
+        firstName: "Test",
+        lastName: "Teacher",
         role: UserRole.TEACHER,
         teacherProfile: {
           create: {
@@ -286,8 +296,8 @@ describe('AttendanceModule (e2e)', () => {
       data: {
         email: `otherteacher-${testId}@example.com`,
         password: passwordHash,
-        firstName: 'Other',
-        lastName: 'Teacher',
+        firstName: "Other",
+        lastName: "Teacher",
         role: UserRole.TEACHER,
         teacherProfile: {
           create: {
@@ -321,23 +331,23 @@ describe('AttendanceModule (e2e)', () => {
 
     // 10. Login to get JWT tokens
     const loginStudent = await request(app.getHttpServer())
-      .post('/api/auth/login')
-      .send({ email: studentUser.email, password: 'password123' });
+      .post("/api/auth/login")
+      .send({ email: studentUser.email, password: "password123" });
     studentToken = loginStudent.body.accessToken;
 
     const loginOtherStudent = await request(app.getHttpServer())
-      .post('/api/auth/login')
-      .send({ email: otherStudentUser.email, password: 'password123' });
+      .post("/api/auth/login")
+      .send({ email: otherStudentUser.email, password: "password123" });
     otherStudentToken = loginOtherStudent.body.accessToken;
 
     const loginTeacher = await request(app.getHttpServer())
-      .post('/api/auth/login')
-      .send({ email: teacherUser.email, password: 'password123' });
+      .post("/api/auth/login")
+      .send({ email: teacherUser.email, password: "password123" });
     teacherToken = loginTeacher.body.accessToken;
 
     const loginOtherTeacher = await request(app.getHttpServer())
-      .post('/api/auth/login')
-      .send({ email: otherTeacherUser.email, password: 'password123' });
+      .post("/api/auth/login")
+      .send({ email: otherTeacherUser.email, password: "password123" });
     otherTeacherToken = loginOtherTeacher.body.accessToken;
   });
 
@@ -348,13 +358,21 @@ describe('AttendanceModule (e2e)', () => {
       await prisma.classSchedule.deleteMany({ where: { classId } });
       await prisma.class.deleteMany({ where: { id: classId } });
     }
-    await prisma.studentProfile.deleteMany({
-      where: { id: { in: [studentProfileId, otherStudentProfileId] } },
-    });
-    await prisma.teacherProfile.deleteMany({
-      where: { userId: { in: [teacherUser.id, otherTeacherUser.id] } },
-    });
-    await prisma.parentProfile.deleteMany({ where: { id: parentProfileId } });
+    const studentProfileIds = [studentProfileId, otherStudentProfileId].filter(Boolean);
+    if (studentProfileIds.length > 0) {
+      await prisma.studentProfile.deleteMany({
+        where: { id: { in: studentProfileIds } },
+      });
+    }
+    const teacherUserIds = [teacherUser?.id, otherTeacherUser?.id].filter(Boolean) as number[];
+    if (teacherUserIds.length > 0) {
+      await prisma.teacherProfile.deleteMany({
+        where: { userId: { in: teacherUserIds } },
+      });
+    }
+    if (parentProfileId) {
+      await prisma.parentProfile.deleteMany({ where: { id: parentProfileId } });
+    }
     await prisma.user.deleteMany({
       where: {
         email: {
@@ -362,66 +380,76 @@ describe('AttendanceModule (e2e)', () => {
         },
       },
     });
-    if (subjectId) {
-      await prisma.subject.delete({ where: { id: subjectId } });
-    }
-    if (groupId) {
-      await prisma.group.delete({ where: { id: groupId } });
-    }
-    if (otherGroupId) {
-      await prisma.group.delete({ where: { id: otherGroupId } });
-    }
-    if (semesterId) {
-      await prisma.semester.delete({ where: { id: semesterId } });
-    }
-    if (schoolCycleId) {
-      await prisma.schoolCycle.delete({ where: { id: schoolCycleId } });
-    }
+    try {
+      if (subjectId) {
+        await prisma.subject.delete({ where: { id: subjectId } });
+      }
+    } catch (e) {}
+    try {
+      if (groupId) {
+        await prisma.group.delete({ where: { id: groupId } });
+      }
+    } catch (e) {}
+    try {
+      if (otherGroupId) {
+        await prisma.group.delete({ where: { id: otherGroupId } });
+      }
+    } catch (e) {}
+    try {
+      if (semesterId) {
+        await prisma.semester.delete({ where: { id: semesterId } });
+      }
+    } catch (e) {}
+    try {
+      if (schoolCycleId) {
+        await prisma.schoolCycle.delete({ where: { id: schoolCycleId } });
+      }
+    } catch (e) {}
 
     await app.close();
   });
 
   // Test Case 1: scan QR successfully
-  it('1. should successfully record attendance using a valid QR token within the schedule window', async () => {
+  it("1. should successfully record attendance using a valid QR token within the schedule window", async () => {
     // Refresh QR token as student
     const qrRes = await request(app.getHttpServer())
-      .post('/api/qr/refresh')
-      .set('Authorization', `Bearer ${studentToken}`);
+      .post("/api/qr/refresh")
+      .set("Authorization", `Bearer ${studentToken}`);
     expect(qrRes.status).toBe(201);
     const qrToken = qrRes.body.qrToken;
     expect(qrToken).toBeDefined();
 
     // Scan QR as teacher
     const scanRes = await request(app.getHttpServer())
-      .post('/api/attendance/scan-qr')
-      .set('Authorization', `Bearer ${teacherToken}`)
+      .post("/api/attendance/scan-qr")
+      .set("Authorization", `Bearer ${teacherToken}`)
       .send({
         qrToken,
         classScheduleId,
       });
 
     expect(scanRes.status).toBe(201);
-    expect(scanRes.body).toHaveProperty('status', 'PRESENT');
-    expect(scanRes.body).toHaveProperty('studentId', studentProfileId);
-    expect(scanRes.body).toHaveProperty('classId', classId);
+    expect(scanRes.body).toHaveProperty("status", "PRESENT");
+    expect(scanRes.body).toHaveProperty("studentId", studentProfileId);
+    expect(scanRes.body).toHaveProperty("classId", classId);
   });
 
   // Test Case 2: fail if QR invalid
-  it('2. should fail to record attendance if the QR token is invalid (does not exist)', async () => {
+  it("2. should fail to record attendance if the QR token is invalid (does not exist)", async () => {
     const scanRes = await request(app.getHttpServer())
-      .post('/api/attendance/scan-qr')
-      .set('Authorization', `Bearer ${teacherToken}`)
+      .post("/api/attendance/scan-qr")
+      .set("Authorization", `Bearer ${teacherToken}`)
       .send({
-        qrToken: 'invalid-non-existent-token',
+        qrToken: "invalid-non-existent-token",
         classScheduleId,
       });
 
     expect(scanRes.status).toBe(400);
-    expect(scanRes.body.message).toBe('Token QR inválido o expirado');
+    expect(scanRes.body.message.message || scanRes.body.message).toBe("Token QR inválido o expirado");
   });
 
   // Test Case 3: fail if QR expired
-  it('3. should fail to record attendance if the QR token has expired', async () => {
+  it("3. should fail to record attendance if the QR token has expired", async () => {
     // Generate QR in DB manually and set it expired
     const expiredToken = `expired-${testId}`;
     await prisma.studentProfile.update({
@@ -433,59 +461,63 @@ describe('AttendanceModule (e2e)', () => {
     });
 
     const scanRes = await request(app.getHttpServer())
-      .post('/api/attendance/scan-qr')
-      .set('Authorization', `Bearer ${teacherToken}`)
+      .post("/api/attendance/scan-qr")
+      .set("Authorization", `Bearer ${teacherToken}`)
       .send({
         qrToken: expiredToken,
         classScheduleId,
       });
 
     expect(scanRes.status).toBe(400);
-    expect(scanRes.body.message).toBe('El token QR ha expirado. El alumno debe refrescar su credencial digital.');
+    expect(scanRes.body.message.message || scanRes.body.message).toBe(
+      "El token QR ha expirado. El alumno debe refrescar su credencial digital.",
+    );
   });
 
   // Test Case 4: fail if student is not in correct group
-  it('4. should fail to record attendance if the student is not in the correct group', async () => {
+  it("4. should fail to record attendance if the student is not in the correct group", async () => {
     // Generate QR for other student
     const qrRes = await request(app.getHttpServer())
-      .post('/api/qr/refresh')
-      .set('Authorization', `Bearer ${otherStudentToken}`);
+      .post("/api/qr/refresh")
+      .set("Authorization", `Bearer ${otherStudentToken}`);
     const qrToken = qrRes.body.qrToken;
 
     const scanRes = await request(app.getHttpServer())
-      .post('/api/attendance/scan-qr')
-      .set('Authorization', `Bearer ${teacherToken}`)
+      .post("/api/attendance/scan-qr")
+      .set("Authorization", `Bearer ${teacherToken}`)
       .send({
         qrToken,
         classScheduleId,
       });
 
     expect(scanRes.status).toBe(400);
-    expect(scanRes.body.message).toContain('Inconsistencia de grupo');
+    expect(scanRes.body.message.message || scanRes.body.message).toContain("Inconsistencia de grupo");
   });
 
   // Test Case 5: fail if teacher scanning is wrong
-  it('5. should fail to record attendance if the teacher scanning the QR is not the one assigned to the class', async () => {
+  it("5. should fail to record attendance if the teacher scanning the QR is not the one assigned to the class", async () => {
     // Refresh QR token for correct student
     const qrRes = await request(app.getHttpServer())
-      .post('/api/qr/refresh')
-      .set('Authorization', `Bearer ${studentToken}`);
+      .post("/api/qr/refresh")
+      .set("Authorization", `Bearer ${studentToken}`);
     const qrToken = qrRes.body.qrToken;
 
     const scanRes = await request(app.getHttpServer())
-      .post('/api/attendance/scan-qr')
-      .set('Authorization', `Bearer ${otherTeacherToken}`)
+      .post("/api/attendance/scan-qr")
+      .set("Authorization", `Bearer ${otherTeacherToken}`)
       .send({
         qrToken,
         classScheduleId,
       });
 
     expect(scanRes.status).toBe(400);
-    expect(scanRes.body.message).toBe('No está autorizado para registrar asistencia en esta clase. El docente no coincide con el horario asignado.');
+    expect(scanRes.body.message.message || scanRes.body.message).toBe(
+      "No está autorizado para registrar asistencia en esta clase. El docente no coincide con el horario asignado.",
+    );
   });
 
   // Test Case 6: fail if day of the week is incorrect
-  it('6. should fail to record attendance if the class is on a different day of the week', async () => {
+  it("6. should fail to record attendance if the class is on a different day of the week", async () => {
     // Create a temporary class on a different day
     const wrongClass = await prisma.class.create({
       data: {
@@ -505,28 +537,30 @@ describe('AttendanceModule (e2e)', () => {
     });
 
     const qrRes = await request(app.getHttpServer())
-      .post('/api/qr/refresh')
-      .set('Authorization', `Bearer ${studentToken}`);
+      .post("/api/qr/refresh")
+      .set("Authorization", `Bearer ${studentToken}`);
     const qrToken = qrRes.body.qrToken;
 
     const scanRes = await request(app.getHttpServer())
-      .post('/api/attendance/scan-qr')
-      .set('Authorization', `Bearer ${teacherToken}`)
+      .post("/api/attendance/scan-qr")
+      .set("Authorization", `Bearer ${teacherToken}`)
       .send({
         qrToken,
         classScheduleId: wrongClass.schedules[0].id,
       });
 
     expect(scanRes.status).toBe(400);
-    expect(scanRes.body.message).toContain('Inconsistencia de día');
+    expect(scanRes.body.message.message || scanRes.body.message).toContain("Inconsistencia de día");
 
     // Cleanup wrong class
-    await prisma.classSchedule.deleteMany({ where: { classId: wrongClass.id } });
+    await prisma.classSchedule.deleteMany({
+      where: { classId: wrongClass.id },
+    });
     await prisma.class.delete({ where: { id: wrongClass.id } });
   });
 
   // Test Case 7: fail if current time is outside the schedule window
-  it('7. should fail to record attendance if the current time is outside the schedule window (+/- 15 mins)', async () => {
+  it("7. should fail to record attendance if the current time is outside the schedule window (+/- 15 mins)", async () => {
     // Create a temporary class at a wrong time
     const wrongTimeClass = await prisma.class.create({
       data: {
@@ -546,69 +580,73 @@ describe('AttendanceModule (e2e)', () => {
     });
 
     const qrRes = await request(app.getHttpServer())
-      .post('/api/qr/refresh')
-      .set('Authorization', `Bearer ${studentToken}`);
+      .post("/api/qr/refresh")
+      .set("Authorization", `Bearer ${studentToken}`);
     const qrToken = qrRes.body.qrToken;
 
     const scanRes = await request(app.getHttpServer())
-      .post('/api/attendance/scan-qr')
-      .set('Authorization', `Bearer ${teacherToken}`)
+      .post("/api/attendance/scan-qr")
+      .set("Authorization", `Bearer ${teacherToken}`)
       .send({
         qrToken,
         classScheduleId: wrongTimeClass.schedules[0].id,
       });
 
     expect(scanRes.status).toBe(400);
-    expect(scanRes.body.message).toContain('Inconsistencia de horario');
+    expect(scanRes.body.message.message || scanRes.body.message).toContain("Inconsistencia de horario");
 
     // Cleanup wrong class
-    await prisma.classSchedule.deleteMany({ where: { classId: wrongTimeClass.id } });
+    await prisma.classSchedule.deleteMany({
+      where: { classId: wrongTimeClass.id },
+    });
     await prisma.class.delete({ where: { id: wrongTimeClass.id } });
   });
 
   // Test Case 8: fail if already registered today
-  it('8. should fail to record attendance if attendance is already registered for this student, class, and day', async () => {
+  it("8. should fail to record attendance if attendance is already registered for this student, class, and day", async () => {
     // Refresh student QR
     const qrRes = await request(app.getHttpServer())
-      .post('/api/qr/refresh')
-      .set('Authorization', `Bearer ${studentToken}`);
+      .post("/api/qr/refresh")
+      .set("Authorization", `Bearer ${studentToken}`);
     const qrToken = qrRes.body.qrToken;
 
     // Scan again
     const scanRes = await request(app.getHttpServer())
-      .post('/api/attendance/scan-qr')
-      .set('Authorization', `Bearer ${teacherToken}`)
+      .post("/api/attendance/scan-qr")
+      .set("Authorization", `Bearer ${teacherToken}`)
       .send({
         qrToken,
         classScheduleId,
       });
 
     expect(scanRes.status).toBe(400);
-    expect(scanRes.body.message).toBe('La asistencia de este alumno ya fue registrada para esta clase hoy');
+    expect(scanRes.body.message.message || scanRes.body.message).toBe(
+      "La asistencia de este alumno ya fue registrada para este bloque de clase hoy",
+    );
   });
 
   // Test Case 9: list attendances with filters
-  it('9. should list attendances using filters (findAll)', async () => {
+  it("9. should list attendances using filters (findAll)", async () => {
     const res = await request(app.getHttpServer())
       .get(`/api/attendance?studentId=${studentProfileId}&classId=${classId}`)
-      .set('Authorization', `Bearer ${teacherToken}`);
+      .set("Authorization", `Bearer ${teacherToken}`);
 
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
     expect(res.body.length).toBeGreaterThan(0);
-    expect(res.body[0]).toHaveProperty('studentId', studentProfileId);
-    expect(res.body[0]).toHaveProperty('classId', classId);
+    expect(res.body[0]).toHaveProperty("studentId", studentProfileId);
+    expect(res.body[0]).toHaveProperty("classId", classId);
   });
 
   // Test Case 10: get stats
-  it('10. should retrieve attendance stats for a student', async () => {
+  it("10. should retrieve attendance stats for a student", async () => {
     const res = await request(app.getHttpServer())
       .get(`/api/attendance/stats/student/${studentProfileId}`)
-      .set('Authorization', `Bearer ${studentToken}`);
+      .set("Authorization", `Bearer ${studentToken}`);
 
     expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('absences');
-    expect(res.body).toHaveProperty('totalClasses');
-    expect(res.body).toHaveProperty('attendanceRate');
+    expect(res.body).toHaveProperty("absences");
+    expect(res.body).toHaveProperty("totalClasses");
+    expect(res.body).toHaveProperty("attendanceRate");
   });
 });

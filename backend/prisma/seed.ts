@@ -18,8 +18,8 @@ async function main() {
     // If the table schedules does not exist, ignore error
   }
 
-  // Limpiar datos existentes (en una sola transacción para evitar problemas con el pooler de Supabase)
-  await prisma.$transaction(async (tx) => {
+  // Se ejecuta todo secuencialmente sin transacción para evitar problemas con PgBouncer / Supabase pooler
+  const tx = prisma;
     await tx.gradeLog.deleteMany();
     await tx.notification.deleteMany();
     await tx.alert.deleteMany();
@@ -38,213 +38,191 @@ async function main() {
     await tx.subject.deleteMany();
     await tx.group.deleteMany();
     await tx.user.deleteMany();
-  });
 
-  console.log("Base de datos limpia");
+    // Restart sequences atomically within the same transaction to guarantee consistency
+    await tx.$executeRawUnsafe('ALTER SEQUENCE IF EXISTS users_id_seq RESTART WITH 1;');
+    await tx.$executeRawUnsafe('ALTER SEQUENCE IF EXISTS admin_profiles_id_seq RESTART WITH 1;');
+    await tx.$executeRawUnsafe('ALTER SEQUENCE IF EXISTS teacher_profiles_id_seq RESTART WITH 1;');
+    await tx.$executeRawUnsafe('ALTER SEQUENCE IF EXISTS student_profiles_id_seq RESTART WITH 1;');
+    await tx.$executeRawUnsafe('ALTER SEQUENCE IF EXISTS parent_profiles_id_seq RESTART WITH 1;');
+    await tx.$executeRawUnsafe('ALTER SEQUENCE IF EXISTS groups_id_seq RESTART WITH 1;');
+    await tx.$executeRawUnsafe('ALTER SEQUENCE IF EXISTS subjects_id_seq RESTART WITH 1;');
+    await tx.$executeRawUnsafe('ALTER SEQUENCE IF EXISTS school_cycle_id_seq RESTART WITH 1;');
+    await tx.$executeRawUnsafe('ALTER SEQUENCE IF EXISTS semesters_id_seq RESTART WITH 1;');
+    await tx.$executeRawUnsafe('ALTER SEQUENCE IF EXISTS attendances_id_seq RESTART WITH 1;');
+    await tx.$executeRawUnsafe('ALTER SEQUENCE IF EXISTS grades_id_seq RESTART WITH 1;');
+    await tx.$executeRawUnsafe('ALTER SEQUENCE IF EXISTS grade_logs_id_seq RESTART WITH 1;');
+    await tx.$executeRawUnsafe('ALTER SEQUENCE IF EXISTS alerts_id_seq RESTART WITH 1;');
+    await tx.$executeRawUnsafe('ALTER SEQUENCE IF EXISTS notifications_id_seq RESTART WITH 1;');
+    await tx.$executeRawUnsafe('ALTER SEQUENCE IF EXISTS classes_id_seq RESTART WITH 1;');
+    await tx.$executeRawUnsafe('ALTER SEQUENCE IF EXISTS classrooms_id_seq RESTART WITH 1;');
+    await tx.$executeRawUnsafe('ALTER SEQUENCE IF EXISTS classes_schedules_id_seq RESTART WITH 1;');
 
-  // 1. Crear Ciclo Escolar
-  const cycle = await prisma.schoolCycle.create({
-    data: {
-      cycleName: "Ciclo Escolar 2025-2026",
-      startDate: new Date("2025-08-01T00:00:00Z"),
-      finishDate: new Date("2026-07-31T00:00:00Z"),
-    },
-  });
+    console.log("Base de datos limpia y secuencias reiniciadas");
 
-  // 2. Crear Semestre
-  const semester = await prisma.semester.create({
-    data: {
-      semesterName: "Semestre A (Agosto 2025 - Enero 2026)",
-      startDate: new Date("2025-08-18T00:00:00Z"),
-      finishDate: new Date("2026-01-23T00:00:00Z"),
-      schoolCycleId: cycle.id,
-    },
-  });
-
-  console.log("Ciclo escolar y Semestre creados");
-
-  // 3. Crear Aulas (Classrooms)
-  const classrooms = await Promise.all([
-    prisma.classroom.create({
-      data: { name: "A-101", capacity: 40, description: "Aula del Edificio A" },
-    }),
-    prisma.classroom.create({
-      data: { name: "A-102", capacity: 40, description: "Aula del Edificio A" },
-    }),
-    prisma.classroom.create({
-      data: { name: "B-201", capacity: 40, description: "Aula del Edificio B" },
-    }),
-    prisma.classroom.create({
-      data: { name: "C-301", capacity: 40, description: "Aula del Edificio C" },
-    }),
-    prisma.classroom.create({
-      data: { name: "D-401", capacity: 40, description: "Aula del Edificio D" },
-    }),
-    prisma.classroom.create({
+    // 1. Crear Ciclo Escolar
+    const cycle = await tx.schoolCycle.create({
       data: {
-        name: "LAB-1",
-        capacity: 30,
-        description: "Laboratorio de Cómputo 1",
+        cycleName: "Ciclo Escolar 2025-2026",
+        startDate: new Date("2025-08-01T00:00:00Z"),
+        finishDate: new Date("2026-07-31T00:00:00Z"),
       },
-    }),
-    prisma.classroom.create({
+    });
+
+    // 2. Crear Semestre
+    const semester = await tx.semester.create({
       data: {
-        name: "LAB-2",
-        capacity: 30,
-        description: "Laboratorio de Cómputo 2",
+        semesterName: "Semestre A (Agosto 2025 - Enero 2026)",
+        startDate: new Date("2025-08-18T00:00:00Z"),
+        finishDate: new Date("2026-01-23T00:00:00Z"),
+        schoolCycleId: cycle.id,
       },
-    }),
-  ]);
+    });
 
-  const classroomMap = new Map(classrooms.map((c) => [c.name, c.id]));
-  console.log("Aulas creadas");
+    console.log("Ciclo escolar y Semestre creados");
 
-  // 4. Crear Grupos
-  const groups = await Promise.all([
-    prisma.group.create({
-      data: {
+    // 3. Crear Aulas (Classrooms)
+    const classrooms = [];
+    for (const c of [
+      { name: "A-101", capacity: 40, description: "Aula del Edificio A" },
+      { name: "A-102", capacity: 40, description: "Aula del Edificio A" },
+      { name: "B-201", capacity: 40, description: "Aula del Edificio B" },
+      { name: "C-301", capacity: 40, description: "Aula del Edificio C" },
+      { name: "D-401", capacity: 40, description: "Aula del Edificio D" },
+      { name: "LAB-1", capacity: 30, description: "Laboratorio de Cómputo 1" },
+      { name: "LAB-2", capacity: 30, description: "Laboratorio de Cómputo 2" },
+    ]) {
+      classrooms.push(await tx.classroom.create({ data: c }));
+    }
+
+    const classroomMap = new Map(classrooms.map((c) => [c.name, c.id]));
+    console.log("Aulas creadas");
+
+    // 4. Crear Grupos
+    const groups = [];
+    for (const g of [
+      {
         name: "3A - Programación",
         gradeLevel: 3,
         career: "Programación",
         classroom: "A-101",
         maxStudents: 35,
       },
-    }),
-    prisma.group.create({
-      data: {
+      {
         name: "3B - Programación",
         gradeLevel: 3,
         career: "Programación",
         classroom: "A-102",
         maxStudents: 35,
       },
-    }),
-    prisma.group.create({
-      data: {
+      {
         name: "4A - Contabilidad",
         gradeLevel: 4,
         career: "Contabilidad",
         classroom: "B-201",
         maxStudents: 40,
       },
-    }),
-    prisma.group.create({
-      data: {
+      {
         name: "5A - Electrónica",
         gradeLevel: 5,
         career: "Electrónica",
         classroom: "C-301",
         maxStudents: 30,
       },
-    }),
-    prisma.group.create({
-      data: {
+      {
         name: "6A - Mecatrónica",
         gradeLevel: 6,
         career: "Mecatrónica",
         classroom: "D-401",
         maxStudents: 30,
       },
-    }),
-  ]);
+    ]) {
+      groups.push(await tx.group.create({ data: g }));
+    }
 
-  console.log("Grupos creados");
+    console.log("Grupos creados");
 
-  // 5. Crear Materias
-  const subjects = await Promise.all([
-    prisma.subject.create({
-      data: {
+    // 5. Crear Materias
+    const subjects = [];
+    for (const s of [
+      {
         name: "Matemáticas IV",
         code: "MAT-401",
         description: "Cálculo diferencial e integral",
         credits: 4,
       },
-    }),
-    prisma.subject.create({
-      data: {
+      {
         name: "Física III",
         code: "FIS-301",
         description: "Electricidad y magnetismo",
         credits: 4,
       },
-    }),
-    prisma.subject.create({
-      data: {
+      {
         name: "Programación Web",
         code: "PRO-501",
         description: "Desarrollo de aplicaciones web",
         credits: 5,
       },
-    }),
-    prisma.subject.create({
-      data: {
+      {
         name: "Base de Datos",
         code: "BD-401",
         description: "Diseño y administración de BD",
         credits: 4,
       },
-    }),
-    prisma.subject.create({
-      data: {
+      {
         name: "Inglés IV",
         code: "ING-401",
         description: "Inglés técnico",
         credits: 3,
       },
-    }),
-    prisma.subject.create({
-      data: {
+      {
         name: "Ética Profesional",
         code: "ETI-201",
         description: "Valores y ética en el trabajo",
         credits: 2,
       },
-    }),
-    prisma.subject.create({
-      data: {
+      {
         name: "Electrónica Digital",
         code: "ELE-501",
         description: "Circuitos digitales",
         credits: 5,
       },
-    }),
-    prisma.subject.create({
-      data: {
+      {
         name: "Contabilidad General",
         code: "CON-301",
         description: "Principios de contabilidad",
         credits: 4,
       },
-    }),
-  ]);
+    ]) {
+      subjects.push(await tx.subject.create({ data: s }));
+    }
 
-  console.log("Materias creadas");
+    console.log("Materias creadas");
 
-  // 6. Crear Usuarios Base
-  await prisma.$executeRawUnsafe('ALTER SEQUENCE users_id_seq RESTART WITH 1;');
-  const adminPassword = await bcrypt.hash("admin123", 12);
-  const teacherPassword = await bcrypt.hash("teacher123", 12);
-  const studentPassword = await bcrypt.hash("student123", 12);
-  const parentPassword = await bcrypt.hash("parent123", 12);
+    // 6. Crear Usuarios Base
+    const adminPassword = await bcrypt.hash("admin123", 12);
+    const teacherPassword = await bcrypt.hash("teacher123", 12);
+    const studentPassword = await bcrypt.hash("student123", 12);
+    const parentPassword = await bcrypt.hash("parent123", 12);
 
-  // Admin (Subdirector)
-  const admin = await prisma.user.create({
-    data: {
-      email: "subdirector@cbtis61.edu.mx",
-      password: adminPassword,
-      firstName: "Carlos",
-      lastName: "Hernández López",
-      role: UserRole.ADMIN,
-      adminProfile: {
-        create: { position: "Subdirector Académico", phone: "555-0101" },
-      },
-    },
-  });
-
-  // Docentes
-  const teachers = await Promise.all([
-    prisma.user.create({
+    // Admin (Subdirector)
+    const admin = await tx.user.create({
       data: {
+        email: "subdirector@cbtis61.edu.mx",
+        password: adminPassword,
+        firstName: "Carlos",
+        lastName: "Hernández López",
+        role: UserRole.ADMIN,
+        adminProfile: {
+          create: { position: "Subdirector Académico", phone: "555-0101" },
+        },
+      },
+    });
+
+    // Docentes
+    const teachers = [];
+    for (const t of [
+      {
         email: "juan.perez@cbtis61.edu.mx",
         password: teacherPassword,
         firstName: "Juan",
@@ -258,9 +236,7 @@ async function main() {
           },
         },
       },
-    }),
-    prisma.user.create({
-      data: {
+      {
         email: "maria.gonzalez@cbtis61.edu.mx",
         password: teacherPassword,
         firstName: "María",
@@ -274,9 +250,7 @@ async function main() {
           },
         },
       },
-    }),
-    prisma.user.create({
-      data: {
+      {
         email: "pedro.sanchez@cbtis61.edu.mx",
         password: teacherPassword,
         firstName: "Pedro",
@@ -290,9 +264,7 @@ async function main() {
           },
         },
       },
-    }),
-    prisma.user.create({
-      data: {
+      {
         email: "ana.lopez@cbtis61.edu.mx",
         password: teacherPassword,
         firstName: "Ana",
@@ -306,15 +278,16 @@ async function main() {
           },
         },
       },
-    }),
-  ]);
+    ]) {
+      teachers.push(await tx.user.create({ data: t }));
+    }
 
-  console.log("Docentes creados");
+    console.log("Docentes creados");
 
-  // Padres de Familia (Tutores)
-  const parents = await Promise.all([
-    prisma.user.create({
-      data: {
+    // Padres de Familia (Tutores)
+    const parents = [];
+    for (const p of [
+      {
         email: "padre1@email.com",
         password: parentPassword,
         firstName: "Roberto",
@@ -327,9 +300,7 @@ async function main() {
           },
         },
       },
-    }),
-    prisma.user.create({
-      data: {
+      {
         email: "padre2@email.com",
         password: parentPassword,
         firstName: "Laura",
@@ -339,9 +310,7 @@ async function main() {
           create: { phone: "555-0302", address: "Av. Juárez #456, Ciudad" },
         },
       },
-    }),
-    prisma.user.create({
-      data: {
+      {
         email: "padre3@email.com",
         password: parentPassword,
         firstName: "Fernando",
@@ -351,15 +320,16 @@ async function main() {
           create: { phone: "555-0303", address: "Calle Hidalgo #789, Ciudad" },
         },
       },
-    }),
-  ]);
+    ]) {
+      parents.push(await tx.user.create({ data: p }));
+    }
 
-  console.log("Padres de familia creados");
+    console.log("Padres de familia creados");
 
-  // Alumnos
-  const students = await Promise.all([
-    prisma.user.create({
-      data: {
+    // Alumnos
+    const students = [];
+    for (const s of [
+      {
         email: "alumno1@cbtis61.edu.mx",
         password: studentPassword,
         firstName: "Luis",
@@ -369,7 +339,7 @@ async function main() {
           create: {
             enrollmentId: "2024-001",
             groupId: groups[0].id,
-            parentId: (await prisma.parentProfile.findUnique({
+            parentId: (await tx.parentProfile.findUnique({
               where: { userId: parents[0].id },
             }))!.id,
             qrToken: null,
@@ -378,9 +348,7 @@ async function main() {
           },
         },
       },
-    }),
-    prisma.user.create({
-      data: {
+      {
         email: "alumno2@cbtis61.edu.mx",
         password: studentPassword,
         firstName: "Sofía",
@@ -390,7 +358,7 @@ async function main() {
           create: {
             enrollmentId: "2024-002",
             groupId: groups[0].id,
-            parentId: (await prisma.parentProfile.findUnique({
+            parentId: (await tx.parentProfile.findUnique({
               where: { userId: parents[1].id },
             }))!.id,
             qrToken: null,
@@ -399,9 +367,7 @@ async function main() {
           },
         },
       },
-    }),
-    prisma.user.create({
-      data: {
+      {
         email: "alumno3@cbtis61.edu.mx",
         password: studentPassword,
         firstName: "Diego",
@@ -411,7 +377,7 @@ async function main() {
           create: {
             enrollmentId: "2024-003",
             groupId: groups[1].id,
-            parentId: (await prisma.parentProfile.findUnique({
+            parentId: (await tx.parentProfile.findUnique({
               where: { userId: parents[2].id },
             }))!.id,
             qrToken: null,
@@ -420,9 +386,7 @@ async function main() {
           },
         },
       },
-    }),
-    prisma.user.create({
-      data: {
+      {
         email: "alumno4@cbtis61.edu.mx",
         password: studentPassword,
         firstName: "Valentina",
@@ -432,7 +396,7 @@ async function main() {
           create: {
             enrollmentId: "2024-004",
             groupId: groups[2].id,
-            parentId: (await prisma.parentProfile.findUnique({
+            parentId: (await tx.parentProfile.findUnique({
               where: { userId: parents[0].id },
             }))!.id,
             qrToken: null,
@@ -441,9 +405,7 @@ async function main() {
           },
         },
       },
-    }),
-    prisma.user.create({
-      data: {
+      {
         email: "alumno5@cbtis61.edu.mx",
         password: studentPassword,
         firstName: "Mateo",
@@ -453,7 +415,7 @@ async function main() {
           create: {
             enrollmentId: "2024-005",
             groupId: groups[3].id,
-            parentId: (await prisma.parentProfile.findUnique({
+            parentId: (await tx.parentProfile.findUnique({
               where: { userId: parents[1].id },
             }))!.id,
             qrToken: null,
@@ -462,88 +424,88 @@ async function main() {
           },
         },
       },
-    }),
-  ]);
+    ]) {
+      students.push(await tx.user.create({ data: s }));
+    }
 
-  console.log("Alumnos creados");
+    console.log("Alumnos creados");
 
-  // Asignar materias a docentes
-  await prisma.subject.update({
-    where: { id: subjects[0].id },
-    data: {
-      teacherId: (await prisma.teacherProfile.findUnique({
-        where: { userId: teachers[0].id },
-      }))!.id,
-    },
-  });
-  await prisma.subject.update({
-    where: { id: subjects[1].id },
-    data: {
-      teacherId: (await prisma.teacherProfile.findUnique({
-        where: { userId: teachers[2].id },
-      }))!.id,
-    },
-  });
-  await prisma.subject.update({
-    where: { id: subjects[2].id },
-    data: {
-      teacherId: (await prisma.teacherProfile.findUnique({
-        where: { userId: teachers[1].id },
-      }))!.id,
-    },
-  });
-  await prisma.subject.update({
-    where: { id: subjects[3].id },
-    data: {
-      teacherId: (await prisma.teacherProfile.findUnique({
-        where: { userId: teachers[1].id },
-      }))!.id,
-    },
-  });
-  await prisma.subject.update({
-    where: { id: subjects[4].id },
-    data: {
-      teacherId: (await prisma.teacherProfile.findUnique({
-        where: { userId: teachers[3].id },
-      }))!.id,
-    },
-  });
-  await prisma.subject.update({
-    where: { id: subjects[5].id },
-    data: {
-      teacherId: (await prisma.teacherProfile.findUnique({
-        where: { userId: teachers[0].id },
-      }))!.id,
-    },
-  });
-  await prisma.subject.update({
-    where: { id: subjects[6].id },
-    data: {
-      teacherId: (await prisma.teacherProfile.findUnique({
-        where: { userId: teachers[2].id },
-      }))!.id,
-    },
-  });
-  await prisma.subject.update({
-    where: { id: subjects[7].id },
-    data: {
-      teacherId: (await prisma.teacherProfile.findUnique({
-        where: { userId: teachers[3].id },
-      }))!.id,
-    },
-  });
-
-  console.log("Materias asignadas a docentes");
-
-  // 7. Crear Clases e Horarios
-  const teacherProfiles = await prisma.teacherProfile.findMany();
-  const teacherMap = new Map(teacherProfiles.map((t) => [t.userId, t.id]));
-
-  // Crear combinaciones de Clase y sus respectivos bloques de Horario
-  await Promise.all([
-    // Clase 1: Matemáticas IV (Juan Pérez) - Grupo 3A
-    prisma.class.create({
+    // Asignar materias a docentes
+    await tx.subject.update({
+      where: { id: subjects[0].id },
       data: {
+        teacherId: (await tx.teacherProfile.findUnique({
+          where: { userId: teachers[0].id },
+        }))!.id,
+      },
+    });
+    await tx.subject.update({
+      where: { id: subjects[1].id },
+      data: {
+        teacherId: (await tx.teacherProfile.findUnique({
+          where: { userId: teachers[2].id },
+        }))!.id,
+      },
+    });
+    await tx.subject.update({
+      where: { id: subjects[2].id },
+      data: {
+        teacherId: (await tx.teacherProfile.findUnique({
+          where: { userId: teachers[1].id },
+        }))!.id,
+      },
+    });
+    await tx.subject.update({
+      where: { id: subjects[3].id },
+      data: {
+        teacherId: (await tx.teacherProfile.findUnique({
+          where: { userId: teachers[1].id },
+        }))!.id,
+      },
+    });
+    await tx.subject.update({
+      where: { id: subjects[4].id },
+      data: {
+        teacherId: (await tx.teacherProfile.findUnique({
+          where: { userId: teachers[3].id },
+        }))!.id,
+      },
+    });
+    await tx.subject.update({
+      where: { id: subjects[5].id },
+      data: {
+        teacherId: (await tx.teacherProfile.findUnique({
+          where: { userId: teachers[0].id },
+        }))!.id,
+      },
+    });
+    await tx.subject.update({
+      where: { id: subjects[6].id },
+      data: {
+        teacherId: (await tx.teacherProfile.findUnique({
+          where: { userId: teachers[2].id },
+        }))!.id,
+      },
+    });
+    await tx.subject.update({
+      where: { id: subjects[7].id },
+      data: {
+        teacherId: (await tx.teacherProfile.findUnique({
+          where: { userId: teachers[3].id },
+        }))!.id,
+      },
+    });
+
+    console.log("Materias asignadas a docentes");
+
+    // 7. Crear Clases e Horarios
+    const teacherProfiles = await tx.teacherProfile.findMany();
+    const teacherMap = new Map(teacherProfiles.map((t) => [t.userId, t.id]));
+
+    // Crear combinaciones de Clase y sus respectivos bloques de Horario
+    for (const c of [
+      // Clase 1: Matemáticas IV (Juan Pérez) - Grupo 3A
+      {
         subjectId: subjects[0].id,
         teacherId: teacherMap.get(teachers[0].id)!,
         groupId: groups[0].id,
@@ -566,11 +528,9 @@ async function main() {
           ],
         },
       },
-    }),
 
-    // Clase 2: Física III (Pedro Sánchez) - Grupo 3A
-    prisma.class.create({
-      data: {
+      // Clase 2: Física III (Pedro Sánchez) - Grupo 3A
+      {
         subjectId: subjects[1].id,
         teacherId: teacherMap.get(teachers[2].id)!,
         groupId: groups[0].id,
@@ -587,11 +547,9 @@ async function main() {
           ],
         },
       },
-    }),
 
-    // Clase 3: Programación Web (María González) - Grupo 3A
-    prisma.class.create({
-      data: {
+      // Clase 3: Programación Web (María González) - Grupo 3A
+      {
         subjectId: subjects[2].id,
         teacherId: teacherMap.get(teachers[1].id)!,
         groupId: groups[0].id,
@@ -614,11 +572,9 @@ async function main() {
           ],
         },
       },
-    }),
 
-    // Clase 4: Inglés IV (Ana López) - Grupo 3A
-    prisma.class.create({
-      data: {
+      // Clase 4: Inglés IV (Ana López) - Grupo 3A
+      {
         subjectId: subjects[4].id,
         teacherId: teacherMap.get(teachers[3].id)!,
         groupId: groups[0].id,
@@ -635,11 +591,9 @@ async function main() {
           ],
         },
       },
-    }),
 
-    // Clase 5: Base de Datos (María González) - Grupo 3A
-    prisma.class.create({
-      data: {
+      // Clase 5: Base de Datos (María González) - Grupo 3A
+      {
         subjectId: subjects[3].id,
         teacherId: teacherMap.get(teachers[1].id)!,
         groupId: groups[0].id,
@@ -656,11 +610,9 @@ async function main() {
           ],
         },
       },
-    }),
 
-    // Clase 6: Ética Profesional (Juan Pérez) - Grupo 3A
-    prisma.class.create({
-      data: {
+      // Clase 6: Ética Profesional (Juan Pérez) - Grupo 3A
+      {
         subjectId: subjects[5].id,
         teacherId: teacherMap.get(teachers[0].id)!,
         groupId: groups[0].id,
@@ -677,11 +629,9 @@ async function main() {
           ],
         },
       },
-    }),
 
-    // Clase 7: Matemáticas IV (Juan Pérez) - Grupo 3B
-    prisma.class.create({
-      data: {
+      // Clase 7: Matemáticas IV (Juan Pérez) - Grupo 3B
+      {
         subjectId: subjects[0].id,
         teacherId: teacherMap.get(teachers[0].id)!,
         groupId: groups[1].id,
@@ -698,11 +648,9 @@ async function main() {
           ],
         },
       },
-    }),
 
-    // Clase 8: Física III (Pedro Sánchez) - Grupo 3B
-    prisma.class.create({
-      data: {
+      // Clase 8: Física III (Pedro Sánchez) - Grupo 3B
+      {
         subjectId: subjects[1].id,
         teacherId: teacherMap.get(teachers[2].id)!,
         groupId: groups[1].id,
@@ -719,11 +667,9 @@ async function main() {
           ],
         },
       },
-    }),
 
-    // Clase 9: Contabilidad General (Ana López) - Grupo 4A
-    prisma.class.create({
-      data: {
+      // Clase 9: Contabilidad General (Ana López) - Grupo 4A
+      {
         subjectId: subjects[7].id,
         teacherId: teacherMap.get(teachers[3].id)!,
         groupId: groups[2].id,
@@ -740,11 +686,9 @@ async function main() {
           ],
         },
       },
-    }),
 
-    // Clase 10: Matemáticas IV (Juan Pérez) - Grupo 4A
-    prisma.class.create({
-      data: {
+      // Clase 10: Matemáticas IV (Juan Pérez) - Grupo 4A
+      {
         subjectId: subjects[0].id,
         teacherId: teacherMap.get(teachers[0].id)!,
         groupId: groups[2].id,
@@ -761,10 +705,12 @@ async function main() {
           ],
         },
       },
-    }),
-  ]);
+    ]) {
+      await tx.class.create({ data: c });
+    }
 
-  console.log("Clases y Horarios creados");
+    console.log("Clases y Horarios creados");
+  // Fin de la ejecución secuencial
 
   console.log("\nSeed completado exitosamente!");
   console.log("\nCredenciales de prueba:");

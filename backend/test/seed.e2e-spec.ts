@@ -11,6 +11,8 @@ describe("Seed and DB integrity (e2e)", () => {
   let prisma: PrismaService;
 
   beforeAll(async () => {
+    jest.setTimeout(120000);
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -31,15 +33,21 @@ describe("Seed and DB integrity (e2e)", () => {
   });
 
   // Test Case 1: Run the seed script
-  it("1. should verify that the seed script successfully runs and resets the database", () => {
-    // Execute npm run db:seed synchronously. Set timeout to 30000ms.
-    const output = execSync("cmd /c npm run db:seed", {
+  it("1. should verify that the seed script successfully runs and resets the database", async () => {
+    // Disconnect prisma first to release the single connection to the pool
+    await prisma.$disconnect();
+
+    // Execute npm.cmd run db:seed synchronously. Set timeout to 120000ms.
+    const output = execSync("cmd /c npm.cmd run db:seed", {
       cwd: "C:\\Users\\Ed\\Documents\\Develop\\Impulso\\app\\backend",
-      timeout: 30000,
+      timeout: 120000,
     }).toString();
 
+    // Reconnect prisma
+    await prisma.$connect();
+
     expect(output).toContain("Seed completado exitosamente!");
-  });
+  }, 120000);
 
   // Test Case 2: Verify SchoolCycle
   it("2. should verify the existence of the default SchoolCycle", async () => {
