@@ -1,0 +1,210 @@
+<div class="dashboard">
+
+  <!-- ── HEADER ─────────────────────────────── -->
+  <header class="dash-header">
+    <div class="greeting-block">
+      <h1 class="greeting-text">
+        {{ greetingText }}, <span class="greeting-name">{{ firstName }}</span>
+      </h1>
+      <p class="greeting-date">
+        {{ todayLabel | titlecase }} &nbsp;·&nbsp; Ciclo escolar 2025–2026
+      </p>
+    </div>
+    <a routerLink="/asistencia" class="cta-btn">
+      <i class="fa-solid fa-qrcode"></i>
+      Registrar asistencia
+    </a>
+  </header>
+
+  <!-- ── KPI ROW ────────────────────────────── -->
+  @if (loading()) {
+    <div class="kpi-row">
+      @for (i of [1,2,3,4]; track i) {
+        <div class="kpi-skeleton"></div>
+      }
+    </div>
+  } @else {
+    <div class="kpi-row">
+      @for (kpi of kpis(); track kpi.label) {
+        <div class="kpi-card" [style.--accent]="kpi.color">
+          <div class="kpi-top">
+            <div class="kpi-icon-wrap">
+              <i class="fa-solid {{ kpi.icon }}"></i>
+            </div>
+            <div class="kpi-trend"
+              [class.positive]="kpi.trend > 0"
+              [class.negative]="kpi.trend < 0"
+              [class.neutral]="kpi.trend === 0">
+              @if (kpi.trend > 0) {
+                <i class="fa-solid fa-arrow-trend-up"></i> +{{ kpi.trend }}
+              } @else if (kpi.trend < 0) {
+                <i class="fa-solid fa-arrow-trend-down"></i> {{ kpi.trend }}
+              } @else {
+                <i class="fa-solid fa-minus"></i>
+              }
+            </div>
+          </div>
+          <div class="kpi-value">{{ kpi.value }}</div>
+          <div class="kpi-label">{{ kpi.label }}</div>
+          <div class="kpi-sub">{{ kpi.trendLabel }}</div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ── MAIN GRID ───────────────────────────── -->
+  <div class="dash-grid-main">
+
+    <!-- Gráfica de asistencia -->
+    <div class="dash-card chart-card">
+      <div class="card-header">
+        <div>
+          <h3 class="card-title">Asistencia semanal</h3>
+          <p class="card-sub">Porcentaje por día · Semana actual</p>
+        </div>
+        <div class="card-actions">
+          <button class="pill-btn active">Semana</button>
+          <button class="pill-btn">Mes</button>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas #chartCanvas></canvas>
+      </div>
+    </div>
+
+    <!-- Semáforo de riesgo -->
+    <div class="dash-card risk-card">
+      <div class="card-header">
+        <div>
+          <h3 class="card-title">Semáforo de riesgo</h3>
+          <p class="card-sub">Distribución académica</p>
+        </div>
+      </div>
+
+      <div class="semaphore-row">
+        <div class="sem-item">
+          <div class="sem-ring green">{{ riskCounts().green }}</div>
+          <span class="sem-lbl">En orden</span>
+        </div>
+        <div class="sem-divider"></div>
+        <div class="sem-item">
+          <div class="sem-ring yellow">{{ riskCounts().yellow }}</div>
+          <span class="sem-lbl">Seguimiento</span>
+        </div>
+        <div class="sem-divider"></div>
+        <div class="sem-item">
+          <div class="sem-ring red">{{ riskCounts().red }}</div>
+          <span class="sem-lbl">En riesgo</span>
+        </div>
+      </div>
+
+      <div class="risk-alert-header">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        Requieren atención inmediata
+      </div>
+
+      <ul class="risk-list">
+        <li class="risk-row">
+          <div class="risk-ava r">MS</div>
+          <div class="risk-info">
+            <span class="risk-name">Mario Solís González</span>
+            <span class="risk-meta">3A · 62% asistencia</span>
+          </div>
+          <span class="risk-chip red-chip">Crítico</span>
+        </li>
+        <li class="risk-row">
+          <div class="risk-ava r">AT</div>
+          <div class="risk-info">
+            <span class="risk-name">Ana Torres Ríos</span>
+            <span class="risk-meta">2B · 65% asistencia</span>
+          </div>
+          <span class="risk-chip red-chip">Crítico</span>
+        </li>
+        <li class="risk-row">
+          <div class="risk-ava y">JV</div>
+          <div class="risk-info">
+            <span class="risk-name">José Vega Morales</span>
+            <span class="risk-meta">1C · 71% asistencia</span>
+          </div>
+          <span class="risk-chip yellow-chip">Seguimiento</span>
+        </li>
+      </ul>
+
+      <a routerLink="/alumnos" class="see-all-link">
+        Ver todos <i class="fa-solid fa-arrow-right"></i>
+      </a>
+    </div>
+
+  </div>
+
+  <!-- ── BOTTOM GRID ──────────────────────────── -->
+  <div class="dash-grid-bottom">
+
+    <!-- Actividad reciente -->
+    <div class="dash-card">
+      <div class="card-header">
+        <div>
+          <h3 class="card-title">Actividad reciente</h3>
+          <p class="card-sub">Últimas acciones del sistema</p>
+        </div>
+      </div>
+      <ul class="activity-feed">
+        @for (item of activities; track item.time) {
+          <li class="act-item">
+            <div class="act-icon" [style.background]="item.iconColor + '18'" [style.color]="item.iconColor">
+              <i class="fa-solid {{ item.icon }}"></i>
+            </div>
+            <div class="act-body">
+              <span class="act-text">{{ item.text }}</span>
+              <span class="act-time">{{ item.time }}</span>
+            </div>
+            <div class="act-ava">{{ item.initials }}</div>
+          </li>
+        }
+      </ul>
+    </div>
+
+    <!-- Calendario escolar -->
+    <div class="dash-card">
+      <div class="card-header">
+        <div>
+          <h3 class="card-title">Calendario escolar</h3>
+          <p class="card-sub">{{ monthLabel | titlecase }}</p>
+        </div>
+      </div>
+
+      <div class="mini-cal">
+        <div class="cal-weekdays">
+          @for (d of ['D','L','M','X','J','V','S']; track d) {
+            <div class="cal-wd">{{ d }}</div>
+          }
+        </div>
+        <div class="cal-grid">
+          @for (day of calendarDays(); track $index) {
+            <div class="cal-day"
+              [class.empty]="day === 0"
+              [class.today]="isToday(day)"
+              [class.has-event]="isEventDay(day) && day !== 0">
+              @if (day !== 0) { {{ day }} }
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="events-section">
+        <p class="events-label">Próximos eventos</p>
+        @for (ev of upcomingEvents; track ev.date) {
+          <div class="event-item">
+            <span class="event-dot" [style.background]="ev.color"></span>
+            <div class="event-body">
+              <span class="event-name">{{ ev.label }}</span>
+              <span class="event-date">{{ ev.date }}</span>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+  </div>
+
+</div>

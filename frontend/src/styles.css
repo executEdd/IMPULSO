@@ -1,0 +1,132 @@
+/* ── IMPULSO · CBTIS 61 · Global Styles ── */
+
+/* Wine-red brand overrides on top of rose-red M3 prebuilt */
+:root {
+  --vino:           #7C1D2E;
+  --vino-dark:      #550F1E;
+  --vino-light:     #A83248;
+  --vino-surface:   #FDF0F1;
+  --vino-muted:     #F5E0E3;
+
+  /* Override Material M3 primary tokens */
+  --mat-sys-primary:               var(--vino);
+  --mat-sys-on-primary:            #ffffff;
+  --mat-sys-primary-container:     var(--vino-surface);
+  --mat-sys-on-primary-container:  var(--vino-dark);
+  --mat-sys-secondary:             #5C6B73;
+  --mat-sys-surface:               #FAFAFA;
+  --mat-sys-surface-variant:       #F3F4F6;
+  --mat-sys-background:            #F6F7F9;
+
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   16px;
+  --shadow-sm:   0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
+  --shadow-md:   0 4px 12px rgba(0,0,0,.10);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background: var(--mat-sys-background);
+  color: #1A1A2E;
+  -webkit-font-smoothing: antialiased;
+}
+
+app-root {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
+
+/* Material overrides — make buttons/chips use wine */
+.mat-mdc-raised-button.mat-primary,
+.mat-mdc-fab.mat-primary,
+.mat-mdc-mini-fab.mat-primary {
+  --mdc-filled-button-container-color: var(--vino);
+  --mdc-filled-button-label-text-color: #fff;
+}
+.mat-mdc-outlined-button.mat-primary {
+  --mdc-outlined-button-label-text-color: var(--vino);
+  --mdc-outlined-button-outline-color: var(--vino);
+}
+.mat-mdc-chip.mat-primary { background: var(--vino-muted); color: var(--vino-dark); }
+
+/* Nav active state */
+.nav-item-active {
+  background: var(--vino) !important;
+  color: #fff !important;
+  border-radius: var(--radius-md) !important;
+}
+.nav-item-active mat-icon, .nav-item-active span { color: #fff !important; }
+
+/* Card */
+.impulso-card {
+  background: #fff;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid #F0F0F3;
+}
+
+/* Stat card */
+.stat-card {
+  background: #fff;
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid #F0F0F3;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.stat-card .stat-icon {
+  width: 42px; height: 42px;
+  border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+}
+.stat-card .stat-value { font-size: 28px; font-weight: 600; color: #1A1A2E; }
+.stat-card .stat-label { font-size: 13px; color: #6B7280; }
+
+/* Semaphore chips */
+.chip-green  { background:#D1FAE5; color:#065F46; border-radius:99px; padding:3px 10px; font-size:12px; font-weight:500; }
+.chip-yellow { background:#FEF3C7; color:#92400E; border-radius:99px; padding:3px 10px; font-size:12px; font-weight:500; }
+.chip-red    { background:#FEE2E2; color:#991B1B; border-radius:99px; padding:3px 10px; font-size:12px; font-weight:500; }
+
+/* Page header */
+.page-header { margin-bottom: 24px; }
+.page-header h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px; color: #1A1A2E; }
+.page-header p  { font-size: 14px; color: #6B7280; margin: 0; }
+
+/* Table */
+.mat-mdc-table { border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-sm); }
+.mat-mdc-header-row { background: #FAFAFA; }
+.mat-mdc-header-cell { font-weight: 600; font-size: 12px; color: #6B7280; text-transform: uppercase; letter-spacing: .5px; }
+
+/* Form field */
+.mat-mdc-form-field { width: 100%; }
+
+/* Spinner container */
+.loading-overlay {
+  display: flex; align-items: center; justify-content: center;
+  height: 200px;
+}
+
+/* Util */
+.flex { display: flex; }
+.flex-1 { flex: 1; }
+.gap-2 { gap: 8px; }
+.gap-3 { gap: 12px; }
+.gap-4 { gap: 16px; }
+.mt-4 { margin-top: 16px; }
+.mt-6 { margin-top: 24px; }

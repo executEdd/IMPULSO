@@ -1,0 +1,67 @@
+<div class="page-wrap">
+
+  <header class="page-hd">
+    <div>
+      <h1>Horarios</h1>
+      <p>Clases programadas por día de la semana</p>
+    </div>
+    @if (!loading()) {
+      <div class="hd-meta">
+        <span class="count-badge">
+          <i class="fa-solid fa-calendar-days"></i>
+          {{ byDay().length }} días con clases
+        </span>
+      </div>
+    }
+  </header>
+
+  @if (loading()) {
+    <div class="table-card">
+      <div class="loading-box"><div class="spinner"></div></div>
+    </div>
+  } @else if (byDay().length === 0) {
+    <div class="table-card">
+      <div class="empty-state">
+        <i class="fa-solid fa-calendar-xmark"></i>
+        <span>No hay horarios registrados</span>
+      </div>
+    </div>
+  } @else {
+    <div class="schedule-grid">
+      @for (day of byDay(); track day.day) {
+        <div class="day-card" [style.--day-color]="day.color">
+          <div class="day-hd">
+            <div class="day-badge" [style.background]="day.color">
+              {{ day.label[0] }}
+            </div>
+            <div>
+              <h3 class="day-name">{{ day.label }}</h3>
+              <span class="day-count">{{ day.items.length }} {{ day.items.length === 1 ? 'clase' : 'clases' }}</span>
+            </div>
+          </div>
+
+          <div class="class-list">
+            @for (item of day.items; track item.id) {
+              <div class="class-item">
+                <div class="class-time">
+                  <i class="fa-regular fa-clock"></i>
+                  {{ item.startTime }} – {{ item.endTime }}
+                </div>
+                <div class="class-info">
+                  <span class="class-subject">{{ item.class?.subject?.name ?? '—' }}</span>
+                  <div class="class-meta">
+                    <span><i class="fa-solid fa-users"></i> {{ item.class?.group?.name ?? '—' }}</span>
+                    @if (item.classroom?.name) {
+                      <span><i class="fa-solid fa-door-open"></i> {{ item.classroom.name }}</span>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+</div>

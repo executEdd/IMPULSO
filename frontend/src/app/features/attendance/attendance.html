@@ -1,0 +1,87 @@
+<div class="page-wrap">
+
+  <header class="page-hd">
+    <div>
+      <h1>Asistencia</h1>
+      <p>Historial de registros por QR y manual</p>
+    </div>
+    <div class="hd-meta">
+      <span class="count-badge">
+        <i class="fa-solid fa-list-check"></i>
+        {{ records().length }} registros
+      </span>
+    </div>
+  </header>
+
+  <!-- Banner QR -->
+  <div class="qr-banner">
+    <div class="qr-icon">
+      <i class="fa-solid fa-qrcode"></i>
+    </div>
+    <div class="qr-body">
+      <p class="qr-title">Registrar asistencia por QR</p>
+      <p class="qr-sub">El alumno muestra su código QR y el sistema registra automáticamente la asistencia.</p>
+    </div>
+    <button class="qr-btn">
+      <i class="fa-solid fa-camera"></i>
+      Escanear QR
+    </button>
+  </div>
+
+  <!-- Tabla -->
+  @if (loading()) {
+    <div class="table-card">
+      <div class="loading-box"><div class="spinner"></div></div>
+    </div>
+  } @else {
+    <div class="table-card">
+      @if (records().length === 0) {
+        <div class="empty-state">
+          <i class="fa-solid fa-calendar-xmark"></i>
+          <span>Sin registros de asistencia</span>
+        </div>
+      } @else {
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Alumno</th>
+              <th>Clase</th>
+              <th>Fecha</th>
+              <th>Estado</th>
+              <th>Notas</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of records(); track r.id) {
+              <tr class="trow">
+                <td>
+                  <div class="student-cell">
+                    <div class="ava ava-sm">{{ initials(r) }}</div>
+                    <div>
+                      <span class="s-name">{{ r.student?.user?.firstName }} {{ r.student?.user?.lastName }}</span>
+                      <span class="s-email">{{ r.student?.enrollmentId }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td>{{ r.classes?.subject?.name ?? '—' }}</td>
+                <td>
+                  <span class="date-text">{{ r.date | date:'dd/MM/yyyy HH:mm' }}</span>
+                </td>
+                <td>
+                  <span class="chip {{ statusClass(r.status) }}">
+                    <i class="fa-solid {{ statusIcon(r.status) }}"></i>
+                    {{ statusLabel(r.status) }}
+                  </span>
+                </td>
+                <td>
+                  <span class="notes-text">{{ r.notes ?? '—' }}</span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  }
+
+</div>

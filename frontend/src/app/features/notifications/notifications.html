@@ -1,0 +1,163 @@
+<div class="page-wrap">
+
+  <header class="page-hd">
+    <div>
+      <h1>Notificaciones</h1>
+      <p>Envía alertas y consulta el historial de comunicaciones</p>
+    </div>
+    <div class="hd-meta">
+      <span class="count-badge">
+        <i class="fa-solid fa-bell"></i>
+        {{ records().length }} enviadas
+      </span>
+    </div>
+  </header>
+
+  <!-- Tabs -->
+  <div class="tabs-row">
+    <button class="tab-btn" [class.active]="activeTab() === 'history'" (click)="activeTab.set('history')">
+      <i class="fa-solid fa-clock-rotate-left"></i>
+      Historial
+    </button>
+    <button class="tab-btn" [class.active]="activeTab() === 'send'" (click)="activeTab.set('send')">
+      <i class="fa-solid fa-paper-plane"></i>
+      Enviar notificación
+    </button>
+  </div>
+
+  <!-- Tab: Historial -->
+  @if (activeTab() === 'history') {
+    @if (loading()) {
+      <div class="table-card">
+        <div class="loading-box"><div class="spinner"></div></div>
+      </div>
+    } @else {
+      <div class="table-card">
+        @if (records().length === 0) {
+          <div class="empty-state">
+            <i class="fa-regular fa-bell-slash"></i>
+            <span>Sin notificaciones registradas</span>
+          </div>
+        } @else {
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Canal</th>
+                <th>Destinatario</th>
+                <th>Mensaje</th>
+                <th>Estado</th>
+                <th>Fecha</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (n of records(); track n.id) {
+                <tr class="trow">
+                  <td>
+                    <div class="channel-cell">
+                      <div class="channel-icon-wrap">
+                        <i class="fa-solid {{ channelIcon(n.channel) }}"></i>
+                      </div>
+                      <span class="channel-lbl">{{ channelLabel(n.channel) }}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="recip-type">{{ n.recipientType }}</span>
+                    <span class="recip-id">#{{ n.recipientId }}</span>
+                  </td>
+                  <td>
+                    <span class="content-preview">{{ n.content }}</span>
+                  </td>
+                  <td>
+                    <span class="chip {{ statusClass(n.status) }}">{{ statusLabel(n.status) }}</span>
+                  </td>
+                  <td>
+                    <span class="date-text">{{ n.createdAt | date:'dd/MM/yy HH:mm' }}</span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
+    }
+  }
+
+  <!-- Tab: Enviar -->
+  @if (activeTab() === 'send') {
+    <div class="send-wrap">
+      <div class="send-card">
+        <div class="send-card-hd">
+          <div class="send-icon">
+            <i class="fa-solid fa-paper-plane"></i>
+          </div>
+          <div>
+            <h3>Nueva notificación</h3>
+            <p>Selecciona el destinatario, canal y redacta el mensaje</p>
+          </div>
+        </div>
+
+        <form [formGroup]="form" (ngSubmit)="send()" class="send-form">
+
+          <div class="form-row">
+            <div class="field-group">
+              <label class="field-label">Tipo de destinatario</label>
+              <select class="field-select" formControlName="recipientType">
+                <option value="STUDENT">Alumno</option>
+                <option value="PARENT">Padre / Tutor</option>
+                <option value="TEACHER">Docente</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label class="field-label">ID del destinatario</label>
+              <div class="field-input-wrap">
+                <i class="fa-solid fa-hashtag field-prefix-icon"></i>
+                <input class="field-input with-prefix" type="number" formControlName="recipientId" placeholder="Ej: 1">
+              </div>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label">Canal de envío</label>
+            <div class="channel-options">
+              <label class="channel-opt" [class.selected]="form.get('channel')?.value === 'IN_APP'">
+                <input type="radio" formControlName="channel" value="IN_APP">
+                <i class="fa-solid fa-bell"></i> En la app
+              </label>
+              <label class="channel-opt" [class.selected]="form.get('channel')?.value === 'EMAIL'">
+                <input type="radio" formControlName="channel" value="EMAIL">
+                <i class="fa-solid fa-envelope"></i> Correo
+              </label>
+              <label class="channel-opt" [class.selected]="form.get('channel')?.value === 'SMS'">
+                <input type="radio" formControlName="channel" value="SMS">
+                <i class="fa-solid fa-comment-sms"></i> SMS
+              </label>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label">Mensaje</label>
+            <textarea class="field-textarea" formControlName="content" rows="4" placeholder="Redacta el mensaje aquí..."></textarea>
+          </div>
+
+          <button type="submit" class="send-submit-btn" [disabled]="form.invalid || sending()">
+            @if (sending()) {
+              <span class="btn-spinner"></span> Enviando...
+            } @else {
+              <i class="fa-solid fa-paper-plane"></i> Enviar notificación
+            }
+          </button>
+
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- Toast -->
+  @if (toastMsg()) {
+    <div class="toast" [class.toast-ok]="toastOk()" [class.toast-err]="!toastOk()">
+      <i class="fa-solid" [class.fa-circle-check]="toastOk()" [class.fa-circle-xmark]="!toastOk()"></i>
+      {{ toastMsg() }}
+    </div>
+  }
+
+</div>

@@ -1,0 +1,84 @@
+<div class="page-wrap">
+
+  <header class="page-hd">
+    <div>
+      <h1>Calificaciones</h1>
+      <p>Consulta y captura de parciales por alumno y materia</p>
+    </div>
+    <div class="hd-meta">
+      <span class="count-badge">
+        <i class="fa-solid fa-star-half-stroke"></i>
+        {{ filtered().length }} registros
+      </span>
+    </div>
+  </header>
+
+  <!-- Toolbar -->
+  <div class="toolbar-row">
+    <div class="search-wrap">
+      <i class="fa-solid fa-magnifying-glass search-icon"></i>
+      <input
+        class="search-input"
+        type="text"
+        placeholder="Buscar por alumno o materia..."
+        (input)="search.set($any($event.target).value)">
+    </div>
+    <div class="grade-legend">
+      <span class="chip chip-green">≥ 9 Excelente</span>
+      <span class="chip chip-yellow">7–8 Regular</span>
+      <span class="chip chip-red">< 7 Irregular</span>
+    </div>
+  </div>
+
+  <!-- Tabla -->
+  @if (loading()) {
+    <div class="table-card">
+      <div class="loading-box"><div class="spinner"></div></div>
+    </div>
+  } @else {
+    <div class="table-card">
+      @if (filtered().length === 0) {
+        <div class="empty-state">
+          <i class="fa-solid fa-star"></i>
+          <span>Sin calificaciones registradas</span>
+        </div>
+      } @else {
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Alumno</th>
+              <th>Materia</th>
+              <th>P1</th>
+              <th>P2</th>
+              <th>P3</th>
+              <th>Final</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (g of filtered(); track g.id) {
+              <tr class="trow">
+                <td>
+                  <div class="student-cell">
+                    <div class="ava ava-sm">{{ initials(g) }}</div>
+                    <span class="s-name">{{ g.student?.user?.firstName }} {{ g.student?.user?.lastName }}</span>
+                  </div>
+                </td>
+                <td>
+                  <span class="subject-name">{{ g.subject?.name }}</span>
+                  <span class="subject-code">{{ g.subject?.code }}</span>
+                </td>
+                <td><span class="grade-pill chip {{ gradeChip(g.partial1) }}">{{ g.partial1 ?? '—' }}</span></td>
+                <td><span class="grade-pill chip {{ gradeChip(g.partial2) }}">{{ g.partial2 ?? '—' }}</span></td>
+                <td><span class="grade-pill chip {{ gradeChip(g.partial3) }}">{{ g.partial3 ?? '—' }}</span></td>
+                <td><span class="grade-final chip {{ gradeChip(g.finalGrade) }}">{{ g.finalGrade ?? '—' }}</span></td>
+                <td><span class="chip {{ statusClass(g.status) }}">{{ statusLabel(g.status) }}</span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  }
+
+</div>
