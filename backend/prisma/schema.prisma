@@ -110,6 +110,7 @@ model StudentProfile {
   enrollmentId String          @unique
   groupId      Int
   parentId     Int
+  phone        String?
   qrToken      String?         @unique
   qrExpiresAt  DateTime?
   semaphore    SemaphoreStatus @default(GREEN)

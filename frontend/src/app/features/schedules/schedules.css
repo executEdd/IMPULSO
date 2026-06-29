@@ -1,0 +1,95 @@
+/* ── Horarios ── */
+
+.page-wrap {
+  padding: 28px 32px; max-width: 1400px;
+  display: flex; flex-direction: column; gap: 20px;
+}
+.page-hd { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.page-hd h1 { font-size: 22px; font-weight: 700; color: #1A1A2E; margin: 0 0 4px; letter-spacing: -0.3px; }
+.page-hd p  { font-size: 13.5px; color: #9CA3AF; margin: 0; }
+.hd-meta    { display: flex; align-items: center; }
+.count-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 14px; background: #fff; border: 1px solid #F0F2F5;
+  border-radius: 99px; font-size: 13px; font-weight: 600; color: #374151;
+}
+.count-badge i { color: #7C1D2E; }
+
+/* Schedule grid */
+.schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  padding-bottom: 32px;
+}
+
+/* Day card */
+.day-card {
+  background: #fff; border-radius: 16px;
+  border: 1px solid #F0F2F5;
+  border-top: 3px solid var(--day-color, #7C1D2E);
+  overflow: hidden;
+  display: flex; flex-direction: column;
+}
+
+.day-hd {
+  display: flex; align-items: center; gap: 12px;
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid #F0F2F5;
+}
+
+.day-badge {
+  width: 38px; height: 38px; border-radius: 10px;
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  font-size: 17px; font-weight: 800; flex-shrink: 0;
+}
+
+.day-name {
+  font-size: 15px; font-weight: 700; color: #1A1A2E;
+  margin: 0 0 2px;
+}
+.day-count {
+  font-size: 12px; color: #9CA3AF; font-weight: 500;
+}
+
+/* Class list */
+.class-list {
+  display: flex; flex-direction: column;
+  padding: 12px 0;
+}
+
+.class-item {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 12px 18px;
+  border-bottom: 1px solid #F9FAFB;
+  transition: background 0.1s;
+}
+.class-item:last-child { border-bottom: none; }
+.class-item:hover { background: #FAFAFA; }
+
+.class-time {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600;
+  color: #9CA3AF; font-variant-numeric: tabular-nums;
+}
+.class-time i { font-size: 11px; }
+
+.class-subject {
+  font-size: 14px; font-weight: 600; color: #1A1A2E;
+}
+
+.class-meta {
+  display: flex; align-items: center; gap: 14px;
+  font-size: 12px; color: #9CA3AF; margin-top: 2px;
+}
+.class-meta span { display: flex; align-items: center; gap: 5px; }
+.class-meta i { font-size: 11px; color: #C4C9D4; }
+
+/* Loading / Empty */
+.table-card { background: #fff; border-radius: 16px; border: 1px solid #F0F2F5; overflow: hidden; }
+.loading-box { display: flex; align-items: center; justify-content: center; height: 200px; }
+.spinner { width: 36px; height: 36px; border: 3px solid #F3F4F6; border-top-color: #7C1D2E; border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 56px 20px; color: #9CA3AF; }
+.empty-state i { font-size: 30px; }
+.empty-state span { font-size: 14px; font-weight: 500; }

@@ -1,0 +1,89 @@
+<div class="page-wrap">
+
+  <header class="page-hd">
+    <div>
+      <h1>Alumnos</h1>
+      <p>Consulta el semáforo de riesgo y perfil de cada alumno</p>
+    </div>
+    <div class="hd-meta">
+      <span class="count-badge">
+        <i class="fa-solid fa-user-graduate"></i>
+        {{ filtered().length }} alumnos
+      </span>
+    </div>
+  </header>
+
+  <!-- Toolbar -->
+  <div class="toolbar-row">
+    <div class="search-wrap">
+      <i class="fa-solid fa-magnifying-glass search-icon"></i>
+      <input
+        class="search-input"
+        type="text"
+        placeholder="Buscar por nombre o matrícula..."
+        (input)="search.set($any($event.target).value)">
+    </div>
+    <div class="legend-row">
+      <span class="chip chip-green"><i class="fa-solid fa-circle"></i> En orden</span>
+      <span class="chip chip-yellow"><i class="fa-solid fa-circle"></i> Seguimiento</span>
+      <span class="chip chip-red"><i class="fa-solid fa-circle"></i> En riesgo</span>
+    </div>
+  </div>
+
+  <!-- Tabla -->
+  @if (loading()) {
+    <div class="table-card">
+      <div class="loading-box"><div class="spinner"></div></div>
+    </div>
+  } @else {
+    <div class="table-card">
+      @if (filtered().length === 0) {
+        <div class="empty-state">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <span>No se encontraron alumnos</span>
+        </div>
+      } @else {
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width:48px"></th>
+              <th>Alumno</th>
+              <th>Matrícula</th>
+              <th>Grupo</th>
+              <th>Semáforo</th>
+              <th style="width:48px"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (s of filtered(); track s.enrollmentId) {
+              <tr class="trow">
+                <td>
+                  <div class="ava">{{ initials(s) }}</div>
+                </td>
+                <td>
+                  <span class="s-name">{{ s.user?.firstName }} {{ s.user?.lastName }}</span>
+                  <span class="s-email">{{ s.user?.email }}</span>
+                </td>
+                <td>
+                  <code class="enroll-code">{{ s.enrollmentId ?? '—' }}</code>
+                </td>
+                <td>{{ s.group?.name ?? '—' }}</td>
+                <td>
+                  <span class="chip {{ semColor(s.semaphore) }}">
+                    {{ semLabel(s.semaphore) }}
+                  </span>
+                </td>
+                <td>
+                  <button class="icon-btn" title="Ver detalle">
+                    <i class="fa-solid fa-chevron-right"></i>
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  }
+
+</div>
