@@ -4,10 +4,10 @@ import {
   BadRequestException,
   ForbiddenException,
 } from "@nestjs/common";
-import { GradeStatus } from '../common/enums/prisma-enums';
-import { PrismaService } from '../prisma.service';
-import { CreateGradeDto } from './dto/create-grade.dto';
-import { UpdateGradeDto } from './dto/update-grade.dto';
+import { GradeStatus } from "@prisma/client";
+import { PrismaService } from "../prisma.service";
+import { CreateGradeDto } from "./dto/create-grade.dto";
+import { UpdateGradeDto } from "./dto/update-grade.dto";
 
 @Injectable()
 export class GradesService {

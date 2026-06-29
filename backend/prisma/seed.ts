@@ -342,6 +342,7 @@ async function main() {
             parentId: (await tx.parentProfile.findUnique({
               where: { userId: parents[0].id },
             }))!.id,
+            phone: "246-100-0001",
             qrToken: null,
             qrExpiresAt: null,
             semaphore: SemaphoreStatus.GREEN,
@@ -361,6 +362,7 @@ async function main() {
             parentId: (await tx.parentProfile.findUnique({
               where: { userId: parents[1].id },
             }))!.id,
+            phone: "246-100-0002",
             qrToken: null,
             qrExpiresAt: null,
             semaphore: SemaphoreStatus.GREEN,
@@ -380,6 +382,7 @@ async function main() {
             parentId: (await tx.parentProfile.findUnique({
               where: { userId: parents[2].id },
             }))!.id,
+            phone: "246-100-0003",
             qrToken: null,
             qrExpiresAt: null,
             semaphore: SemaphoreStatus.GREEN,
@@ -399,6 +402,7 @@ async function main() {
             parentId: (await tx.parentProfile.findUnique({
               where: { userId: parents[0].id },
             }))!.id,
+            phone: "246-100-0004",
             qrToken: null,
             qrExpiresAt: null,
             semaphore: SemaphoreStatus.GREEN,
@@ -418,6 +422,7 @@ async function main() {
             parentId: (await tx.parentProfile.findUnique({
               where: { userId: parents[1].id },
             }))!.id,
+            phone: "246-100-0005",
             qrToken: null,
             qrExpiresAt: null,
             semaphore: SemaphoreStatus.GREEN,
