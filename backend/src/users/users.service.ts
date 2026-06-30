@@ -129,6 +129,7 @@ export class UsersService {
               enrollmentId: enrollmentId || `ENR-${Date.now()}`,
               groupId: groupId || 1,
               parentId: parentId || 1,
+              phone: phone || null,
             },
           },
         }),
@@ -155,14 +156,36 @@ export class UsersService {
   }
 
   async update(id: number, updateUserDto: UpdateUserDto) {
-    const user = await this.prisma.user.findUnique({ where: { id } });
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      include: {
+        adminProfile: true,
+        teacherProfile: true,
+        studentProfile: true,
+        parentProfile: true,
+      },
+    });
     if (!user) {
       throw new NotFoundException("Usuario no encontrado");
     }
 
-    const data: any = { ...updateUserDto };
+    const { phone, ...userData } = updateUserDto as any;
+    const data: any = { ...userData };
+
     if (updateUserDto.password) {
       data.password = await bcrypt.hash(updateUserDto.password, 12);
+    }
+
+    if (phone !== undefined) {
+      if (user.role === UserRole.ADMIN) {
+        data.adminProfile = { update: { phone: phone || null } };
+      } else if (user.role === UserRole.TEACHER) {
+        data.teacherProfile = { update: { phone: phone || null } };
+      } else if (user.role === UserRole.STUDENT) {
+        data.studentProfile = { update: { phone: phone || null } };
+      } else if (user.role === UserRole.PARENT) {
+        data.parentProfile = { update: { phone: phone || "" } };
+      }
     }
 
     return this.prisma.user.update({

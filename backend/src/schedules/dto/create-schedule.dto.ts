@@ -7,39 +7,53 @@ import {
   Matches,
 } from "class-validator";
 import { DayOfWeek } from "@prisma/client";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class CreateScheduleDto {
+  @ApiProperty({
+    description: "ID de la clase académica asociada",
+    example: 1,
+  })
   @IsInt()
   @IsNotEmpty()
-  subjectId: number;
+  classId!: number;
 
+  @ApiPropertyOptional({
+    description: "ID del aula donde se impartirá la clase",
+    example: 1,
+  })
   @IsInt()
-  @IsNotEmpty()
-  teacherId: number;
+  @IsOptional()
+  classroomId?: number;
 
-  @IsInt()
-  @IsNotEmpty()
-  groupId: number;
-
+  @ApiProperty({
+    description: "Día de la semana de la clase",
+    enum: DayOfWeek,
+    example: DayOfWeek.MONDAY,
+  })
   @IsEnum(DayOfWeek)
   @IsNotEmpty()
-  dayOfWeek: DayOfWeek;
+  dayOfWeek!: DayOfWeek;
 
+  @ApiProperty({
+    description: "Hora de inicio de la clase en formato HH:mm",
+    example: "07:00",
+  })
   @IsString()
   @IsNotEmpty()
   @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, {
     message: "El formato de hora de inicio debe ser HH:mm",
   })
-  startTime: string;
+  startTime!: string;
 
+  @ApiProperty({
+    description: "Hora de fin de la clase en formato HH:mm",
+    example: "08:30",
+  })
   @IsString()
   @IsNotEmpty()
   @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, {
     message: "El formato de hora de fin debe ser HH:mm",
   })
-  endTime: string;
-
-  @IsString()
-  @IsOptional()
-  classroom?: string;
+  endTime!: string;
 }

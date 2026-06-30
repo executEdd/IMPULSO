@@ -1,0 +1,69 @@
+<div class="app-shell" [class.sidebar-collapsed]="collapsed()">
+
+  <!-- ══ SIDEBAR ══ -->
+  <aside class="sidebar">
+
+    <div class="sidebar-brand">
+      <div class="brand-icon">
+        <i class="fa-solid fa-bolt-lightning"></i>
+      </div>
+      <div class="brand-text">
+        <span class="brand-name">IMPULSO</span>
+        <span class="brand-sub">CBTIS 61</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      @for (group of navGroups; track group.label) {
+        <div class="nav-group">
+          <span class="nav-group-label">{{ group.label }}</span>
+          @for (item of group.items; track item.route) {
+            <a [routerLink]="item.route" routerLinkActive="active" class="nav-item">
+              <span class="nav-icon-wrap">
+                <i class="fa-solid {{ item.faIcon }}"></i>
+              </span>
+              <span class="nav-label">{{ item.label }}</span>
+              @if (item.badge) {
+                <span class="nav-badge">{{ item.badge }}</span>
+              }
+            </a>
+          }
+        </div>
+      }
+    </nav>
+
+    <div class="sidebar-user">
+      <div class="user-ava">{{ initials }}</div>
+      <div class="user-meta">
+        <span class="user-name">{{ auth.fullName() }}</span>
+        <span class="user-role">{{ auth.user()?.role }}</span>
+      </div>
+      <button class="user-logout" (click)="auth.logout()" title="Cerrar sesión">
+        <i class="fa-solid fa-right-from-bracket"></i>
+      </button>
+    </div>
+
+  </aside>
+
+  <!-- ══ MAIN ══ -->
+  <div class="main-area">
+
+    <header class="topbar">
+      <button class="menu-toggle" (click)="toggle()">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+      <div class="topbar-end">
+        <button class="topbar-btn notif-btn">
+          <i class="fa-regular fa-bell"></i>
+          <span class="notif-pip"></span>
+        </button>
+        <div class="topbar-avatar">{{ initials }}</div>
+      </div>
+    </header>
+
+    <main class="page-content">
+      <router-outlet />
+    </main>
+
+  </div>
+</div>
