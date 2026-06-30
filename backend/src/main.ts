@@ -22,7 +22,7 @@ async function bootstrap() {
   const allowedOrigins = frontendUrl.split(",").map((o) => o.trim());
 
   app.enableCors({
-    origin: (origin, callback) => {
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
       if (
         !origin ||
         allowedOrigins.indexOf(origin) !== -1 ||
