@@ -2,7 +2,7 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { DatePipe } from '@angular/common';
 
-const API = 'http://localhost:3000/api';
+const API = 'https://impulso-api.onrender.com/api';
 
 @Component({
   selector: 'app-attendance',

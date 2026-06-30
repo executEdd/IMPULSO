@@ -10,7 +10,7 @@ import { forkJoin } from 'rxjs';
 
 declare var Chart: any;
 
-const API = 'http://localhost:3000/api';
+const API = 'https://impulso-api.onrender.com/api';
 
 interface KPI {
   label: string;

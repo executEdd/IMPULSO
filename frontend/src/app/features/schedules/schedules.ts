@@ -1,7 +1,7 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
-const API = 'http://localhost:3000/api';
+const API = 'https://impulso-api.onrender.com/api';
 
 const DAY_LABELS: Record<string, string> = {
   MONDAY: 'Lunes', TUESDAY: 'Martes', WEDNESDAY: 'Miércoles',
