@@ -33,8 +33,18 @@ export class LoginComponent {
       next: () => this.router.navigate(['/dashboard']),
       error: (err) => {
         this.loading.set(false);
-        this.errorMsg.set(err?.error?.message ?? 'Credenciales incorrectas');
+        this.errorMsg.set(this.parseError(err));
       }
     });
+  }
+
+  /** NestJS puede devolver message como string, arreglo u objeto */
+  private parseError(err: any): string {
+    if (err?.status === 0) return 'Sin conexión con el servidor. Intenta más tarde.';
+    const msg = err?.error?.message;
+    if (typeof msg === 'string') return msg;
+    if (Array.isArray(msg)) return msg.join('. ');
+    if (err?.status === 401) return 'Correo o contraseña incorrectos';
+    return 'Credenciales incorrectas';
   }
 }

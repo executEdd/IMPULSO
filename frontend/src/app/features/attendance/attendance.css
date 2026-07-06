@@ -16,7 +16,64 @@
 }
 .count-badge i { color: #7C1D2E; }
 
-/* QR Banner */
+/* Pase de lista */
+.mark-banner {
+  background: #fff; border-radius: 14px;
+  border: 1px solid #F0F2F5;
+  padding: 18px 22px;
+  display: flex; align-items: center; gap: 18px;
+  flex-wrap: wrap;
+}
+.mark-body { flex: 1; min-width: 220px; }
+.mark-controls {
+  display: flex; align-items: center; gap: 10px;
+  flex-wrap: wrap;
+}
+.mark-select {
+  height: 40px; padding: 0 12px;
+  border: 1.5px solid #E5E7EB; border-radius: 10px;
+  font-size: 13px; font-family: inherit; color: #1A1A2E;
+  background: #fff; outline: none; max-width: 260px;
+  transition: border-color .15s, box-shadow .15s;
+}
+.mark-select:focus { border-color: #7C1D2E; box-shadow: 0 0 0 3px rgba(124,29,46,0.1); }
+.mark-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 40px; padding: 0 16px;
+  background: #7C1D2E; color: #fff;
+  border: none; border-radius: 10px;
+  font-size: 13.5px; font-weight: 600; font-family: inherit;
+  cursor: pointer; transition: background .15s;
+  white-space: nowrap;
+}
+.mark-btn:hover:not(:disabled) { background: #5A0F1E; }
+.mark-btn:disabled { background: #C4C9D4; cursor: not-allowed; }
+.btn-spinner-sm {
+  width: 14px; height: 14px;
+  border: 2px solid rgba(255,255,255,.35);
+  border-top-color: #fff; border-radius: 50%;
+  animation: spin .7s linear infinite;
+  display: inline-block;
+}
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 28px; right: 28px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 20px; border-radius: 12px;
+  font-size: 14px; font-weight: 600; color: #fff;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  animation: toastIn .3s cubic-bezier(.22,1,.36,1);
+  z-index: 200;
+}
+.toast-ok  { background: #059669; }
+.toast-err { background: #DC2626; }
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* QR Banner (legacy) */
 .qr-banner {
   background: #fff; border-radius: 14px;
   border: 1px solid #F0F2F5;

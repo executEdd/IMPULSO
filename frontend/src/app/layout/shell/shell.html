@@ -23,9 +23,6 @@
                 <i class="fa-solid {{ item.faIcon }}"></i>
               </span>
               <span class="nav-label">{{ item.label }}</span>
-              @if (item.badge) {
-                <span class="nav-badge">{{ item.badge }}</span>
-              }
             </a>
           }
         </div>
@@ -53,10 +50,54 @@
         <i class="fa-solid fa-bars"></i>
       </button>
       <div class="topbar-end">
-        <button class="topbar-btn notif-btn">
-          <i class="fa-regular fa-bell"></i>
-          <span class="notif-pip"></span>
-        </button>
+
+        <!-- Campanita -->
+        <div class="notif-anchor">
+          <button class="topbar-btn notif-btn" (click)="toggleNotifs()">
+            <i class="fa-regular fa-bell"></i>
+            @if (unreadCount() > 0) {
+              <span class="notif-count">{{ unreadCount() > 9 ? '9+' : unreadCount() }}</span>
+            }
+          </button>
+
+          @if (notifOpen()) {
+            <div class="notif-backdrop" (click)="closeNotifs()"></div>
+            <div class="notif-panel">
+              <div class="notif-panel-hd">
+                <span>Notificaciones</span>
+                @if (unreadCount() > 0) {
+                  <span class="notif-hd-badge">{{ unreadCount() }} sin leer</span>
+                }
+              </div>
+
+              @if (notifLoading()) {
+                <div class="notif-loading"><div class="spinner-sm"></div></div>
+              } @else if (notifs().length === 0) {
+                <div class="notif-empty">
+                  <i class="fa-regular fa-bell-slash"></i>
+                  <span>No tienes notificaciones</span>
+                </div>
+              } @else {
+                <ul class="notif-list">
+                  @for (n of notifs(); track n.id) {
+                    <li class="notif-item" [class.unread]="n.status !== 'READ'" (click)="markRead(n)">
+                      <div class="notif-dot" [class.visible]="n.status !== 'READ'"></div>
+                      <div class="notif-body">
+                        <p class="notif-text">{{ n.content }}</p>
+                        <span class="notif-time">{{ n.createdAt | date:'dd/MM/yy HH:mm' }}</span>
+                      </div>
+                    </li>
+                  }
+                </ul>
+              }
+
+              <a routerLink="/notificaciones" class="notif-footer" (click)="closeNotifs()">
+                Ver todas <i class="fa-solid fa-arrow-right"></i>
+              </a>
+            </div>
+          }
+        </div>
+
         <div class="topbar-avatar">{{ initials }}</div>
       </div>
     </header>
