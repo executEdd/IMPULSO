@@ -154,4 +154,13 @@ export class AuthService {
 
     return user;
   }
+
+  async checkHealth() {
+    try {
+      await this.prisma.$queryRaw`SELECT 1`;
+      return { status: "ok", database: "connected", timestamp: new Date() };
+    } catch (error: any) {
+      return { status: "error", database: "disconnected", error: error.message, timestamp: new Date() };
+    }
+  }
 }
