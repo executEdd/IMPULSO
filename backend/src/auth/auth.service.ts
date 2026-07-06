@@ -3,6 +3,7 @@ import {
   UnauthorizedException,
   ConflictException,
   BadRequestException,
+  ServiceUnavailableException,
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
@@ -160,7 +161,12 @@ export class AuthService {
       await this.prisma.$queryRaw`SELECT 1`;
       return { status: "ok", database: "connected", timestamp: new Date() };
     } catch (error: any) {
-      return { status: "error", database: "disconnected", error: error.message, timestamp: new Date() };
+      throw new ServiceUnavailableException({
+        status: "error",
+        database: "disconnected",
+        error: error.message,
+        timestamp: new Date(),
+      });
     }
   }
 }
