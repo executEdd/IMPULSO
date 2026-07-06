@@ -10,6 +10,12 @@
         <i class="fa-solid fa-user-graduate"></i>
         {{ filtered().length }} alumnos
       </span>
+      @if (isAdmin) {
+        <button class="primary-btn" (click)="openCreate()">
+          <i class="fa-solid fa-plus"></i>
+          Nuevo alumno
+        </button>
+      }
     </div>
   </header>
 
@@ -51,12 +57,12 @@
               <th>Matrícula</th>
               <th>Grupo</th>
               <th>Semáforo</th>
-              <th style="width:48px"></th>
+              <th style="width:120px"></th>
             </tr>
           </thead>
           <tbody>
             @for (s of filtered(); track s.enrollmentId) {
-              <tr class="trow">
+              <tr class="trow" (click)="openProfile(s)">
                 <td>
                   <div class="ava">{{ initials(s) }}</div>
                 </td>
@@ -73,10 +79,22 @@
                     {{ semLabel(s.semaphore) }}
                   </span>
                 </td>
-                <td>
-                  <button class="icon-btn" title="Ver detalle">
-                    <i class="fa-solid fa-chevron-right"></i>
-                  </button>
+                <td (click)="$event.stopPropagation()">
+                  <div class="row-actions">
+                    @if (isAdmin) {
+                      <button class="icon-btn" title="Editar" (click)="openEdit(s)">
+                        <i class="fa-solid fa-pen"></i>
+                      </button>
+                      <button class="icon-btn danger" title="Eliminar"
+                        [disabled]="deleting() === s.user?.id"
+                        (click)="remove(s)">
+                        <i class="fa-solid fa-trash"></i>
+                      </button>
+                    }
+                    <button class="icon-btn" title="Ver perfil" (click)="openProfile(s)">
+                      <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                  </div>
                 </td>
               </tr>
             }
@@ -86,4 +104,169 @@
     </div>
   }
 
+  <!-- ══ DRAWER PERFIL ══ -->
+  @if (selected(); as s) {
+    <div class="drawer-backdrop" (click)="closeProfile()"></div>
+    <aside class="drawer">
+      <div class="drawer-hd">
+        <div class="ava ava-lg">{{ initials(s) }}</div>
+        <div class="drawer-id">
+          <h2>{{ s.user?.firstName }} {{ s.user?.lastName }}</h2>
+          <p>{{ s.enrollmentId }} · {{ s.group?.name ?? 'Sin grupo' }}</p>
+        </div>
+        <button class="icon-btn" (click)="closeProfile()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="drawer-sem-row">
+        <span class="chip {{ semColor(s.semaphore) }}">Semáforo: {{ semLabel(s.semaphore) }}</span>
+        @if (isAdmin && s.semaphore !== 'GREEN') {
+          <button class="reset-btn" [disabled]="resetting()" (click)="resetSemaphore()">
+            @if (resetting()) { <span class="btn-spinner-sm"></span> }
+            @else { <i class="fa-solid fa-rotate-left"></i> }
+            Restablecer semáforo
+          </button>
+        }
+      </div>
+
+      @if (drawerLoading()) {
+        <div class="loading-box"><div class="spinner"></div></div>
+      } @else {
+
+        <!-- Stats -->
+        @if (stats(); as st) {
+          <div class="stat-row">
+            <div class="stat-box">
+              <span class="stat-num">{{ st.attendanceRate }}%</span>
+              <span class="stat-lbl">Asistencia (30 días)</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-num">{{ st.absences }}</span>
+              <span class="stat-lbl">Faltas</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-num">{{ st.totalClasses }}</span>
+              <span class="stat-lbl">Clases</span>
+            </div>
+          </div>
+        }
+
+        <!-- Calificaciones -->
+        <div class="drawer-section">
+          <h3><i class="fa-solid fa-star-half-stroke"></i> Calificaciones</h3>
+          @if (studentGrades().length === 0) {
+            <p class="drawer-empty">Sin calificaciones registradas</p>
+          } @else {
+            <table class="mini-table">
+              <thead>
+                <tr><th>Materia</th><th>P1</th><th>P2</th><th>P3</th><th>Final</th></tr>
+              </thead>
+              <tbody>
+                @for (g of studentGrades(); track g.id) {
+                  <tr>
+                    <td class="mt-subject">{{ g.subject?.name }}</td>
+                    <td><span class="chip {{ gradeChip(g.partial1) }}">{{ g.partial1 ?? '—' }}</span></td>
+                    <td><span class="chip {{ gradeChip(g.partial2) }}">{{ g.partial2 ?? '—' }}</span></td>
+                    <td><span class="chip {{ gradeChip(g.partial3) }}">{{ g.partial3 ?? '—' }}</span></td>
+                    <td><span class="chip {{ gradeChip(g.finalGrade) }}">{{ g.finalGrade ?? '—' }}</span></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        </div>
+
+        <!-- Historial asistencia -->
+        <div class="drawer-section">
+          <h3><i class="fa-solid fa-list-check"></i> Últimas asistencias</h3>
+          @if (history().length === 0) {
+            <p class="drawer-empty">Sin registros de asistencia</p>
+          } @else {
+            <ul class="hist-list">
+              @for (r of history(); track r.id) {
+                <li class="hist-item">
+                  <span class="hist-date">{{ r.date | date:'dd/MM/yy HH:mm' }}</span>
+                  <span class="hist-class">{{ r.classes?.subject?.name ?? '—' }}</span>
+                  <span class="chip {{ attStatusChip(r.status) }}">{{ attStatusLabel(r.status) }}</span>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      }
+    </aside>
+  }
+
+  <!-- ══ MODAL ALTA/EDICIÓN ══ -->
+  @if (modalOpen()) {
+    <div class="modal-backdrop" (click)="closeModal()"></div>
+    <div class="modal">
+      <div class="modal-hd">
+        <h2>{{ editing() ? 'Editar alumno' : 'Nuevo alumno' }}</h2>
+        <button class="icon-btn" (click)="closeModal()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="save()" class="modal-form">
+        <div class="form-row">
+          <div class="field-group">
+            <label class="field-label">Nombre(s)</label>
+            <input class="field-input" formControlName="firstName" placeholder="Ej: María">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Apellidos</label>
+            <input class="field-input" formControlName="lastName" placeholder="Ej: García López">
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Correo institucional</label>
+          <input class="field-input" type="email" formControlName="email" placeholder="alumno@cbtis61.edu.mx">
+        </div>
+
+        <div class="form-row">
+          <div class="field-group">
+            <label class="field-label">Matrícula</label>
+            <input class="field-input" formControlName="enrollmentId" placeholder="Ej: 24080001">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Teléfono (opcional)</label>
+            <input class="field-input" formControlName="phone" placeholder="10 dígitos">
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">
+            {{ editing() ? 'Nueva contraseña (dejar vacío para no cambiar)' : 'Contraseña' }}
+          </label>
+          <input class="field-input" type="password" formControlName="password" placeholder="Mínimo 6 caracteres">
+        </div>
+
+        @if (formError()) {
+          <div class="form-err">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            {{ formError() }}
+          </div>
+        }
+
+        <div class="modal-actions">
+          <button type="button" class="ghost-btn" (click)="closeModal()">Cancelar</button>
+          <button type="submit" class="primary-btn" [disabled]="form.invalid || saving()">
+            @if (saving()) { <span class="btn-spinner-sm"></span> Guardando... }
+            @else { {{ editing() ? 'Guardar cambios' : 'Registrar alumno' }} }
+          </button>
+        </div>
+      </form>
+    </div>
+  }
+
+  <!-- Toast -->
+  @if (toastMsg()) {
+    <div class="toast" [class.toast-ok]="toastOk()" [class.toast-err]="!toastOk()">
+      <i class="fa-solid" [class.fa-circle-check]="toastOk()" [class.fa-circle-xmark]="!toastOk()"></i>
+      {{ toastMsg() }}
+    </div>
+  }
 </div>

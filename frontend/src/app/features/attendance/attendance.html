@@ -13,20 +13,37 @@
     </div>
   </header>
 
-  <!-- Banner QR -->
-  <div class="qr-banner">
-    <div class="qr-icon">
-      <i class="fa-solid fa-qrcode"></i>
+  <!-- Pase de lista manual -->
+  @if (canMark) {
+    <div class="mark-banner">
+      <div class="qr-icon">
+        <i class="fa-solid fa-clipboard-user"></i>
+      </div>
+      <div class="mark-body">
+        <p class="qr-title">Pase de lista manual</p>
+        <p class="qr-sub">Registra la falta de un alumno en una clase específica. El registro por QR se hace desde la app móvil.</p>
+      </div>
+      <div class="mark-controls">
+        <select class="mark-select" [ngModel]="selSchedule()" (ngModelChange)="selSchedule.set($event)">
+          <option [ngValue]="null" disabled>Clase / horario</option>
+          @for (s of schedules(); track s.id) {
+            <option [ngValue]="s.id">{{ scheduleLabel(s) }}</option>
+          }
+        </select>
+        <select class="mark-select" [ngModel]="selStudent()" (ngModelChange)="selStudent.set($event)">
+          <option [ngValue]="null" disabled>Alumno</option>
+          @for (st of students(); track st.id) {
+            <option [ngValue]="st.id">{{ st.name }}{{ st.group ? ' · ' + st.group : '' }}</option>
+          }
+        </select>
+        <button class="mark-btn" [disabled]="!selSchedule() || !selStudent() || marking()" (click)="markAbsent()">
+          @if (marking()) { <span class="btn-spinner-sm"></span> }
+          @else { <i class="fa-solid fa-user-xmark"></i> }
+          Marcar ausente
+        </button>
+      </div>
     </div>
-    <div class="qr-body">
-      <p class="qr-title">Registrar asistencia por QR</p>
-      <p class="qr-sub">El alumno muestra su código QR y el sistema registra automáticamente la asistencia.</p>
-    </div>
-    <button class="qr-btn">
-      <i class="fa-solid fa-camera"></i>
-      Escanear QR
-    </button>
-  </div>
+  }
 
   <!-- Tabla -->
   @if (loading()) {
@@ -84,4 +101,11 @@
     </div>
   }
 
+  <!-- Toast -->
+  @if (toastMsg()) {
+    <div class="toast" [class.toast-ok]="toastOk()" [class.toast-err]="!toastOk()">
+      <i class="fa-solid" [class.fa-circle-check]="toastOk()" [class.fa-circle-xmark]="!toastOk()"></i>
+      {{ toastMsg() }}
+    </div>
+  }
 </div>

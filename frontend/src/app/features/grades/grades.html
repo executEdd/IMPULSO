@@ -10,74 +10,240 @@
         <i class="fa-solid fa-star-half-stroke"></i>
         {{ filtered().length }} registros
       </span>
+      @if (canEdit) {
+        <button class="primary-btn" (click)="openCreate()">
+          <i class="fa-solid fa-plus"></i>
+          Capturar calificación
+        </button>
+      }
     </div>
   </header>
 
-  <!-- Toolbar -->
-  <div class="toolbar-row">
-    <div class="search-wrap">
-      <i class="fa-solid fa-magnifying-glass search-icon"></i>
-      <input
-        class="search-input"
-        type="text"
-        placeholder="Buscar por alumno o materia..."
-        (input)="search.set($any($event.target).value)">
+  <!-- Tabs (auditoría solo admin) -->
+  @if (isAdmin) {
+    <div class="tabs-row">
+      <button class="tab-btn" [class.active]="activeTab() === 'grades'" (click)="activeTab.set('grades')">
+        <i class="fa-solid fa-table-list"></i>
+        Calificaciones
+      </button>
+      <button class="tab-btn" [class.active]="activeTab() === 'logs'" (click)="showLogs()">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+        Auditoría de cambios
+      </button>
     </div>
-    <div class="grade-legend">
-      <span class="chip chip-green">≥ 9 Excelente</span>
-      <span class="chip chip-yellow">7–8 Regular</span>
-      <span class="chip chip-red">< 7 Irregular</span>
-    </div>
-  </div>
+  }
 
-  <!-- Tabla -->
-  @if (loading()) {
-    <div class="table-card">
-      <div class="loading-box"><div class="spinner"></div></div>
+  @if (activeTab() === 'grades') {
+
+    <!-- Toolbar -->
+    <div class="toolbar-row">
+      <div class="search-wrap">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input
+          class="search-input"
+          type="text"
+          placeholder="Buscar por alumno o materia..."
+          (input)="search.set($any($event.target).value)">
+      </div>
+      <div class="grade-legend">
+        <span class="chip chip-green">≥ 9 Excelente</span>
+        <span class="chip chip-yellow">7–8 Regular</span>
+        <span class="chip chip-red">< 7 Irregular</span>
+      </div>
     </div>
-  } @else {
-    <div class="table-card">
-      @if (filtered().length === 0) {
-        <div class="empty-state">
-          <i class="fa-solid fa-star"></i>
-          <span>Sin calificaciones registradas</span>
-        </div>
-      } @else {
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Alumno</th>
-              <th>Materia</th>
-              <th>P1</th>
-              <th>P2</th>
-              <th>P3</th>
-              <th>Final</th>
-              <th>Estado</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (g of filtered(); track g.id) {
-              <tr class="trow">
-                <td>
-                  <div class="student-cell">
-                    <div class="ava ava-sm">{{ initials(g) }}</div>
-                    <span class="s-name">{{ g.student?.user?.firstName }} {{ g.student?.user?.lastName }}</span>
-                  </div>
-                </td>
-                <td>
-                  <span class="subject-name">{{ g.subject?.name }}</span>
-                  <span class="subject-code">{{ g.subject?.code }}</span>
-                </td>
-                <td><span class="grade-pill chip {{ gradeChip(g.partial1) }}">{{ g.partial1 ?? '—' }}</span></td>
-                <td><span class="grade-pill chip {{ gradeChip(g.partial2) }}">{{ g.partial2 ?? '—' }}</span></td>
-                <td><span class="grade-pill chip {{ gradeChip(g.partial3) }}">{{ g.partial3 ?? '—' }}</span></td>
-                <td><span class="grade-final chip {{ gradeChip(g.finalGrade) }}">{{ g.finalGrade ?? '—' }}</span></td>
-                <td><span class="chip {{ statusClass(g.status) }}">{{ statusLabel(g.status) }}</span></td>
+
+    <!-- Tabla -->
+    @if (loading()) {
+      <div class="table-card">
+        <div class="loading-box"><div class="spinner"></div></div>
+      </div>
+    } @else {
+      <div class="table-card">
+        @if (filtered().length === 0) {
+          <div class="empty-state">
+            <i class="fa-solid fa-star"></i>
+            <span>Sin calificaciones registradas</span>
+          </div>
+        } @else {
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Alumno</th>
+                <th>Materia</th>
+                <th>P1</th>
+                <th>P2</th>
+                <th>P3</th>
+                <th>Final</th>
+                <th>Estado</th>
+                @if (canEdit) { <th style="width:48px"></th> }
               </tr>
-            }
-          </tbody>
-        </table>
-      }
+            </thead>
+            <tbody>
+              @for (g of filtered(); track g.id) {
+                <tr class="trow">
+                  <td>
+                    <div class="student-cell">
+                      <div class="ava ava-sm">{{ initials(g) }}</div>
+                      <span class="s-name">{{ g.student?.user?.firstName }} {{ g.student?.user?.lastName }}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="subject-name">{{ g.subject?.name }}</span>
+                    <span class="subject-code">{{ g.subject?.code }}</span>
+                  </td>
+                  <td><span class="grade-pill chip {{ gradeChip(g.partial1) }}">{{ g.partial1 ?? '—' }}</span></td>
+                  <td><span class="grade-pill chip {{ gradeChip(g.partial2) }}">{{ g.partial2 ?? '—' }}</span></td>
+                  <td><span class="grade-pill chip {{ gradeChip(g.partial3) }}">{{ g.partial3 ?? '—' }}</span></td>
+                  <td><span class="grade-final chip {{ gradeChip(g.finalGrade) }}">{{ g.finalGrade ?? '—' }}</span></td>
+                  <td><span class="chip {{ statusClass(g.status) }}">{{ statusLabel(g.status) }}</span></td>
+                  @if (canEdit) {
+                    <td>
+                      <button class="icon-btn" title="Editar parciales" (click)="openEdit(g)">
+                        <i class="fa-solid fa-pen"></i>
+                      </button>
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
+    }
+
+  } @else {
+
+    <!-- Auditoría -->
+    @if (logsLoading()) {
+      <div class="table-card">
+        <div class="loading-box"><div class="spinner"></div></div>
+      </div>
+    } @else {
+      <div class="table-card">
+        @if (logs().length === 0) {
+          <div class="empty-state">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <span>Sin cambios registrados</span>
+          </div>
+        } @else {
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Usuario</th>
+                <th>Calificación</th>
+                <th>Cambio</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (log of logs(); track log.id) {
+                <tr class="trow">
+                  <td><span class="date-text">{{ log.createdAt | date:'dd/MM/yy HH:mm' }}</span></td>
+                  <td>
+                    <span class="s-name">{{ log.user?.firstName }} {{ log.user?.lastName }}</span>
+                    <span class="s-email">{{ log.user?.role }}</span>
+                  </td>
+                  <td>
+                    <span class="subject-name">{{ log.grade?.subject?.name ?? '#' + log.gradeId }}</span>
+                    <span class="subject-code">{{ log.grade?.student?.user?.firstName }} {{ log.grade?.student?.user?.lastName }}</span>
+                  </td>
+                  <td><span class="log-change">{{ log.change ?? log.action ?? '—' }}</span></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
+    }
+  }
+
+  <!-- ══ MODAL CAPTURA/EDICIÓN ══ -->
+  @if (modalOpen()) {
+    <div class="modal-backdrop" (click)="closeModal()"></div>
+    <div class="modal">
+      <div class="modal-hd">
+        <h2>{{ editing() ? 'Editar parciales' : 'Capturar calificación' }}</h2>
+        <button class="icon-btn" (click)="closeModal()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="save()" class="modal-form">
+
+        @if (editing(); as g) {
+          <div class="edit-context">
+            <div class="ava ava-sm">{{ initials(g) }}</div>
+            <div>
+              <span class="s-name">{{ g.student?.user?.firstName }} {{ g.student?.user?.lastName }}</span>
+              <span class="s-email">{{ g.subject?.name }} · {{ g.period }}</span>
+            </div>
+          </div>
+        } @else {
+          <div class="form-row">
+            <div class="field-group">
+              <label class="field-label">Alumno</label>
+              <select class="field-input" formControlName="studentId">
+                <option [ngValue]="null" disabled>Selecciona alumno</option>
+                @for (s of students(); track s.id) {
+                  <option [ngValue]="s.id">{{ s.name }}</option>
+                }
+              </select>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Materia</label>
+              <select class="field-input" formControlName="subjectId">
+                <option [ngValue]="null" disabled>Selecciona materia</option>
+                @for (sub of subjects(); track sub.id) {
+                  <option [ngValue]="sub.id">{{ sub.name }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label">Periodo</label>
+            <input class="field-input" formControlName="period" placeholder="Ej: 2025-2026A">
+          </div>
+        }
+
+        <div class="form-row-3">
+          <div class="field-group">
+            <label class="field-label">Parcial 1</label>
+            <input class="field-input" type="number" min="0" max="100" step="0.1" formControlName="partial1" placeholder="0–100">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Parcial 2</label>
+            <input class="field-input" type="number" min="0" max="100" step="0.1" formControlName="partial2" placeholder="0–100">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Parcial 3</label>
+            <input class="field-input" type="number" min="0" max="100" step="0.1" formControlName="partial3" placeholder="0–100">
+          </div>
+        </div>
+
+        @if (formError()) {
+          <div class="form-err">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            {{ formError() }}
+          </div>
+        }
+
+        <div class="modal-actions">
+          <button type="button" class="ghost-btn" (click)="closeModal()">Cancelar</button>
+          <button type="submit" class="primary-btn" [disabled]="form.invalid || saving()">
+            @if (saving()) { <span class="btn-spinner-sm"></span> Guardando... }
+            @else { Guardar }
+          </button>
+        </div>
+      </form>
+    </div>
+  }
+
+  <!-- Toast -->
+  @if (toastMsg()) {
+    <div class="toast" [class.toast-ok]="toastOk()" [class.toast-err]="!toastOk()">
+      <i class="fa-solid" [class.fa-circle-check]="toastOk()" [class.fa-circle-xmark]="!toastOk()"></i>
+      {{ toastMsg() }}
     </div>
   }
 
