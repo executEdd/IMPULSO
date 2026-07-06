@@ -52,25 +52,27 @@ async function bootstrap() {
   // Prefijo global
   app.setGlobalPrefix("api");
 
-  // Swagger Documentation
-  const config = new DocumentBuilder()
-    .setTitle("CBTIS 61 - Sistema de Gestión Académica")
-    .setDescription(
-      "API RESTful para el Sistema de Gestión Académica y Seguimiento de Alumnos del CBTIS 61",
-    )
-    .setVersion("1.0.0")
-    .addBearerAuth()
-    .addTag("Autenticación")
-    .addTag("Usuarios")
-    .addTag("Asistencias")
-    .addTag("Horarios")
-    .addTag("Calificaciones")
-    .addTag("Notificaciones")
-    .addTag("QR Digital")
-    .build();
+  // Swagger Documentation - Solo en desarrollo
+  if (process.env.NODE_ENV !== "production") {
+    const config = new DocumentBuilder()
+      .setTitle("CBTIS 61 - Sistema de Gestión Académica")
+      .setDescription(
+        "API RESTful para el Sistema de Gestión Académica y Seguimiento de Alumnos del CBTIS 61",
+      )
+      .setVersion("1.0.0")
+      .addBearerAuth()
+      .addTag("Autenticación")
+      .addTag("Usuarios")
+      .addTag("Asistencias")
+      .addTag("Horarios")
+      .addTag("Calificaciones")
+      .addTag("Notificaciones")
+      .addTag("QR Digital")
+      .build();
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup("api/docs", app, document);
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup("api/docs", app, document);
+  }
 
   const port = process.env.PORT || 3000;
   await app.listen(port);

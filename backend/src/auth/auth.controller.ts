@@ -54,4 +54,11 @@ export class AuthController {
   async getProfile(@CurrentUser("id") userId: number) {
     return this.authService.getProfile(userId);
   }
+
+  @Public()
+  @Get("health")
+  @ApiOperation({ summary: "Verificar estado del servidor y la base de datos" })
+  async health() {
+    return this.authService.checkHealth();
+  }
 }
