@@ -68,8 +68,21 @@ export class ClassesService {
   }
 
   async remove(id: number) {
-    return this.prisma.class.delete({
-      where: { id },
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Eliminar asistencias vinculadas a esta clase
+      await tx.attendance.deleteMany({
+        where: { classId: id },
+      });
+
+      // 2. Eliminar horarios vinculados a esta clase
+      await tx.classSchedule.deleteMany({
+        where: { classId: id },
+      });
+
+      // 3. Eliminar la clase propiamente dicha
+      return tx.class.delete({
+        where: { id },
+      });
     });
   }
 }
