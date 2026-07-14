@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma.service';
-import { CreateClassDto } from './dto/create-class.dto';
-import { UpdateClassDto } from './dto/update-class.dto';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../prisma.service";
+import { CreateClassDto } from "./dto/create-class.dto";
+import { UpdateClassDto } from "./dto/update-class.dto";
 
 @Injectable()
 export class ClassesService {
@@ -35,7 +35,7 @@ export class ClassesService {
         classroom: true,
         semester: true,
       },
-      orderBy: { id: 'desc' },
+      orderBy: { id: "desc" },
     });
   }
 
@@ -69,17 +69,14 @@ export class ClassesService {
 
   async remove(id: number) {
     return this.prisma.$transaction(async (tx) => {
-      // 1. Eliminar asistencias vinculadas a esta clase
       await tx.attendance.deleteMany({
         where: { classId: id },
       });
 
-      // 2. Eliminar horarios vinculados a esta clase
       await tx.classSchedule.deleteMany({
         where: { classId: id },
       });
 
-      // 3. Eliminar la clase propiamente dicha
       return tx.class.delete({
         where: { id },
       });
