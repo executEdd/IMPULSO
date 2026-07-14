@@ -105,36 +105,26 @@ async function main() {
         name: "3A - Programación",
         gradeLevel: 3,
         career: "Programación",
-        classroom: "A-101",
-        maxStudents: 35,
       },
       {
         name: "3B - Programación",
         gradeLevel: 3,
         career: "Programación",
-        classroom: "A-102",
-        maxStudents: 35,
       },
       {
         name: "4A - Contabilidad",
         gradeLevel: 4,
         career: "Contabilidad",
-        classroom: "B-201",
-        maxStudents: 40,
       },
       {
         name: "5A - Electrónica",
         gradeLevel: 5,
         career: "Electrónica",
-        classroom: "C-301",
-        maxStudents: 30,
       },
       {
         name: "6A - Mecatrónica",
         gradeLevel: 6,
         career: "Mecatrónica",
-        classroom: "D-401",
-        maxStudents: 30,
       },
     ]) {
       groups.push(await tx.group.create({ data: g }));

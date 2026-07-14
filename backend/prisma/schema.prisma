@@ -143,8 +143,6 @@ model Group {
   name        String  @unique
   gradeLevel  Int
   career      String
-  classroom   String?
-  maxStudents Int     @default(40)
 
   class    Class[]
   students StudentProfile[]
