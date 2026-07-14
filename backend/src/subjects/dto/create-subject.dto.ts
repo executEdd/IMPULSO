@@ -3,11 +3,11 @@ import { IsString, IsNotEmpty, IsOptional, IsNumber } from 'class-validator';
 export class CreateSubjectDto {
   @IsString()
   @IsNotEmpty({ message: 'El nombre de la materia es requerido' })
-  name: string;
+  name!: string;
 
   @IsString()
   @IsNotEmpty({ message: 'El código de la materia es requerido' })
-  code: string;
+  code!: string;
 
   @IsString()
   @IsOptional()

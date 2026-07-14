@@ -8,7 +8,7 @@ export class SendManualNotificationDto {
   })
   @IsInt()
   @IsNotEmpty()
-  studentId: number;
+  studentId!: number;
 
   @ApiProperty({
     description: "Tipo de destinatario (usualmente PARENT para el tutor)",
@@ -18,7 +18,7 @@ export class SendManualNotificationDto {
   @IsString()
   @IsNotEmpty()
   @IsEnum(["STUDENT", "PARENT", "TEACHER", "ADMIN"])
-  recipientType: string;
+  recipientType!: string;
 
   @ApiProperty({
     description: "Canal de envío",
@@ -28,7 +28,7 @@ export class SendManualNotificationDto {
   @IsString()
   @IsNotEmpty()
   @IsEnum(["EMAIL", "SMS", "IN_APP"])
-  channel: string;
+  channel!: string;
 
   @ApiProperty({
     description: "Contenido del mensaje de la notificación",
@@ -36,5 +36,5 @@ export class SendManualNotificationDto {
   })
   @IsString()
   @IsNotEmpty()
-  content: string;
+  content!: string;
 }
