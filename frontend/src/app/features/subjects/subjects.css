@@ -1,0 +1,7 @@
+textarea.field-input {
+  resize: vertical;
+  padding: 10px 12px;
+}
+.text-muted {
+  color: #9CA3AF !important;
+}

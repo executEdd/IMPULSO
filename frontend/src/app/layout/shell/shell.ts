@@ -49,6 +49,7 @@ export class ShellComponent implements OnInit {
         { label: 'Asistencia',     faIcon: 'fa-list-check',        route: '/asistencia'     },
         { label: 'Calificaciones', faIcon: 'fa-star-half-stroke',  route: '/calificaciones' },
         { label: 'Horarios',       faIcon: 'fa-calendar-days',     route: '/horarios'       },
+        { label: 'Materias',       faIcon: 'fa-book',              route: '/materias'       },
       ]
     },
     {
