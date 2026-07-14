@@ -11,11 +11,11 @@ import {
 export class CreateGradeDto {
   @IsInt()
   @IsNotEmpty()
-  studentId: number;
+  studentId!: number;
 
   @IsInt()
   @IsNotEmpty()
-  subjectId: number;
+  subjectId!: number;
 
   @IsNumber()
   @Min(0)
@@ -37,5 +37,5 @@ export class CreateGradeDto {
 
   @IsString()
   @IsNotEmpty()
-  period: string;
+  period!: string;
 }
