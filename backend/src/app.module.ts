@@ -10,6 +10,7 @@ import { GradesModule } from "./grades/grades.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { SubjectsModule } from "./subjects/subjects.module";
 import { GroupsModule } from "./groups/groups.module";
+import { ClassesModule } from "./classes/classes.module";
 import { JwtAuthGuard } from "./auth/guards/jwt-auth.guard";
 import { RolesGuard } from "./common/guards/roles.guard";
 import { QrService } from "./qr.service";
@@ -30,6 +31,7 @@ import { QrController } from "./qr.controller";
     NotificationsModule,
     SubjectsModule,
     GroupsModule,
+    ClassesModule,
   ],
   controllers: [QrController],
   providers: [
