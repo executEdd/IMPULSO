@@ -8,13 +8,6 @@ export class GroupsService {
   constructor(private prisma: PrismaService) {}
 
   async create(createGroupDto: CreateGroupDto) {
-    const existing = await this.prisma.group.findUnique({
-      where: { name: createGroupDto.name },
-    });
-    if (existing) {
-      throw new ConflictException('Un grupo con este nombre ya está registrado');
-    }
-
     return this.prisma.group.create({
       data: createGroupDto,
     });
@@ -57,15 +50,6 @@ export class GroupsService {
 
   async update(id: number, updateGroupDto: UpdateGroupDto) {
     await this.findOne(id);
-
-    if (updateGroupDto.name) {
-      const existing = await this.prisma.group.findFirst({
-        where: { name: updateGroupDto.name, NOT: { id } },
-      });
-      if (existing) {
-        throw new ConflictException('El nombre del grupo ya está en uso por otro grupo');
-      }
-    }
 
     return this.prisma.group.update({
       where: { id },
