@@ -1,0 +1,150 @@
+<div class="page-wrap">
+
+  <header class="page-hd">
+    <div>
+      <h1>Grupos</h1>
+      <p>Administración de grupos escolares por grado y especialidad</p>
+    </div>
+    <div class="hd-meta">
+      <span class="count-badge">
+        <i class="fa-solid fa-users-line"></i>
+        {{ filtered().length }} grupos
+      </span>
+      @if (isAdmin) {
+        <button class="primary-btn" (click)="openCreate()">
+          <i class="fa-solid fa-plus"></i>
+          Nuevo grupo
+        </button>
+      }
+    </div>
+  </header>
+
+  <div class="toolbar-row">
+    <div class="search-wrap">
+      <i class="fa-solid fa-magnifying-glass search-icon"></i>
+      <input
+        class="search-input"
+        type="text"
+        placeholder="Buscar por nombre o carrera..."
+        (input)="search.set($any($event.target).value)">
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="table-card">
+      <div class="loading-box"><div class="spinner"></div></div>
+    </div>
+  } @else {
+    <div class="table-card">
+      @if (filtered().length === 0) {
+        <div class="empty-state">
+          <i class="fa-solid fa-users-line"></i>
+          <span>No hay grupos registrados</span>
+        </div>
+      } @else {
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Grupo</th>
+              <th>Grado</th>
+              <th>Carrera / Especialidad</th>
+              <th>Alumnos</th>
+              @if (isAdmin) { <th style="width:90px"></th> }
+            </tr>
+          </thead>
+          <tbody>
+            @for (g of filtered(); track g.id) {
+              <tr class="trow">
+                <td>
+                  <div class="group-cell">
+                    <div class="group-badge">{{ g.name }}</div>
+                  </div>
+                </td>
+                <td><span class="chip chip-neutral">{{ g.gradeLevel }}° semestre</span></td>
+                <td class="career-cell">{{ g.career }}</td>
+                <td>
+                  <span class="student-count">
+                    <i class="fa-solid fa-user-graduate"></i>
+                    {{ studentCount(g) }}
+                  </span>
+                </td>
+                @if (isAdmin) {
+                  <td>
+                    <div class="row-actions">
+                      <button class="icon-btn" title="Editar" (click)="openEdit(g)">
+                        <i class="fa-solid fa-pen"></i>
+                      </button>
+                      <button class="icon-btn danger" title="Eliminar"
+                        [disabled]="deleting() === g.id"
+                        (click)="remove(g)">
+                        <i class="fa-solid fa-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  }
+
+  <!-- Modal -->
+  @if (modalOpen()) {
+    <div class="modal-backdrop" (click)="closeModal()"></div>
+    <div class="modal">
+      <div class="modal-hd">
+        <h2>{{ editing() ? 'Editar grupo' : 'Nuevo grupo' }}</h2>
+        <button class="icon-btn" (click)="closeModal()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="save()" class="modal-form">
+        <div class="field-group">
+          <label class="field-label">Nombre del grupo</label>
+          <input class="field-input" formControlName="name" placeholder="Ej: 3A, 5B-Programación">
+        </div>
+
+        <div class="form-row">
+          <div class="field-group">
+            <label class="field-label">Grado (semestre)</label>
+            <select class="field-input" formControlName="gradeLevel">
+              @for (n of grades; track n) {
+                <option [ngValue]="n">{{ n }}° semestre</option>
+              }
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Carrera / Especialidad</label>
+            <input class="field-input" formControlName="career" placeholder="Ej: Programación">
+          </div>
+        </div>
+
+        @if (formError()) {
+          <div class="form-err">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            {{ formError() }}
+          </div>
+        }
+
+        <div class="modal-actions">
+          <button type="button" class="ghost-btn" (click)="closeModal()">Cancelar</button>
+          <button type="submit" class="primary-btn" [disabled]="form.invalid || saving()">
+            @if (saving()) { <span class="btn-spinner-sm"></span> Guardando... }
+            @else { Guardar }
+          </button>
+        </div>
+      </form>
+    </div>
+  }
+
+  @if (toastMsg()) {
+    <div class="toast" [class.toast-ok]="toastOk()" [class.toast-err]="!toastOk()">
+      <i class="fa-solid" [class.fa-circle-check]="toastOk()" [class.fa-circle-xmark]="!toastOk()"></i>
+      {{ toastMsg() }}
+    </div>
+  }
+
+</div>

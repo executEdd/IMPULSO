@@ -1,0 +1,167 @@
+<div class="page-wrap">
+
+  <header class="page-hd">
+    <div>
+      <h1>Materias</h1>
+      <p>Catálogo de asignaturas y su docente titular</p>
+    </div>
+    <div class="hd-meta">
+      <span class="count-badge">
+        <i class="fa-solid fa-book"></i>
+        {{ filtered().length }} materias
+      </span>
+      @if (isAdmin) {
+        <button class="primary-btn" (click)="openCreate()">
+          <i class="fa-solid fa-plus"></i>
+          Nueva materia
+        </button>
+      }
+    </div>
+  </header>
+
+  <div class="toolbar-row">
+    <div class="search-wrap">
+      <i class="fa-solid fa-magnifying-glass search-icon"></i>
+      <input
+        class="search-input"
+        type="text"
+        placeholder="Buscar por nombre o código..."
+        (input)="search.set($any($event.target).value)">
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="table-card">
+      <div class="loading-box"><div class="spinner"></div></div>
+    </div>
+  } @else {
+    <div class="table-card">
+      @if (filtered().length === 0) {
+        <div class="empty-state">
+          <i class="fa-solid fa-book"></i>
+          <span>No hay materias registradas</span>
+        </div>
+      } @else {
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Materia</th>
+              <th>Código</th>
+              <th>Créditos</th>
+              <th>Docente titular</th>
+              @if (isAdmin) { <th style="width:90px"></th> }
+            </tr>
+          </thead>
+          <tbody>
+            @for (s of filtered(); track s.id) {
+              <tr class="trow">
+                <td>
+                  <span class="s-name">{{ s.name }}</span>
+                  @if (s.description) { <span class="s-desc">{{ s.description }}</span> }
+                </td>
+                <td><code class="code-pill">{{ s.code }}</code></td>
+                <td>
+                  @if (s.credits != null) {
+                    <span class="chip chip-neutral">{{ s.credits }} créditos</span>
+                  } @else { <span class="muted">—</span> }
+                </td>
+                <td>
+                  @if (s.teacher?.user) {
+                    <div class="teacher-cell">
+                      <div class="ava-xs">{{ s.teacher.user.firstName?.[0] }}{{ s.teacher.user.lastName?.[0] }}</div>
+                      <span>{{ teacherName(s) }}</span>
+                    </div>
+                  } @else { <span class="muted">Sin asignar</span> }
+                </td>
+                @if (isAdmin) {
+                  <td>
+                    <div class="row-actions">
+                      <button class="icon-btn" title="Editar" (click)="openEdit(s)">
+                        <i class="fa-solid fa-pen"></i>
+                      </button>
+                      <button class="icon-btn danger" title="Eliminar"
+                        [disabled]="deleting() === s.id"
+                        (click)="remove(s)">
+                        <i class="fa-solid fa-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  }
+
+  <!-- Modal -->
+  @if (modalOpen()) {
+    <div class="modal-backdrop" (click)="closeModal()"></div>
+    <div class="modal">
+      <div class="modal-hd">
+        <h2>{{ editing() ? 'Editar materia' : 'Nueva materia' }}</h2>
+        <button class="icon-btn" (click)="closeModal()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="save()" class="modal-form">
+        <div class="form-row">
+          <div class="field-group">
+            <label class="field-label">Nombre</label>
+            <input class="field-input" formControlName="name" placeholder="Ej: Cálculo Diferencial">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Código</label>
+            <input class="field-input" formControlName="code" placeholder="Ej: MAT-301">
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Descripción (opcional)</label>
+          <textarea class="field-input" formControlName="description" rows="2" placeholder="Breve descripción de la materia..."></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="field-group">
+            <label class="field-label">Créditos (opcional)</label>
+            <input class="field-input" type="number" min="0" step="1" formControlName="credits" placeholder="Ej: 8">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Docente titular (opcional)</label>
+            <select class="field-input" formControlName="teacherId">
+              <option [ngValue]="null">Sin asignar</option>
+              @for (t of teachers(); track t.id) {
+                <option [ngValue]="t.id">{{ t.name }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        @if (formError()) {
+          <div class="form-err">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            {{ formError() }}
+          </div>
+        }
+
+        <div class="modal-actions">
+          <button type="button" class="ghost-btn" (click)="closeModal()">Cancelar</button>
+          <button type="submit" class="primary-btn" [disabled]="form.invalid || saving()">
+            @if (saving()) { <span class="btn-spinner-sm"></span> Guardando... }
+            @else { Guardar }
+          </button>
+        </div>
+      </form>
+    </div>
+  }
+
+  @if (toastMsg()) {
+    <div class="toast" [class.toast-ok]="toastOk()" [class.toast-err]="!toastOk()">
+      <i class="fa-solid" [class.fa-circle-check]="toastOk()" [class.fa-circle-xmark]="!toastOk()"></i>
+      {{ toastMsg() }}
+    </div>
+  }
+
+</div>
