@@ -151,7 +151,9 @@ psd
 thumb
 sketch
 
-#credential files
+# credential files and docker local configs
 *.env
+*.env.*
+docker-compose.yml
 
 handoff.md
