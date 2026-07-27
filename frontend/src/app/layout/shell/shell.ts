@@ -1,10 +1,10 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, computed } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { DatePipe } from '@angular/common';
 import { AuthService } from '../../core/services/auth.service';
 
-const API = 'https://impulso-api.onrender.com/api';
+const API = (import.meta as any).env.NG_APP_API_URL;
 interface NavItem {
   label: string;
   faIcon: string;
@@ -15,6 +15,7 @@ interface NavItem {
 interface NavGroup {
   label: string;
   items: NavItem[];
+  adminOnly?: boolean;
 }
 
 @Component({
@@ -55,8 +56,22 @@ export class ShellComponent implements OnInit {
       items: [
         { label: 'Notificaciones', faIcon: 'fa-bell', route: '/notificaciones' },
       ]
+    },
+    {
+      label: 'Administración',
+      adminOnly: true,
+      items: [
+        { label: 'Grupos',   faIcon: 'fa-users-line',      route: '/grupos'   },
+        { label: 'Materias', faIcon: 'fa-book',            route: '/materias' },
+        { label: 'Clases',   faIcon: 'fa-chalkboard-user', route: '/clases'   },
+      ]
     }
   ];
+
+  visibleGroups = computed(() => {
+    const isAdmin = this.auth.user()?.role === 'ADMIN';
+    return this.navGroups.filter(g => !g.adminOnly || isAdmin);
+  });
 
   ngOnInit() {
     this.refreshUnread();

@@ -14,7 +14,7 @@
     </div>
 
     <nav class="sidebar-nav">
-      @for (group of navGroups; track group.label) {
+      @for (group of visibleGroups(); track group.label) {
         <div class="nav-group">
           <span class="nav-group-label">{{ group.label }}</span>
           @for (item of group.items; track item.route) {

@@ -3,21 +3,21 @@ import { IsInt, IsString, IsNotEmpty } from "class-validator";
 export class CreateNotificationDto {
   @IsInt()
   @IsNotEmpty()
-  alertId: number;
+  alertId!: number;
 
   @IsInt()
   @IsNotEmpty()
-  recipientId: number;
+  recipientId!: number;
 
   @IsString()
   @IsNotEmpty()
-  recipientType: string;
+  recipientType!: string;
 
   @IsString()
   @IsNotEmpty()
-  channel: string;
+  channel!: string;
 
   @IsString()
   @IsNotEmpty()
-  content: string;
+  content!: string;
 }
