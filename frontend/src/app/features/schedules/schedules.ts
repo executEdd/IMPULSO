@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
 
-const API = 'https://impulso-api.onrender.com/api';
+const API = (import.meta as any).env.NG_APP_API_URL;
 
 const DAY_LABELS: Record<string, string> = {
   MONDAY: 'Lunes', TUESDAY: 'Martes', WEDNESDAY: 'Miércoles',

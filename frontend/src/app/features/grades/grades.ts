@@ -4,7 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { AuthService } from '../../core/services/auth.service';
 
-const API = 'https://impulso-api.onrender.com/api';
+const API = (import.meta as any).env.NG_APP_API_URL;
 
 @Component({
   selector: 'app-grades',
@@ -72,18 +72,16 @@ export class GradesComponent implements OnInit {
       ),
       error: () => {}
     });
+    this.http.get<any[]>(`${API}/subjects`).subscribe({
+      next: subjects => this.subjects.set(subjects),
+      error: () => {}
+    });
   }
 
   fetchGrades() {
     this.http.get<any[]>(`${API}/grades`).subscribe({
       next: data => {
         this.all.set(data);
-        // catálogo de materias derivado de los registros existentes
-        const seen = new Map<number, any>();
-        for (const g of data) {
-          if (g.subject?.id && !seen.has(g.subject.id)) seen.set(g.subject.id, g.subject);
-        }
-        this.subjects.set([...seen.values()]);
         this.loading.set(false);
       },
       error: () => this.loading.set(false)

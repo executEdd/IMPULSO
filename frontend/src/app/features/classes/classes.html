@@ -1,0 +1,202 @@
+<div class="page-wrap">
+
+  <header class="page-hd">
+    <div>
+      <h1>Clases</h1>
+      <p>Asignación de materias a grupos, docentes y aulas</p>
+    </div>
+    <div class="hd-meta">
+      <span class="count-badge">
+        <i class="fa-solid fa-chalkboard-user"></i>
+        {{ filtered().length }} clases
+      </span>
+      @if (isAdmin) {
+        <button class="primary-btn" (click)="openCreate()">
+          <i class="fa-solid fa-plus"></i>
+          Nueva clase
+        </button>
+      }
+    </div>
+  </header>
+
+  <div class="toolbar-row">
+    <div class="search-wrap">
+      <i class="fa-solid fa-magnifying-glass search-icon"></i>
+      <input
+        class="search-input"
+        type="text"
+        placeholder="Buscar por materia, grupo o docente..."
+        (input)="search.set($any($event.target).value)">
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="table-card">
+      <div class="loading-box"><div class="spinner"></div></div>
+    </div>
+  } @else {
+    <div class="table-card">
+      @if (filtered().length === 0) {
+        <div class="empty-state">
+          <i class="fa-solid fa-chalkboard-user"></i>
+          <span>No hay clases registradas</span>
+        </div>
+      } @else {
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Materia</th>
+              <th>Grupo</th>
+              <th>Docente</th>
+              <th>Aula</th>
+              <th>Semestre</th>
+              @if (isAdmin) { <th style="width:90px"></th> }
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of filtered(); track c.id) {
+              <tr class="trow">
+                <td>
+                  <span class="s-name">{{ c.subject?.name ?? '—' }}</span>
+                  <span class="s-sub">{{ c.subject?.code }}</span>
+                </td>
+                <td><span class="group-badge">{{ c.group?.name ?? '—' }}</span></td>
+                <td>
+                  <div class="teacher-cell">
+                    <div class="ava-xs">{{ teacherInitials(c) }}</div>
+                    <span>{{ teacherName(c) }}</span>
+                  </div>
+                </td>
+                <td>
+                  @if (c.classroom?.name) {
+                    <span class="chip chip-neutral"><i class="fa-solid fa-door-open"></i> {{ c.classroom.name }}</span>
+                  } @else { <span class="muted">—</span> }
+                </td>
+                <td class="sem-cell">{{ c.semester?.semesterName ?? '—' }}</td>
+                @if (isAdmin) {
+                  <td>
+                    <div class="row-actions">
+                      <button class="icon-btn" title="Editar" (click)="openEdit(c)">
+                        <i class="fa-solid fa-pen"></i>
+                      </button>
+                      <button class="icon-btn danger" title="Eliminar"
+                        [disabled]="deleting() === c.id"
+                        (click)="remove(c)">
+                        <i class="fa-solid fa-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  }
+
+  <!-- Modal -->
+  @if (modalOpen()) {
+    <div class="modal-backdrop" (click)="closeModal()"></div>
+    <div class="modal">
+      <div class="modal-hd">
+        <h2>{{ editing() ? 'Editar clase' : 'Nueva clase' }}</h2>
+        <button class="icon-btn" (click)="closeModal()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="save()" class="modal-form">
+        <div class="field-group">
+          <label class="field-label">Materia</label>
+          <select class="field-input" formControlName="subjectId">
+            <option [ngValue]="null" disabled>Selecciona materia</option>
+            @for (s of subjects(); track s.id) {
+              <option [ngValue]="s.id">{{ s.name }} ({{ s.code }})</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-row">
+          <div class="field-group">
+            <label class="field-label">Grupo</label>
+            <select class="field-input" formControlName="groupId">
+              <option [ngValue]="null" disabled>Selecciona grupo</option>
+              @for (g of groups(); track g.id) {
+                <option [ngValue]="g.id">{{ g.name }} · {{ g.career }}</option>
+              }
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Docente</label>
+            <select class="field-input" formControlName="teacherId">
+              <option [ngValue]="null" disabled>Selecciona docente</option>
+              @for (t of teachers(); track t.id) {
+                <option [ngValue]="t.id">{{ t.name }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field-group">
+            <label class="field-label">Semestre</label>
+            @if (hasSemesters) {
+              <select class="field-input" formControlName="semesterId">
+                <option [ngValue]="null" disabled>Selecciona semestre</option>
+                @for (sem of semesters(); track sem.id) {
+                  <option [ngValue]="sem.id">{{ sem.semesterName }}</option>
+                }
+              </select>
+            } @else {
+              <input class="field-input" type="number" min="1" formControlName="semesterId" placeholder="ID del semestre">
+            }
+          </div>
+          <div class="field-group">
+            <label class="field-label">Aula (opcional)</label>
+            @if (classrooms().length > 0) {
+              <select class="field-input" formControlName="classroomId">
+                <option [ngValue]="null">Sin aula</option>
+                @for (r of classrooms(); track r.id) {
+                  <option [ngValue]="r.id">{{ r.name }}</option>
+                }
+              </select>
+            } @else {
+              <input class="field-input" type="number" min="1" formControlName="classroomId" placeholder="ID del aula (opcional)">
+            }
+          </div>
+        </div>
+
+        @if (!hasSemesters) {
+          <div class="form-hint">
+            <i class="fa-solid fa-circle-info"></i>
+            No hay semestres cargados aún; ingresa el ID manualmente (ver con el equipo de backend).
+          </div>
+        }
+
+        @if (formError()) {
+          <div class="form-err">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            {{ formError() }}
+          </div>
+        }
+
+        <div class="modal-actions">
+          <button type="button" class="ghost-btn" (click)="closeModal()">Cancelar</button>
+          <button type="submit" class="primary-btn" [disabled]="form.invalid || saving()">
+            @if (saving()) { <span class="btn-spinner-sm"></span> Guardando... }
+            @else { Guardar }
+          </button>
+        </div>
+      </form>
+    </div>
+  }
+
+  @if (toastMsg()) {
+    <div class="toast" [class.toast-ok]="toastOk()" [class.toast-err]="!toastOk()">
+      <i class="fa-solid" [class.fa-circle-check]="toastOk()" [class.fa-circle-xmark]="!toastOk()"></i>
+      {{ toastMsg() }}
+    </div>
+  }
+
+</div>

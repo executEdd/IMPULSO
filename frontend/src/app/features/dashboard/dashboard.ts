@@ -6,11 +6,12 @@ import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { TitleCasePipe } from '@angular/common';
 import { AuthService } from '../../core/services/auth.service';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 declare var Chart: any;
 
-const API = 'https://impulso-api.onrender.com/api';
+const API = (import.meta as any).env.NG_APP_API_URL;
 
 interface KPI {
   label: string;
@@ -111,16 +112,34 @@ export class DashboardComponent implements OnInit, AfterViewInit {
 
   private fetchData() {
     forkJoin({
-      users:      this.http.get<any[]>(`${API}/users`),
-      attendance: this.http.get<any[]>(`${API}/attendance`),
-      grades:     this.http.get<any[]>(`${API}/grades`),
+      users:      this.http.get<any[]>(`${API}/users`).pipe(catchError(() => of<any[]>([]))),
+      attendance: this.http.get<any[]>(`${API}/attendance`).pipe(catchError(() => of<any[]>([]))),
+      grades:     this.http.get<any[]>(`${API}/grades`).pipe(catchError(() => of<any[]>([]))),
+      red:        this.http.get<any[]>(`${API}/attendance/semaphore/red`).pipe(catchError(() => of<any[]>([]))),
     }).subscribe({
       next: (data) => {
         const students = (data.users ?? []).filter((u: any) => u.role === 'STUDENT');
-        const total = students.length || 248;
-        this.applyStats(total, 87.4, 8.2, 23);
+        const total = students.length;
+        const risk  = (data.red ?? []).length;
+
+        // Asistencia general: % de registros presentes/tarde
+        const att = data.attendance ?? [];
+        const present = att.filter((r: any) => r.status === 'PRESENT' || r.status === 'LATE').length;
+        const attRate = att.length ? (present / att.length) * 100 : 0;
+
+        // Promedio académico: media de finalGrade (o parciales disponibles)
+        const grades = data.grades ?? [];
+        const vals: number[] = [];
+        for (const g of grades) {
+          const v = g.finalGrade ?? [g.partial1, g.partial2, g.partial3].filter((x: any) => x != null)
+            .reduce((a: number, b: number, _i: number, arr: number[]) => a + b / arr.length, 0);
+          if (v) vals.push(v);
+        }
+        const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+
+        this.applyStats(total, Math.round(attRate * 10) / 10, avg, risk);
       },
-      error: () => this.applyStats(248, 87.4, 8.2, 23)
+      error: () => this.applyStats(0, 0, 0, 0)
     });
   }
 
@@ -131,7 +150,9 @@ export class DashboardComponent implements OnInit, AfterViewInit {
       { label: 'Promedio académico', value: avg.toFixed(1), icon: 'fa-star',             color: '#F59E0B', trend: -0.4, trendLabel: 'vs período ant.' },
       { label: 'Alumnos en riesgo',  value: risk,         icon: 'fa-triangle-exclamation', color: '#EF4444', trend: 5, trendLabel: 'esta semana' },
     ]);
-    this.riskCounts.set({ green: total - risk - 45, yellow: 45, red: risk });
+    const yellow = Math.min(Math.max(total - risk, 0), Math.round(total * 0.18));
+    const green = Math.max(total - risk - yellow, 0);
+    this.riskCounts.set({ green, yellow, red: risk });
     this.loading.set(false);
   }
 

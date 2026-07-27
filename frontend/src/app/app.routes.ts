@@ -35,6 +35,18 @@ export const routes: Routes = [
       {
         path: 'notificaciones',
         loadComponent: () => import('./features/notifications/notifications').then(m => m.NotificationsComponent)
+      },
+      {
+        path: 'grupos',
+        loadComponent: () => import('./features/groups/groups').then(m => m.GroupsComponent)
+      },
+      {
+        path: 'materias',
+        loadComponent: () => import('./features/subjects/subjects').then(m => m.SubjectsComponent)
+      },
+      {
+        path: 'clases',
+        loadComponent: () => import('./features/classes/classes').then(m => m.ClassesComponent)
       }
     ]
   },
