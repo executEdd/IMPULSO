@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { tap } from 'rxjs/operators';
 import { AuthResponse, LoginPayload, User } from '../models/user.model';
 
-const API = 'https://impulso-api.onrender.com/api';
+const API = (import.meta as any).env.NG_APP_API_URL;
 const TOKEN_KEY = 'impulso_token';
 const USER_KEY  = 'impulso_user';
 

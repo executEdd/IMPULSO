@@ -11,7 +11,7 @@ import { catchError } from 'rxjs/operators';
 
 declare var Chart: any;
 
-const API = 'https://impulso-api.onrender.com/api';
+const API = (import.meta as any).env.NG_APP_API_URL;
 
 interface KPI {
   label: string;
