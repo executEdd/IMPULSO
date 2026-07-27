@@ -5,11 +5,11 @@ import { DatePipe } from '@angular/common';
 import { AuthService } from '../../core/services/auth.service';
 
 const API = (import.meta as any).env.NG_APP_API_URL;
-
 interface NavItem {
   label: string;
   faIcon: string;
   route: string;
+
 }
 
 interface NavGroup {
@@ -35,7 +35,6 @@ export class ShellComponent implements OnInit {
   notifs      = signal<any[]>([]);
   notifOpen   = signal(false);
   notifLoading = signal(false);
-
   navGroups: NavGroup[] = [
     {
       label: 'General',
@@ -77,14 +76,12 @@ export class ShellComponent implements OnInit {
   ngOnInit() {
     this.refreshUnread();
   }
-
   get initials(): string {
     const u = this.auth.user();
     return ((u?.firstName?.[0] ?? '') + (u?.lastName?.[0] ?? '')).toUpperCase();
   }
 
   toggle() { this.collapsed.update(v => !v); }
-
   refreshUnread() {
     this.http.get<number>(`${API}/notifications/unread-count`).subscribe({
       next: n => this.unreadCount.set(n ?? 0),

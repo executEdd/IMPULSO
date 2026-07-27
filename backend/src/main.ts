@@ -17,10 +17,23 @@ async function bootstrap() {
   );
   app.use(compression());
 
-  // CORS - Configuración segura
-  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+  // CORS - Configuración segura y flexible para despliegues
+  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:4200";
+  const allowedOrigins = frontendUrl.split(",").map((o) => o.trim());
+
   app.enableCors({
-    origin: process.env.NODE_ENV === "production" ? frontendUrl : true,
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      if (
+        !origin ||
+        allowedOrigins.indexOf(origin) !== -1 ||
+        origin.endsWith(".vercel.app") ||
+        origin.startsWith("http://localhost:")
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
     credentials: true,
   });

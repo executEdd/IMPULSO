@@ -176,13 +176,13 @@ export class GradesComponent implements OnInit {
     this.toastOk.set(ok);
     setTimeout(() => this.toastMsg.set(''), 3500);
   }
-
   gradeChip(val: number | null): string {
     if (val === null || val === undefined) return 'chip-neutral';
     if (val >= 9) return 'chip-green';
     if (val >= 7) return 'chip-yellow';
     return 'chip-red';
   }
+
   statusClass(s: string) {
     const m: Record<string, string> = {
       EXCELLENT: 'chip-green', REGULAR: 'chip-yellow', IRREGULAR: 'chip-red'

@@ -50,7 +50,6 @@ export class StudentsComponent implements OnInit {
     enrollmentId: ['', Validators.required],
     phone:        [''],
   });
-
   filtered = computed(() => {
     const q = this.search().toLowerCase();
     return this.all().filter(s =>
@@ -217,7 +216,6 @@ export class StudentsComponent implements OnInit {
     this.toastOk.set(ok);
     setTimeout(() => this.toastMsg.set(''), 3500);
   }
-
   semColor(s: string) {
     return s === 'GREEN' ? 'chip-green' : s === 'YELLOW' ? 'chip-yellow' : 'chip-red';
   }

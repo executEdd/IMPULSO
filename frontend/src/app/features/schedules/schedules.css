@@ -204,7 +204,6 @@
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-
 /* Loading / Empty */
 .table-card { background: #fff; border-radius: 16px; border: 1px solid #F0F2F5; overflow: hidden; }
 .loading-box { display: flex; align-items: center; justify-content: center; height: 200px; }

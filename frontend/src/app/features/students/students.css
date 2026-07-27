@@ -139,7 +139,6 @@
 }
 .empty-state i { font-size: 30px; }
 .empty-state span { font-size: 14px; font-weight: 500; }
-
 /* ── Botones ── */
 .primary-btn {
   display: inline-flex; align-items: center; gap: 8px;
@@ -200,7 +199,7 @@
 .drawer-hd { display: flex; align-items: center; gap: 14px; }
 .ava-lg { width: 52px; height: 52px; font-size: 17px; }
 .drawer-id { flex: 1; min-width: 0; }
-.drawer-id h2 { font-size: 18px; font-weight: 700; color: #1A1A2E; margin: 0 0 3px; }
+.drawer-id h2 { font-size: 18px; font-weight: 700; color: #1A1A2E; margin: 0; }
 .drawer-id p  { font-size: 13px; color: #9CA3AF; margin: 0; }
 
 .drawer-sem-row {

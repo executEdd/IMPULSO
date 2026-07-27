@@ -94,7 +94,6 @@ export class AttendanceComponent implements OnInit {
     this.toastOk.set(ok);
     setTimeout(() => this.toastMsg.set(''), 4000);
   }
-
   statusClass(s: string) {
     const m: Record<string, string> = {
       PRESENT: 'chip-green', LATE: 'chip-yellow',
