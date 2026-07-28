@@ -618,6 +618,7 @@ CBTIS 61 - Sistema de Gestión Académica`,
 
   async exportCsv(filters?: { studentId?: number; classId?: number }) {
     const records = await this.findAll(filters);
+    const sep = "sep=,\n";
     const header = "ID,Fecha,Alumno,Matrícula,Grupo,Materia,Estado,Notas\n";
     const rows = records.map((r: any) => {
       const dateStr = r.date
@@ -632,6 +633,7 @@ CBTIS 61 - Sistema de Gestión Académica`,
       return `${r.id},${dateStr},${studentName},${enrollmentId},${groupName},${subjectName},${status},${notes}`;
     });
 
-    return "\uFEFF" + header + rows.join("\n");
+    const csvString = header + rows.join("\n");
+    return Buffer.from(csvString, "latin1");
   }
 }

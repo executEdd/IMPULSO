@@ -92,11 +92,11 @@ export class UsersController {
   @ApiOperation({ summary: "Exportar padrón de alumnos con semáforo a CSV" })
   async exportStudentsCsv(@Res() res: Response) {
     const csvContent = await this.usersService.exportStudentsCsv();
-    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Type", "text/csv; charset=latin1");
     res.setHeader(
       "Content-Disposition",
       `attachment; filename="padron_alumnos_${Date.now()}.csv"`,
     );
-    return res.send(csvContent);
+    return res.end(csvContent);
   }
 }

@@ -144,11 +144,11 @@ export class GradesController {
       subjectId,
       period,
     });
-    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Type", "text/csv; charset=latin1");
     res.setHeader(
       "Content-Disposition",
       `attachment; filename="reporte_calificaciones_${Date.now()}.csv"`,
     );
-    return res.send(csvContent);
+    return res.end(csvContent);
   }
 }

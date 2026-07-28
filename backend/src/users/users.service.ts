@@ -254,6 +254,7 @@ export class UsersService {
       orderBy: { lastName: "asc" },
     });
 
+    const sep = "sep=,\n";
     const header =
       "ID,Nombre,Apellidos,Correo,Matrícula,Grupo,Semáforo,Tutor,Correo Tutor\n";
     const rows = students.map((u: any) => {
@@ -273,6 +274,7 @@ export class UsersService {
       return `${u.id},${firstName},${lastName},${email},${enrollmentId},${groupName},${semaphore},${parentName},${parentEmail}`;
     });
 
-    return "\uFEFF" + header + rows.join("\n");
+    const csvString = header + rows.join("\n");
+    return Buffer.from(csvString, "latin1");
   }
 }

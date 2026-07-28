@@ -413,6 +413,7 @@ export class GradesService {
     period?: string;
   }) {
     const grades = await this.findAll(filters);
+    const sep = "sep=,\n";
     const header =
       "ID,Alumno,Matrícula,Grupo,Materia,Periodo,Parcial 1,Parcial 2,Parcial 3,Final,Estatus\n";
     const rows = grades.map((g: any) => {
@@ -429,6 +430,7 @@ export class GradesService {
       return `${g.id},${studentName},${enrollmentId},${groupName},${subjectName},${period},${p1},${p2},${p3},${final},${status}`;
     });
 
-    return "\uFEFF" + header + rows.join("\n");
+    const csvString = header + rows.join("\n");
+    return Buffer.from(csvString, "latin1");
   }
 }
