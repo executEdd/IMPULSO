@@ -526,10 +526,18 @@ describe("AttendanceModule (e2e)", () => {
 
   // Test Case 6: fail if day of the week is incorrect
   it("6. should fail to record attendance if the class is on a different day of the week", async () => {
+    const wrongSubject = await prisma.subject.create({
+      data: {
+        name: `Wrong Subject Day ${testId}`,
+        code: `WS-DAY-${testId}`,
+        credits: 3,
+      },
+    });
+
     // Create a temporary class on a different day
     const wrongClass = await prisma.class.create({
       data: {
-        subjectId,
+        subjectId: wrongSubject.id,
         groupId,
         teacherId: teacherProfileId,
         semesterId,
@@ -567,14 +575,23 @@ describe("AttendanceModule (e2e)", () => {
       where: { classId: wrongClass.id },
     });
     await prisma.class.delete({ where: { id: wrongClass.id } });
+    await prisma.subject.delete({ where: { id: wrongSubject.id } });
   });
 
   // Test Case 7: fail if current time is outside the schedule window
   it("7. should fail to record attendance if the current time is outside the schedule window (+/- 15 mins)", async () => {
+    const wrongTimeSubject = await prisma.subject.create({
+      data: {
+        name: `Wrong Subject Time ${testId}`,
+        code: `WS-TIME-${testId}`,
+        credits: 3,
+      },
+    });
+
     // Create a temporary class at a wrong time
     const wrongTimeClass = await prisma.class.create({
       data: {
-        subjectId,
+        subjectId: wrongTimeSubject.id,
         groupId,
         teacherId: teacherProfileId,
         semesterId,
@@ -612,6 +629,7 @@ describe("AttendanceModule (e2e)", () => {
       where: { classId: wrongTimeClass.id },
     });
     await prisma.class.delete({ where: { id: wrongTimeClass.id } });
+    await prisma.subject.delete({ where: { id: wrongTimeSubject.id } });
   });
 
   // Test Case 8: fail if already registered today
