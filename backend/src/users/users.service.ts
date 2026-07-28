@@ -243,7 +243,9 @@ export class UsersService {
             group: true,
             parent: {
               include: {
-                user: { select: { firstName: true, lastName: true, email: true } },
+                user: {
+                  select: { firstName: true, lastName: true, email: true },
+                },
               },
             },
           },
@@ -252,7 +254,8 @@ export class UsersService {
       orderBy: { lastName: "asc" },
     });
 
-    const header = "ID,Nombre,Apellidos,Correo,Matrícula,Grupo,Semáforo,Tutor,Correo Tutor\n";
+    const header =
+      "ID,Nombre,Apellidos,Correo,Matrícula,Grupo,Semáforo,Tutor,Correo Tutor\n";
     const rows = students.map((u: any) => {
       const sp = u.studentProfile;
       const firstName = `"${u.firstName || ""}"`;
@@ -261,8 +264,12 @@ export class UsersService {
       const enrollmentId = `"${sp?.enrollmentId || ""}"`;
       const groupName = `"${sp?.group?.name || ""}"`;
       const semaphore = `"${sp?.semaphore || "GREEN"}"`;
-      const parentName = sp?.parent?.user ? `"${sp.parent.user.firstName || ""} ${sp.parent.user.lastName || ""}"` : '""';
-      const parentEmail = sp?.parent?.user?.email ? `"${sp.parent.user.email}"` : '""';
+      const parentName = sp?.parent?.user
+        ? `"${sp.parent.user.firstName || ""} ${sp.parent.user.lastName || ""}"`
+        : '""';
+      const parentEmail = sp?.parent?.user?.email
+        ? `"${sp.parent.user.email}"`
+        : '""';
       return `${u.id},${firstName},${lastName},${email},${enrollmentId},${groupName},${semaphore},${parentName},${parentEmail}`;
     });
 

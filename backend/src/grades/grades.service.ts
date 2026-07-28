@@ -407,9 +407,14 @@ export class GradesService {
     });
   }
 
-  async exportCsv(filters?: { studentId?: number; subjectId?: number; period?: string }) {
+  async exportCsv(filters?: {
+    studentId?: number;
+    subjectId?: number;
+    period?: string;
+  }) {
     const grades = await this.findAll(filters);
-    const header = "ID,Alumno,Matrícula,Grupo,Materia,Periodo,Parcial 1,Parcial 2,Parcial 3,Final,Estatus\n";
+    const header =
+      "ID,Alumno,Matrícula,Grupo,Materia,Periodo,Parcial 1,Parcial 2,Parcial 3,Final,Estatus\n";
     const rows = grades.map((g: any) => {
       const studentName = `"${g.student?.user?.firstName || ""} ${g.student?.user?.lastName || ""}"`;
       const enrollmentId = `"${g.student?.enrollmentId || ""}"`;

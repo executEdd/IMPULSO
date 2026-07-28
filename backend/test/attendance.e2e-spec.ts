@@ -358,13 +358,17 @@ describe("AttendanceModule (e2e)", () => {
       await prisma.classSchedule.deleteMany({ where: { classId } });
       await prisma.class.deleteMany({ where: { id: classId } });
     }
-    const studentProfileIds = [studentProfileId, otherStudentProfileId].filter(Boolean);
+    const studentProfileIds = [studentProfileId, otherStudentProfileId].filter(
+      Boolean,
+    );
     if (studentProfileIds.length > 0) {
       await prisma.studentProfile.deleteMany({
         where: { id: { in: studentProfileIds } },
       });
     }
-    const teacherUserIds = [teacherUser?.id, otherTeacherUser?.id].filter(Boolean) as number[];
+    const teacherUserIds = [teacherUser?.id, otherTeacherUser?.id].filter(
+      Boolean,
+    ) as number[];
     if (teacherUserIds.length > 0) {
       await prisma.teacherProfile.deleteMany({
         where: { userId: { in: teacherUserIds } },
@@ -445,7 +449,9 @@ describe("AttendanceModule (e2e)", () => {
       });
 
     expect(scanRes.status).toBe(400);
-    expect(scanRes.body.message.message || scanRes.body.message).toBe("Token QR inválido o expirado");
+    expect(scanRes.body.message.message || scanRes.body.message).toBe(
+      "Token QR inválido o expirado",
+    );
   });
 
   // Test Case 3: fail if QR expired
@@ -491,7 +497,9 @@ describe("AttendanceModule (e2e)", () => {
       });
 
     expect(scanRes.status).toBe(400);
-    expect(scanRes.body.message.message || scanRes.body.message).toContain("Inconsistencia de grupo");
+    expect(scanRes.body.message.message || scanRes.body.message).toContain(
+      "Inconsistencia de grupo",
+    );
   });
 
   // Test Case 5: fail if teacher scanning is wrong
@@ -550,7 +558,9 @@ describe("AttendanceModule (e2e)", () => {
       });
 
     expect(scanRes.status).toBe(400);
-    expect(scanRes.body.message.message || scanRes.body.message).toContain("Inconsistencia de día");
+    expect(scanRes.body.message.message || scanRes.body.message).toContain(
+      "Inconsistencia de día",
+    );
 
     // Cleanup wrong class
     await prisma.classSchedule.deleteMany({
@@ -593,7 +603,9 @@ describe("AttendanceModule (e2e)", () => {
       });
 
     expect(scanRes.status).toBe(400);
-    expect(scanRes.body.message.message || scanRes.body.message).toContain("Inconsistencia de horario");
+    expect(scanRes.body.message.message || scanRes.body.message).toContain(
+      "Inconsistencia de horario",
+    );
 
     // Cleanup wrong class
     await prisma.classSchedule.deleteMany({

@@ -133,13 +133,22 @@ export class GradesController {
   @ApiOperation({ summary: "Exportar reporte de calificaciones a CSV" })
   async exportCsv(
     @Res() res: Response,
-    @Query("studentId", new ParseIntPipe({ optional: true })) studentId?: number,
-    @Query("subjectId", new ParseIntPipe({ optional: true })) subjectId?: number,
+    @Query("studentId", new ParseIntPipe({ optional: true }))
+    studentId?: number,
+    @Query("subjectId", new ParseIntPipe({ optional: true }))
+    subjectId?: number,
     @Query("period") period?: string,
   ) {
-    const csvContent = await this.gradesService.exportCsv({ studentId, subjectId, period });
+    const csvContent = await this.gradesService.exportCsv({
+      studentId,
+      subjectId,
+      period,
+    });
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader("Content-Disposition", `attachment; filename="reporte_calificaciones_${Date.now()}.csv"`);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="reporte_calificaciones_${Date.now()}.csv"`,
+    );
     return res.send(csvContent);
   }
 }

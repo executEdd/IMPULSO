@@ -161,12 +161,19 @@ export class AttendanceController {
   @ApiOperation({ summary: "Exportar reporte de asistencias a CSV" })
   async exportCsv(
     @Res() res: Response,
-    @Query("studentId", new ParseIntPipe({ optional: true })) studentId?: number,
+    @Query("studentId", new ParseIntPipe({ optional: true }))
+    studentId?: number,
     @Query("classId", new ParseIntPipe({ optional: true })) classId?: number,
   ) {
-    const csvContent = await this.attendanceService.exportCsv({ studentId, classId });
+    const csvContent = await this.attendanceService.exportCsv({
+      studentId,
+      classId,
+    });
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader("Content-Disposition", `attachment; filename="reporte_asistencias_${Date.now()}.csv"`);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="reporte_asistencias_${Date.now()}.csv"`,
+    );
     return res.send(csvContent);
   }
 }

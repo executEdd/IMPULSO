@@ -1,7 +1,7 @@
-import { Module } from '@nestjs/common';
-import { GroupsService } from './groups.service';
-import { GroupsController } from './groups.controller';
-import { PrismaModule } from '../prisma.module';
+import { Module } from "@nestjs/common";
+import { GroupsService } from "./groups.service";
+import { GroupsController } from "./groups.controller";
+import { PrismaModule } from "../prisma.module";
 
 @Module({
   imports: [PrismaModule],

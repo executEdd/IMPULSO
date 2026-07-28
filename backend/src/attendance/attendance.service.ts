@@ -620,7 +620,9 @@ CBTIS 61 - Sistema de Gestión Académica`,
     const records = await this.findAll(filters);
     const header = "ID,Fecha,Alumno,Matrícula,Grupo,Materia,Estado,Notas\n";
     const rows = records.map((r: any) => {
-      const dateStr = r.date ? new Date(r.date).toISOString().split("T")[0] : "";
+      const dateStr = r.date
+        ? new Date(r.date).toISOString().split("T")[0]
+        : "";
       const studentName = `"${r.student?.user?.firstName || ""} ${r.student?.user?.lastName || ""}"`;
       const enrollmentId = `"${r.student?.enrollmentId || ""}"`;
       const groupName = `"${r.student?.group?.name || ""}"`;
