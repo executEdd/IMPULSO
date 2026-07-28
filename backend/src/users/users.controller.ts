@@ -99,4 +99,39 @@ export class UsersController {
     );
     return res.end(csvContent);
   }
+
+  @Get("parents")
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  @ApiOperation({ summary: "Listar todos los perfiles de tutores/padres" })
+  @ApiOkResponse({ description: "Listado de tutores recuperado exitosamente." })
+  async findAllParents() {
+    return this.usersService.findAllParents();
+  }
+
+  @Get("students/:studentId/parent-info")
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  @ApiOperation({
+    summary: "Obtener la ficha completa del alumno con información de su tutor",
+  })
+  @ApiOkResponse({ description: "Ficha del alumno y tutor recuperada." })
+  @ApiNotFoundResponse({ description: "Alumno no encontrado." })
+  async getStudentParentInfo(
+    @Param("studentId", ParseIntPipe) studentId: number,
+  ) {
+    return this.usersService.getStudentParentInfo(studentId);
+  }
+
+  @Put("students/:studentId/parent/:parentId")
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: "Vincular o actualizar el tutor asignado a un estudiante",
+  })
+  @ApiOkResponse({ description: "Tutor asignado correctamente." })
+  @ApiNotFoundResponse({ description: "Alumno o tutor no encontrado." })
+  async assignParentToStudent(
+    @Param("studentId", ParseIntPipe) studentId: number,
+    @Param("parentId", ParseIntPipe) parentId: number,
+  ) {
+    return this.usersService.assignParentToStudent(studentId, parentId);
+  }
 }
