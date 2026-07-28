@@ -147,6 +147,18 @@ export class AttendanceController {
     return this.attendanceService.getRedSemaphoreStudents();
   }
 
+  @Get("semaphore/summary")
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  @ApiOperation({
+    summary: "Obtener resumen general y desglose por grupo de semáforos de riesgo",
+  })
+  @ApiOkResponse({
+    description: "Métricas globales y desglose por grupo de alumnos en riesgo.",
+  })
+  async getSemaphoreSummary() {
+    return this.attendanceService.getSemaphoreSummary();
+  }
+
   @Post("semaphore/reset/:studentId")
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: "Restablecer semáforo de un alumno a verde" })

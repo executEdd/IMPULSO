@@ -636,4 +636,72 @@ CBTIS 61 - Sistema de Gestión Académica`,
     const csvString = header + rows.join("\n");
     return Buffer.from(csvString, "latin1");
   }
+
+  async getSemaphoreSummary() {
+    const students = await this.prisma.studentProfile.findMany({
+      select: {
+        id: true,
+        semaphore: true,
+        groupId: true,
+        group: { select: { id: true, name: true } },
+      },
+    });
+
+    const totalStudents = students.length;
+    let greenCount = 0;
+    let yellowCount = 0;
+    let redCount = 0;
+
+    const groupMap = new Map<
+      number,
+      {
+        groupId: number;
+        groupName: string;
+        total: number;
+        green: number;
+        yellow: number;
+        red: number;
+      }
+    >();
+
+    for (const s of students) {
+      if (s.semaphore === SemaphoreStatus.GREEN) greenCount++;
+      else if (s.semaphore === SemaphoreStatus.YELLOW) yellowCount++;
+      else if (s.semaphore === SemaphoreStatus.RED) redCount++;
+
+      const gId = s.groupId;
+      if (!groupMap.has(gId)) {
+        groupMap.set(gId, {
+          groupId: gId,
+          groupName: s.group?.name || `Grupo ${gId}`,
+          total: 0,
+          green: 0,
+          yellow: 0,
+          red: 0,
+        });
+      }
+
+      const gData = groupMap.get(gId)!;
+      gData.total++;
+      if (s.semaphore === SemaphoreStatus.GREEN) gData.green++;
+      else if (s.semaphore === SemaphoreStatus.YELLOW) gData.yellow++;
+      else if (s.semaphore === SemaphoreStatus.RED) gData.red++;
+    }
+
+    const riskCount = yellowCount + redCount;
+    const riskPercentage =
+      totalStudents > 0
+        ? parseFloat(((riskCount / totalStudents) * 100).toFixed(2))
+        : 0;
+
+    return {
+      totalStudents,
+      greenCount,
+      yellowCount,
+      redCount,
+      riskCount,
+      riskPercentage,
+      byGroup: Array.from(groupMap.values()),
+    };
+  }
 }
