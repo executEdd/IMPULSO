@@ -277,4 +277,83 @@ export class UsersService {
     const csvString = header + rows.join("\n");
     return Buffer.from(csvString, "latin1");
   }
+
+  async assignParentToStudent(studentId: number, parentId: number) {
+    const student = await this.prisma.studentProfile.findUnique({
+      where: { id: studentId },
+    });
+
+    if (!student) {
+      throw new NotFoundException("Alumno no encontrado");
+    }
+
+    const parent = await this.prisma.parentProfile.findUnique({
+      where: { id: parentId },
+    });
+
+    if (!parent) {
+      throw new NotFoundException("Tutor no encontrado");
+    }
+
+    const updated = await this.prisma.studentProfile.update({
+      where: { id: studentId },
+      data: { parentId },
+      include: {
+        user: { select: { firstName: true, lastName: true, email: true } },
+        group: true,
+        parent: {
+          include: {
+            user: { select: { firstName: true, lastName: true, email: true } },
+          },
+        },
+      },
+    });
+
+    return {
+      message: "Tutor asignado correctamente al estudiante",
+      student: updated,
+    };
+  }
+
+  async getStudentParentInfo(studentId: number) {
+    const student = await this.prisma.studentProfile.findUnique({
+      where: { id: studentId },
+      include: {
+        user: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+        group: true,
+        parent: {
+          include: {
+            user: {
+              select: { id: true, firstName: true, lastName: true, email: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!student) {
+      throw new NotFoundException("Alumno no encontrado");
+    }
+
+    return student;
+  }
+
+  async findAllParents() {
+    return this.prisma.parentProfile.findMany({
+      include: {
+        user: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+        children: {
+          include: {
+            user: { select: { firstName: true, lastName: true } },
+            group: true,
+          },
+        },
+      },
+      orderBy: { id: "asc" },
+    });
+  }
 }
