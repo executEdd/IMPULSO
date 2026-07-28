@@ -29,7 +29,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
       switch (exception.code) {
         case "P2002": {
           status = HttpStatus.CONFLICT;
-          const target = (exception.meta?.target as string[])?.join(", ") || "campo";
+          const target =
+            (exception.meta?.target as string[])?.join(", ") || "campo";
           message = {
             statusCode: status,
             error: "Conflict",
@@ -42,7 +43,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
           message = {
             statusCode: status,
             error: "Conflict",
-            message: "Error de relación: la operación no se pudo completar porque existen dependencias activas o el registro relacionado no existe.",
+            message:
+              "Error de relación: la operación no se pudo completar porque existen dependencias activas o el registro relacionado no existe.",
           };
           break;
         }
@@ -51,7 +53,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
           message = {
             statusCode: status,
             error: "Not Found",
-            message: "El registro solicitado no existe o no pudo ser encontrado.",
+            message:
+              "El registro solicitado no existe o no pudo ser encontrado.",
           };
           break;
         }
@@ -85,7 +88,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
             timestamp: new Date().toISOString(),
             path: request.url,
             message,
-          }
+          },
     );
   }
 }

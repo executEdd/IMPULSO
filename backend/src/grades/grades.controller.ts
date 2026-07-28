@@ -7,9 +7,11 @@ import {
   Body,
   Param,
   Query,
+  Res,
   ParseIntPipe,
   ForbiddenException,
 } from "@nestjs/common";
+import { Response } from "express";
 import {
   ApiTags,
   ApiOperation,
@@ -124,5 +126,29 @@ export class GradesController {
   @ApiOperation({ summary: "Eliminar calificación" })
   async remove(@Param("id", ParseIntPipe) id: number) {
     return this.gradesService.remove(id);
+  }
+
+  @Get("export/csv")
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  @ApiOperation({ summary: "Exportar reporte de calificaciones a CSV" })
+  async exportCsv(
+    @Res() res: Response,
+    @Query("studentId", new ParseIntPipe({ optional: true }))
+    studentId?: number,
+    @Query("subjectId", new ParseIntPipe({ optional: true }))
+    subjectId?: number,
+    @Query("period") period?: string,
+  ) {
+    const csvContent = await this.gradesService.exportCsv({
+      studentId,
+      subjectId,
+      period,
+    });
+    res.setHeader("Content-Type", "text/csv; charset=latin1");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="reporte_calificaciones_${Date.now()}.csv"`,
+    );
+    return res.end(csvContent);
   }
 }

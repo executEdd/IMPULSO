@@ -1,7 +1,11 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
-import { PrismaService } from '../prisma.service';
-import { CreateGroupDto } from './dto/create-group.dto';
-import { UpdateGroupDto } from './dto/update-group.dto';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from "@nestjs/common";
+import { PrismaService } from "../prisma.service";
+import { CreateGroupDto } from "./dto/create-group.dto";
+import { UpdateGroupDto } from "./dto/update-group.dto";
 
 @Injectable()
 export class GroupsService {
@@ -20,7 +24,7 @@ export class GroupsService {
           select: { students: true },
         },
       },
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
     });
   }
 
@@ -31,7 +35,12 @@ export class GroupsService {
         students: {
           include: {
             user: {
-              select: { id: true, firstName: true, lastName: true, email: true },
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
             },
           },
         },
@@ -42,7 +51,7 @@ export class GroupsService {
     });
 
     if (!group) {
-      throw new NotFoundException('Grupo no encontrado');
+      throw new NotFoundException("Grupo no encontrado");
     }
 
     return group;
@@ -62,7 +71,7 @@ export class GroupsService {
 
     if (group._count.students > 0) {
       throw new ConflictException(
-        `No se puede eliminar el grupo porque tiene ${group._count.students} alumno(s) inscrito(s)`
+        `No se puede eliminar el grupo porque tiene ${group._count.students} alumno(s) inscrito(s)`,
       );
     }
 

@@ -1,7 +1,11 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
-import { PrismaService } from '../prisma.service';
-import { CreateSubjectDto } from './dto/create-subject.dto';
-import { UpdateSubjectDto } from './dto/update-subject.dto';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from "@nestjs/common";
+import { PrismaService } from "../prisma.service";
+import { CreateSubjectDto } from "./dto/create-subject.dto";
+import { UpdateSubjectDto } from "./dto/update-subject.dto";
 
 @Injectable()
 export class SubjectsService {
@@ -12,7 +16,7 @@ export class SubjectsService {
       where: { code: createSubjectDto.code },
     });
     if (existing) {
-      throw new ConflictException('El código de la materia ya está registrado');
+      throw new ConflictException("El código de la materia ya está registrado");
     }
 
     return this.prisma.subject.create({
@@ -24,7 +28,7 @@ export class SubjectsService {
   async findAll() {
     return this.prisma.subject.findMany({
       include: { teacher: { include: { user: true } } },
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
     });
   }
 
@@ -34,7 +38,7 @@ export class SubjectsService {
       include: { teacher: { include: { user: true } } },
     });
     if (!subject) {
-      throw new NotFoundException('Materia no encontrada');
+      throw new NotFoundException("Materia no encontrada");
     }
     return subject;
   }
@@ -47,7 +51,9 @@ export class SubjectsService {
         where: { code: updateSubjectDto.code, NOT: { id } },
       });
       if (existing) {
-        throw new ConflictException('El código de la materia ya está en uso por otra materia');
+        throw new ConflictException(
+          "El código de la materia ya está en uso por otra materia",
+        );
       }
     }
 
