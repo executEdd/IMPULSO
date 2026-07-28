@@ -170,7 +170,17 @@ export class GradesService {
             group: true,
           },
         },
-        subject: true,
+        subject: {
+          include: {
+            teacher: {
+              include: {
+                user: {
+                  select: { firstName: true, lastName: true },
+                },
+              },
+            },
+          },
+        },
         logs: {
           include: {
             user: { select: { firstName: true, lastName: true } },
@@ -192,7 +202,17 @@ export class GradesService {
             group: true,
           },
         },
-        subject: true,
+        subject: {
+          include: {
+            teacher: {
+              include: {
+                user: {
+                  select: { firstName: true, lastName: true },
+                },
+              },
+            },
+          },
+        },
         logs: {
           include: {
             user: { select: { firstName: true, lastName: true } },
@@ -213,7 +233,17 @@ export class GradesService {
     return this.prisma.grade.findMany({
       where: { studentId },
       include: {
-        subject: true,
+        subject: {
+          include: {
+            teacher: {
+              include: {
+                user: {
+                  select: { firstName: true, lastName: true },
+                },
+              },
+            },
+          },
+        },
         logs: {
           include: {
             user: { select: { firstName: true, lastName: true } },
