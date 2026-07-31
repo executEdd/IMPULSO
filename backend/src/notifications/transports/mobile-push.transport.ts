@@ -1,20 +1,12 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import * as firebaseAdmin from "firebase-admin";
 import { PrismaService } from "../../prisma.service";
 import {
   NotificationPayload,
   NotificationTransport,
   SendResult,
 } from "./notification-transport.interface";
-
-// Lazy-load firebase-admin to avoid crashes when Firebase is not configured.
-let firebaseAdmin: typeof import("firebase-admin") | null = null;
-
-try {
-  firebaseAdmin = require("firebase-admin");
-} catch {
-  firebaseAdmin = null;
-}
 
 @Injectable()
 export class MobilePushTransport implements NotificationTransport {
@@ -39,12 +31,6 @@ export class MobilePushTransport implements NotificationTransport {
       this.logger.warn(
         "Firebase not configured. Mobile push notifications will be simulated.",
       );
-      this.firebaseInitialized = true;
-      return false;
-    }
-
-    if (!firebaseAdmin) {
-      this.logger.warn("firebase-admin is not installed.");
       this.firebaseInitialized = true;
       return false;
     }
@@ -93,7 +79,7 @@ export class MobilePushTransport implements NotificationTransport {
     const results = await Promise.all(
       tokens.map(async (token) => {
         try {
-          if (firebaseReady && firebaseAdmin) {
+          if (firebaseReady) {
             const messaging = firebaseAdmin.messaging();
             const response = await messaging.sendEachForMulticast({
               tokens: [token.token],
@@ -130,7 +116,9 @@ export class MobilePushTransport implements NotificationTransport {
             anyError?.code === "messaging/registration-token-not-registered" ||
             anyError?.code === "messaging/invalid-registration-token"
           ) {
-            await this.prisma.pushSubscription.delete({ where: { id: token.id } });
+            await this.prisma.pushSubscription.delete({
+              where: { id: token.id },
+            });
           }
 
           return {
@@ -146,7 +134,10 @@ export class MobilePushTransport implements NotificationTransport {
     return {
       success: allSuccess,
       channel: this.channel,
-      messageId: results.map((r) => r.messageId).filter(Boolean).join(","),
+      messageId: results
+        .map((r) => r.messageId)
+        .filter(Boolean)
+        .join(","),
       error: results.find((r) => !r.success)?.error,
     };
   }
