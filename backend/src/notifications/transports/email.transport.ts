@@ -55,7 +55,8 @@ export class EmailTransport implements NotificationTransport {
     }
 
     const transporter = this.getTransporter();
-    const from = this.config.get<string>("EMAIL_FROM") || "noreply@cbtis61.edu.mx";
+    const from =
+      this.config.get<string>("EMAIL_FROM") || "noreply@cbtis61.edu.mx";
 
     try {
       if (transporter) {

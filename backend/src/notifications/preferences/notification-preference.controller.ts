@@ -24,10 +24,7 @@ export class NotificationPreferenceController {
 
   @Put()
   @ApiOperation({ summary: "Actualizar preferencia de notificación" })
-  update(
-    @Body() dto: UpdatePreferenceDto,
-    @CurrentUser("id") userId: number,
-  ) {
+  update(@Body() dto: UpdatePreferenceDto, @CurrentUser("id") userId: number) {
     return this.notificationPreferenceService.update(
       userId,
       dto.channel,

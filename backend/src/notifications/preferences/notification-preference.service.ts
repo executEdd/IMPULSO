@@ -1,13 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma.service";
 
-export const DEFAULT_CHANNELS = [
-  "IN_APP",
-  "EMAIL",
-  "PUSH",
-  "SMS",
-  "WHATSAPP",
-];
+export const DEFAULT_CHANNELS = ["IN_APP", "EMAIL", "PUSH", "SMS", "WHATSAPP"];
 
 @Injectable()
 export class NotificationPreferenceService {

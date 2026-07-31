@@ -72,7 +72,8 @@ export class NotificationRouterService {
               senderId: input.senderId,
               recipientType,
               recipientId: recipient.userId,
-              channel: transport.channel === "PUSH" ? channel : transport.channel,
+              channel:
+                transport.channel === "PUSH" ? channel : transport.channel,
               status: "PENDING",
               content: input.alert.message,
             },
@@ -95,7 +96,10 @@ export class NotificationRouterService {
 
           // Fire-and-forget to avoid blocking the HTTP request.
           transport.send(payload).catch((error) => {
-            console.error(`Notification transport ${transport.channel} failed`, error);
+            console.error(
+              `Notification transport ${transport.channel} failed`,
+              error,
+            );
           });
         }
       }

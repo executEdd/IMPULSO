@@ -93,7 +93,9 @@ export class WebPushTransport implements NotificationTransport {
           // Remove invalid subscription
           const anyError = error as any;
           if (anyError.statusCode === 404 || anyError.statusCode === 410) {
-            await this.prisma.pushSubscription.delete({ where: { id: sub.id } });
+            await this.prisma.pushSubscription.delete({
+              where: { id: sub.id },
+            });
           }
 
           return {
@@ -121,7 +123,10 @@ export class WebPushTransport implements NotificationTransport {
     return {
       success: allSuccess,
       channel: this.channel,
-      messageId: results.map((r) => r.messageId).filter(Boolean).join(","),
+      messageId: results
+        .map((r) => r.messageId)
+        .filter(Boolean)
+        .join(","),
       error: results.find((r) => !r.success)?.error,
     };
   }

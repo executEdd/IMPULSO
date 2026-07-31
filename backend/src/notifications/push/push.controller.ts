@@ -1,11 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Post,
-  Query,
-} from "@nestjs/common";
+import { Body, Controller, Delete, Get, Post, Query } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
@@ -50,10 +43,7 @@ export class PushController {
 
   @Delete("unregister")
   @ApiOperation({ summary: "Eliminar token/suscripción de push" })
-  unregister(
-    @Query("token") token: string,
-    @CurrentUser("id") userId: number,
-  ) {
+  unregister(@Query("token") token: string, @CurrentUser("id") userId: number) {
     return this.pushService.unregister(userId, token);
   }
 
