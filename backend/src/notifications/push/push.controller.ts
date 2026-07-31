@@ -6,6 +6,7 @@ import {
   Post,
   Query,
 } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { PushService } from "./push.service";
@@ -22,7 +23,10 @@ class RegisterPushTokenDto {
 @Controller("push")
 @ApiBearerAuth()
 export class PushController {
-  constructor(private pushService: PushService) {}
+  constructor(
+    private pushService: PushService,
+    private config: ConfigService,
+  ) {}
 
   @Post("register")
   @ApiOperation({
@@ -57,5 +61,13 @@ export class PushController {
   @ApiOperation({ summary: "Listar suscripciones push del usuario" })
   findByUser(@CurrentUser("id") userId: number) {
     return this.pushService.findByUser(userId);
+  }
+
+  @Get("vapid-public-key")
+  @ApiOperation({
+    summary: "Obtener clave pública VAPID para suscripción Web Push",
+  })
+  getVapidPublicKey() {
+    return { publicKey: this.config.get<string>("VAPID_PUBLIC_KEY") || "" };
   }
 }
