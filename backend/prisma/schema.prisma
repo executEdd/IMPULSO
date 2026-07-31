@@ -285,7 +285,9 @@ model Notification {
 model PushSubscription {
   id        Int      @id @default(autoincrement())
   userId    Int
-  token     String
+  token     String // FCM token or Web Push endpoint
+  p256dh    String? // Web Push public key (only for WEB_PUSH)
+  auth      String? // Web Push auth secret (only for WEB_PUSH)
   platform  String // "WEB_PUSH" | "FCM_ANDROID" | "FCM_IOS"
   userAgent String?
   createdAt DateTime @default(now())
