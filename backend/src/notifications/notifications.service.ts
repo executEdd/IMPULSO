@@ -5,10 +5,14 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../prisma.service";
 import { CreateNotificationDto } from "./dto/create-notification.dto";
+import { NotificationRouterService } from "./notification-router.service";
 
 @Injectable()
 export class NotificationsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationRouter: NotificationRouterService,
+  ) {}
 
   async create(createNotificationDto: CreateNotificationDto, senderId: number) {
     return this.prisma.notification.create({
@@ -113,7 +117,7 @@ export class NotificationsService {
     content: string,
     senderId: number,
   ) {
-    let recipientId: number;
+    let recipient: { userId: number; email?: string; phone?: string };
 
     if (recipientType === "PARENT") {
       const student = await this.prisma.studentProfile.findUnique({
@@ -128,50 +132,69 @@ export class NotificationsService {
       }
       const parent = await this.prisma.parentProfile.findUnique({
         where: { id: student.parentId },
-        select: { userId: true },
+        include: {
+          user: { select: { id: true, email: true } },
+        },
       });
       if (!parent) {
         throw new NotFoundException("Perfil de tutor no encontrado");
       }
-      recipientId = parent.userId;
+      recipient = {
+        userId: parent.user.id,
+        email: parent.user.email || undefined,
+        phone: parent.phone || undefined,
+      };
     } else if (recipientType === "STUDENT") {
       const student = await this.prisma.studentProfile.findUnique({
         where: { id: studentId },
-        select: { userId: true },
+        include: {
+          user: { select: { id: true, email: true } },
+        },
       });
       if (!student) {
         throw new NotFoundException("Perfil de alumno no encontrado");
       }
-      recipientId = student.userId;
+      recipient = {
+        userId: student.user.id,
+        email: student.user.email || undefined,
+        phone: student.phone || undefined,
+      };
     } else {
       throw new BadRequestException("Tipo de destinatario no válido");
     }
 
-    return this.prisma.$transaction(async (tx) => {
-      const alert = await tx.alert.create({
-        data: {
-          studentId,
-          type: "GENERAL",
-          priority: "MEDIUM",
-          message: content,
-        },
-      });
+    const alert = await this.prisma.alert.create({
+      data: {
+        studentId,
+        type: "GENERAL",
+        priority: "MEDIUM",
+        message: content,
+      },
+    });
 
-      return tx.notification.create({
-        data: {
-          alertId: alert.id,
-          senderId,
-          recipientType,
-          recipientId,
-          channel,
-          status: "SENT",
-          content,
-          sentAt: new Date(),
+    await this.notificationRouter.dispatch({
+      alert: {
+        id: alert.id,
+        studentId,
+        type: alert.type,
+        priority: alert.priority,
+        message: content,
+      },
+      recipients: [
+        {
+          userId: recipient.userId,
+          email: recipient.email,
+          phone: recipient.phone,
+          channels: [channel],
         },
-        include: {
-          alert: true,
-        },
-      });
+      ],
+      senderId,
+      title: "Notificación CBTIS 61",
+    });
+
+    return this.prisma.notification.findFirst({
+      where: { alertId: alert.id, recipientId: recipient.userId },
+      include: { alert: true },
     });
   }
 }
