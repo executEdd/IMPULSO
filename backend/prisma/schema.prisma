@@ -69,12 +69,14 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Relations
-  adminProfile   AdminProfile?
-  teacherProfile TeacherProfile?
-  studentProfile StudentProfile?
-  parentProfile  ParentProfile?
-  gradeLogs      GradeLog[]
-  notifications  Notification[]  @relation("NotificationSender")
+  adminProfile            AdminProfile?
+  teacherProfile          TeacherProfile?
+  studentProfile          StudentProfile?
+  parentProfile           ParentProfile?
+  gradeLogs               GradeLog[]
+  notifications           Notification[]         @relation("NotificationSender")
+  pushSubscriptions       PushSubscription[]
+  notificationPreferences NotificationPreference[]
 
   @@map("users")
 }
@@ -266,7 +268,7 @@ model Notification {
   senderId      Int
   recipientType String // "STUDENT", "PARENT", "TEACHER", "ADMIN"
   recipientId   Int
-  channel       String // "EMAIL", "SMS", "IN_APP"
+  channel       String // "EMAIL", "SMS", "WHATSAPP", "PUSH", "IN_APP"
   status        String    @default("PENDING") // "PENDING", "SENT", "FAILED"
   content       String
   sentAt        DateTime?
@@ -275,7 +277,35 @@ model Notification {
   alert  Alert @relation(fields: [alertId], references: [id])
   sender User  @relation("NotificationSender", fields: [senderId], references: [id])
 
+  @@index([recipientId, status])
+  @@index([recipientId, recipientType, createdAt])
   @@map("notifications")
+}
+
+model PushSubscription {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  token     String
+  platform  String // "WEB_PUSH" | "FCM_ANDROID" | "FCM_IOS"
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, token])
+  @@map("push_subscriptions")
+}
+
+model NotificationPreference {
+  id      Int     @id @default(autoincrement())
+  userId  Int
+  channel String // "EMAIL" | "SMS" | "WHATSAPP" | "PUSH" | "IN_APP"
+  enabled Boolean @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, channel])
+  @@map("notification_preferences")
 }
 
 model Class {
