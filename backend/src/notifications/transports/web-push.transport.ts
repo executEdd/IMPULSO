@@ -1,3 +1,4 @@
+import { NotificationStatus } from "@prisma/client";
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import * as webPush from "web-push";
@@ -7,6 +8,11 @@ import {
   NotificationTransport,
   SendResult,
 } from "./notification-transport.interface";
+import {
+  buildSimulationResult,
+  isConnectionError,
+  updateNotificationStatus,
+} from "./transport-utils";
 
 @Injectable()
 export class WebPushTransport implements NotificationTransport {
@@ -60,7 +66,29 @@ export class WebPushTransport implements NotificationTransport {
 
     const vapidReady = this.configureVapid();
 
-    const results = await Promise.all(
+    if (!vapidReady) {
+      this.logger.log(
+        `[SIMULATED WEB PUSH] To user ${payload.userId}\n${pushPayload}`,
+      );
+
+      await updateNotificationStatus(this.prisma, payload.notificationId, {
+        status: NotificationStatus.SIMULATED,
+        metadata: {
+          simulated: true,
+          reason: "VAPID keys not configured",
+          retryable: true,
+        },
+      });
+
+      return buildSimulationResult(this.channel, "VAPID keys not configured");
+    }
+
+    let anySuccess = false;
+    let anyFailure = false;
+    let anyConnectionError = false;
+    const messageIds: string[] = [];
+
+    await Promise.all(
       subscriptions.map(async (sub) => {
         const pushSubscription: webPush.PushSubscription = {
           endpoint: sub.token,
@@ -71,26 +99,18 @@ export class WebPushTransport implements NotificationTransport {
         };
 
         try {
-          if (vapidReady) {
-            const info = await webPush.sendNotification(
-              pushSubscription,
-              pushPayload,
-            );
-            return { success: true, messageId: info.statusCode.toString() };
-          }
-
-          // Simulated mode
-          this.logger.log(
-            `[SIMULATED WEB PUSH] To user ${payload.userId}\n${pushPayload}`,
+          const info = await webPush.sendNotification(
+            pushSubscription,
+            pushPayload,
           );
-          return { success: true, messageId: "simulated" };
+          anySuccess = true;
+          messageIds.push(info.statusCode.toString());
         } catch (error) {
           this.logger.error(
             `Failed to send web push to subscription ${sub.id}`,
             error instanceof Error ? error.stack : undefined,
           );
 
-          // Remove invalid subscription
           const anyError = error as any;
           if (anyError.statusCode === 404 || anyError.statusCode === 410) {
             await this.prisma.pushSubscription.delete({
@@ -98,36 +118,48 @@ export class WebPushTransport implements NotificationTransport {
             });
           }
 
-          return {
-            success: false,
-            error: error instanceof Error ? error.message : "Unknown error",
-          };
+          if (isConnectionError(error)) {
+            anyConnectionError = true;
+          } else {
+            anyFailure = true;
+          }
         }
       }),
     );
 
-    const allSuccess = results.every((r) => r.success);
+    if (anyConnectionError && !anySuccess && !anyFailure) {
+      await updateNotificationStatus(this.prisma, payload.notificationId, {
+        status: NotificationStatus.SIMULATED,
+        metadata: {
+          simulated: true,
+          reason: "Web push connection failed",
+          retryable: true,
+        },
+      });
 
-    if (allSuccess) {
-      await this.prisma.notification.update({
-        where: { id: payload.notificationId },
-        data: { status: "SENT", sentAt: new Date() },
-      });
-    } else {
-      await this.prisma.notification.update({
-        where: { id: payload.notificationId },
-        data: { status: "FAILED" },
-      });
+      return buildSimulationResult(this.channel, "Web push connection failed");
     }
 
+    if (anyFailure) {
+      await updateNotificationStatus(this.prisma, payload.notificationId, {
+        status: NotificationStatus.FAILED,
+      });
+
+      return {
+        success: false,
+        channel: this.channel,
+        error: "One or more web push subscriptions failed",
+      };
+    }
+
+    await updateNotificationStatus(this.prisma, payload.notificationId, {
+      status: NotificationStatus.SENT,
+    });
+
     return {
-      success: allSuccess,
+      success: true,
       channel: this.channel,
-      messageId: results
-        .map((r) => r.messageId)
-        .filter(Boolean)
-        .join(","),
-      error: results.find((r) => !r.success)?.error,
+      messageId: messageIds.join(","),
     };
   }
 }

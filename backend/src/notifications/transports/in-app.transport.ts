@@ -1,3 +1,4 @@
+import { NotificationStatus } from "@prisma/client";
 import { Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "../../prisma.service";
 import {
@@ -5,6 +6,7 @@ import {
   NotificationTransport,
   SendResult,
 } from "./notification-transport.interface";
+import { updateNotificationStatus } from "./transport-utils";
 
 @Injectable()
 export class InAppTransport implements NotificationTransport {
@@ -15,9 +17,8 @@ export class InAppTransport implements NotificationTransport {
 
   async send(payload: NotificationPayload): Promise<SendResult> {
     try {
-      await this.prisma.notification.update({
-        where: { id: payload.notificationId },
-        data: { status: "SENT", sentAt: new Date() },
+      await updateNotificationStatus(this.prisma, payload.notificationId, {
+        status: NotificationStatus.SENT,
       });
 
       return {

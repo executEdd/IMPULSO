@@ -1,3 +1,4 @@
+import { NotificationStatus } from "@prisma/client";
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import * as nodemailer from "nodemailer";
@@ -7,6 +8,12 @@ import {
   NotificationTransport,
   SendResult,
 } from "./notification-transport.interface";
+import {
+  buildFailureResult,
+  buildSimulationResult,
+  isConnectionError,
+  updateNotificationStatus,
+} from "./transport-utils";
 
 @Injectable()
 export class EmailTransport implements NotificationTransport {
@@ -27,9 +34,6 @@ export class EmailTransport implements NotificationTransport {
     const from = this.config.get<string>("EMAIL_FROM");
 
     if (!host || !port || !from) {
-      this.logger.warn(
-        "SMTP not configured. Email notifications will be simulated.",
-      );
       return null;
     }
 
@@ -58,36 +62,39 @@ export class EmailTransport implements NotificationTransport {
     const from =
       this.config.get<string>("EMAIL_FROM") || "noreply@cbtis61.edu.mx";
 
-    try {
-      if (transporter) {
-        const info = await transporter.sendMail({
-          from,
-          to: payload.email,
-          subject: payload.title,
-          text: payload.body,
-        });
-
-        await this.prisma.notification.update({
-          where: { id: payload.notificationId },
-          data: { status: "SENT", sentAt: new Date() },
-        });
-
-        return {
-          success: true,
-          channel: this.channel,
-          messageId: info.messageId,
-        };
-      }
-
-      // Simulated mode: log and keep as PENDING
+    if (!transporter) {
       this.logger.log(
         `[SIMULATED EMAIL] To: ${payload.email}\nSubject: ${payload.title}\n${payload.body}`,
       );
 
+      await updateNotificationStatus(this.prisma, payload.notificationId, {
+        status: NotificationStatus.SIMULATED,
+        metadata: {
+          simulated: true,
+          reason: "SMTP not configured",
+          retryable: true,
+        },
+      });
+
+      return buildSimulationResult(this.channel, "SMTP not configured");
+    }
+
+    try {
+      const info = await transporter.sendMail({
+        from,
+        to: payload.email,
+        subject: payload.title,
+        text: payload.body,
+      });
+
+      await updateNotificationStatus(this.prisma, payload.notificationId, {
+        status: NotificationStatus.SENT,
+      });
+
       return {
         success: true,
         channel: this.channel,
-        messageId: "simulated",
+        messageId: info.messageId,
       };
     } catch (error) {
       this.logger.error(
@@ -95,16 +102,28 @@ export class EmailTransport implements NotificationTransport {
         error instanceof Error ? error.stack : undefined,
       );
 
-      await this.prisma.notification.update({
-        where: { id: payload.notificationId },
-        data: { status: "FAILED" },
+      if (isConnectionError(error)) {
+        this.logger.warn(
+          `Email connection failed for ${payload.email}. Marking as simulated.`,
+        );
+
+        await updateNotificationStatus(this.prisma, payload.notificationId, {
+          status: NotificationStatus.SIMULATED,
+          metadata: {
+            simulated: true,
+            reason: "SMTP connection failed",
+            retryable: true,
+          },
+        });
+
+        return buildSimulationResult(this.channel, "SMTP connection failed");
+      }
+
+      await updateNotificationStatus(this.prisma, payload.notificationId, {
+        status: NotificationStatus.FAILED,
       });
 
-      return {
-        success: false,
-        channel: this.channel,
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
+      return buildFailureResult(this.channel, error);
     }
   }
 }

@@ -1,3 +1,4 @@
+import { NotificationStatus } from "@prisma/client";
 import { Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "../../prisma.service";
 import {
@@ -5,6 +6,10 @@ import {
   NotificationTransport,
   SendResult,
 } from "./notification-transport.interface";
+import {
+  buildSimulationResult,
+  updateNotificationStatus,
+} from "./transport-utils";
 
 @Injectable()
 export class SmsTransport implements NotificationTransport {
@@ -27,11 +32,15 @@ export class SmsTransport implements NotificationTransport {
       `[SIMULATED SMS] To: ${payload.phone}\n${payload.title}\n${payload.body}`,
     );
 
-    // Keep as PENDING so the UI shows it is queued for a real provider.
-    return {
-      success: true,
-      channel: this.channel,
-      messageId: "simulated",
-    };
+    await updateNotificationStatus(this.prisma, payload.notificationId, {
+      status: NotificationStatus.SIMULATED,
+      metadata: {
+        simulated: true,
+        reason: "SMS provider not configured",
+        retryable: true,
+      },
+    });
+
+    return buildSimulationResult(this.channel, "SMS provider not configured");
   }
 }

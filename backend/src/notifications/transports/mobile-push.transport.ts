@@ -1,3 +1,4 @@
+import { NotificationStatus } from "@prisma/client";
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import * as firebaseAdmin from "firebase-admin";
@@ -7,6 +8,11 @@ import {
   NotificationTransport,
   SendResult,
 } from "./notification-transport.interface";
+import {
+  buildSimulationResult,
+  isConnectionError,
+  updateNotificationStatus,
+} from "./transport-utils";
 
 @Injectable()
 export class MobilePushTransport implements NotificationTransport {
@@ -76,35 +82,47 @@ export class MobilePushTransport implements NotificationTransport {
 
     const firebaseReady = this.initializeFirebase();
 
-    const results = await Promise.all(
+    if (!firebaseReady) {
+      this.logger.log(
+        `[SIMULATED FCM PUSH] To user ${payload.userId} (${tokens.length} tokens)`,
+      );
+
+      await updateNotificationStatus(this.prisma, payload.notificationId, {
+        status: NotificationStatus.SIMULATED,
+        metadata: {
+          simulated: true,
+          reason: "Firebase not configured",
+          retryable: true,
+        },
+      });
+
+      return buildSimulationResult(this.channel, "Firebase not configured");
+    }
+
+    let anySuccess = false;
+    let anyFailure = false;
+    let anyConnectionError = false;
+    const messageIds: string[] = [];
+
+    await Promise.all(
       tokens.map(async (token) => {
         try {
-          if (firebaseReady) {
-            const messaging = firebaseAdmin.messaging();
-            const response = await messaging.sendEachForMulticast({
-              tokens: [token.token],
-              notification: {
-                title: payload.title,
-                body: payload.body,
-              },
-              data: payload.data,
-            });
+          const messaging = firebaseAdmin.messaging();
+          const response = await messaging.sendEachForMulticast({
+            tokens: [token.token],
+            notification: {
+              title: payload.title,
+              body: payload.body,
+            },
+            data: payload.data,
+          });
 
-            if (response.failureCount > 0 && response.responses[0]?.error) {
-              throw response.responses[0].error;
-            }
-
-            return {
-              success: true,
-              messageId: response.responses[0]?.messageId || "fcm",
-            };
+          if (response.failureCount > 0 && response.responses[0]?.error) {
+            throw response.responses[0].error;
           }
 
-          // Simulated mode
-          this.logger.log(
-            `[SIMULATED FCM PUSH] To user ${payload.userId} token ${token.token.substring(0, 20)}...`,
-          );
-          return { success: true, messageId: "simulated" };
+          anySuccess = true;
+          messageIds.push(response.responses[0]?.messageId || "fcm");
         } catch (error) {
           this.logger.error(
             `Failed to send FCM push to token ${token.id}`,
@@ -121,24 +139,48 @@ export class MobilePushTransport implements NotificationTransport {
             });
           }
 
-          return {
-            success: false,
-            error: error instanceof Error ? error.message : "Unknown error",
-          };
+          if (isConnectionError(error)) {
+            anyConnectionError = true;
+          } else {
+            anyFailure = true;
+          }
         }
       }),
     );
 
-    const allSuccess = results.every((r) => r.success);
+    if (anyConnectionError && !anySuccess && !anyFailure) {
+      await updateNotificationStatus(this.prisma, payload.notificationId, {
+        status: NotificationStatus.SIMULATED,
+        metadata: {
+          simulated: true,
+          reason: "FCM connection failed",
+          retryable: true,
+        },
+      });
+
+      return buildSimulationResult(this.channel, "FCM connection failed");
+    }
+
+    if (anyFailure) {
+      await updateNotificationStatus(this.prisma, payload.notificationId, {
+        status: NotificationStatus.FAILED,
+      });
+
+      return {
+        success: false,
+        channel: this.channel,
+        error: "One or more FCM tokens failed",
+      };
+    }
+
+    await updateNotificationStatus(this.prisma, payload.notificationId, {
+      status: NotificationStatus.SENT,
+    });
 
     return {
-      success: allSuccess,
+      success: true,
       channel: this.channel,
-      messageId: results
-        .map((r) => r.messageId)
-        .filter(Boolean)
-        .join(","),
-      error: results.find((r) => !r.success)?.error,
+      messageId: messageIds.join(","),
     };
   }
 }

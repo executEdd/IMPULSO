@@ -12,6 +12,9 @@ export interface SendResult {
   success: boolean;
   channel: string;
   messageId?: string;
+  simulated?: boolean;
+  simulationReason?: string;
+  retryable?: boolean;
   error?: string;
 }
 

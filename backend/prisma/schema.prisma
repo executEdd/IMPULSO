@@ -47,6 +47,14 @@ enum SemaphoreStatus {
   RED
 }
 
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  SIMULATED
+  READ
+}
+
 enum DayOfWeek {
   MONDAY
   TUESDAY
@@ -263,16 +271,17 @@ model Alert {
 }
 
 model Notification {
-  id            Int       @id @default(autoincrement())
+  id            Int                @id @default(autoincrement())
   alertId       Int
   senderId      Int
   recipientType String // "STUDENT", "PARENT", "TEACHER", "ADMIN"
   recipientId   Int
   channel       String // "EMAIL", "SMS", "WHATSAPP", "PUSH", "IN_APP"
-  status        String    @default("PENDING") // "PENDING", "SENT", "FAILED"
+  status        NotificationStatus @default(PENDING)
   content       String
+  metadata      Json? // { simulated?: true; reason?: string; retryable?: boolean }
   sentAt        DateTime?
-  createdAt     DateTime  @default(now())
+  createdAt     DateTime           @default(now())
 
   alert  Alert @relation(fields: [alertId], references: [id])
   sender User  @relation("NotificationSender", fields: [senderId], references: [id])

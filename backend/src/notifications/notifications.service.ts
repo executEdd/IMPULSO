@@ -1,3 +1,4 @@
+import { NotificationStatus } from "@prisma/client";
 import {
   Injectable,
   NotFoundException,
@@ -19,7 +20,7 @@ export class NotificationsService {
       data: {
         ...createNotificationDto,
         senderId,
-        status: "SENT",
+        status: NotificationStatus.SENT,
         sentAt: new Date(),
       },
       include: {
@@ -96,7 +97,7 @@ export class NotificationsService {
 
     return this.prisma.notification.update({
       where: { id },
-      data: { status: "READ" },
+      data: { status: NotificationStatus.READ },
     });
   }
 
@@ -105,7 +106,7 @@ export class NotificationsService {
       where: {
         recipientId,
         recipientType,
-        status: { not: "READ" },
+        status: { not: NotificationStatus.READ },
       },
     });
   }

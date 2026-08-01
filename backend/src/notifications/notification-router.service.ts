@@ -1,3 +1,4 @@
+import { NotificationStatus } from "@prisma/client";
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma.service";
 import { EmailTransport } from "./transports/email.transport";
@@ -74,7 +75,7 @@ export class NotificationRouterService {
               recipientId: recipient.userId,
               channel:
                 transport.channel === "PUSH" ? channel : transport.channel,
-              status: "PENDING",
+              status: NotificationStatus.PENDING,
               content: input.alert.message,
             },
           });
