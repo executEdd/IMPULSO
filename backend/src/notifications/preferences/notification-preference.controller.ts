@@ -1,12 +1,14 @@
 import { Body, Controller, Get, Put } from "@nestjs/common";
-import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from "@nestjs/swagger";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import { UpdateNotificationPreferenceDto } from "../dto/update-notification-preference.dto";
 import { NotificationPreferenceService } from "./notification-preference.service";
-
-class UpdatePreferenceDto {
-  channel!: string;
-  enabled!: boolean;
-}
 
 @ApiTags("Preferencias de Notificaciones")
 @Controller("notification-preferences")
@@ -18,13 +20,23 @@ export class NotificationPreferenceController {
 
   @Get()
   @ApiOperation({ summary: "Obtener preferencias de notificación del usuario" })
+  @ApiOkResponse({
+    description: "Listado de preferencias de notificación del usuario.",
+  })
   findByUser(@CurrentUser("id") userId: number) {
     return this.notificationPreferenceService.findByUser(userId);
   }
 
   @Put()
   @ApiOperation({ summary: "Actualizar preferencia de notificación" })
-  update(@Body() dto: UpdatePreferenceDto, @CurrentUser("id") userId: number) {
+  @ApiBody({ type: UpdateNotificationPreferenceDto })
+  @ApiOkResponse({
+    description: "Preferencia de notificación actualizada correctamente.",
+  })
+  update(
+    @Body() dto: UpdateNotificationPreferenceDto,
+    @CurrentUser("id") userId: number,
+  ) {
     return this.notificationPreferenceService.update(
       userId,
       dto.channel,
