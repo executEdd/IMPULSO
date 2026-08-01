@@ -3,6 +3,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import * as nodemailer from "nodemailer";
 import { PrismaService } from "../../prisma.service";
+import { EmailTemplateService } from "../email-template.service";
 import {
   NotificationPayload,
   NotificationTransport,
@@ -24,6 +25,7 @@ export class EmailTransport implements NotificationTransport {
   constructor(
     private prisma: PrismaService,
     private config: ConfigService,
+    private templateService: EmailTemplateService,
   ) {}
 
   private getTransporter(): nodemailer.Transporter | null {
@@ -80,11 +82,21 @@ export class EmailTransport implements NotificationTransport {
     }
 
     try {
+      const html = this.templateService.render({
+        title: payload.title,
+        message: payload.body,
+        preheader: payload.body,
+        extraInformation: payload.data?.extraInformation as string,
+        buttonText: payload.data?.buttonText as string,
+        buttonUrl: payload.data?.buttonUrl as string,
+      });
+
       const info = await transporter.sendMail({
         from,
         to: payload.email,
         subject: payload.title,
         text: payload.body,
+        html,
       });
 
       await updateNotificationStatus(this.prisma, payload.notificationId, {

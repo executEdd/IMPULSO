@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { NotificationsService } from "./notifications.service";
 import { NotificationsController } from "./notifications.controller";
+import { EmailTemplateService } from "./email-template.service";
 import { EmailTransport } from "./transports/email.transport";
 import { InAppTransport } from "./transports/in-app.transport";
 import { MobilePushTransport } from "./transports/mobile-push.transport";
@@ -16,6 +17,7 @@ import { NotificationPreferenceService } from "./preferences/notification-prefer
 @Module({
   providers: [
     NotificationsService,
+    EmailTemplateService,
     InAppTransport,
     EmailTransport,
     SmsTransport,

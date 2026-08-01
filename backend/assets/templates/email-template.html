@@ -1,0 +1,154 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html lang="es" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <meta name="supported-color-schemes" content="light" />
+    <title>{{title}}</title>
+    <!--[if mso]>
+      <noscript>
+        <xml>
+          <o:OfficeDocumentSettings>
+            <o:PixelsPerInch>96</o:PixelsPerInch>
+          </o:OfficeDocumentSettings>
+        </xml>
+      </noscript>
+    <![endif]-->
+    <style type="text/css">
+      /* Reset for email clients */
+      body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+      table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+      img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+      /* Preheader hidden */
+      .preheader {
+        display: none !important;
+        visibility: hidden;
+        opacity: 0;
+        color: transparent;
+        height: 0;
+        width: 0;
+        font-size: 1px;
+        line-height: 1px;
+        overflow: hidden;
+        mso-hide: all;
+      }
+      /* Responsive adjustments */
+      @media screen and (max-width: 600px) {
+        .email-container { width: 100% !important; }
+        .email-padding { padding-left: 24px !important; padding-right: 24px !important; }
+        .email-title { font-size: 22px !important; line-height: 28px !important; }
+        .email-body { font-size: 16px !important; line-height: 24px !important; }
+        .email-logo { width: 64px !important; height: auto !important; }
+      }
+    </style>
+  </head>
+  <body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: Georgia, 'Times New Roman', Times, serif; -webkit-font-smoothing: antialiased;">
+    <!-- Preheader text (hidden) -->
+    <div class="preheader">{{preheader}}</div>
+
+    <!-- Outer wrapper -->
+    <table role="presentation" border="0" cellspacing="0" cellpadding="0" width="100%" style="background-color: #f5f5f5; margin: 0; padding: 0;">
+      <tr>
+        <td align="center" valign="top" style="padding: 40px 16px;">
+          <!-- Main container -->
+          <table role="presentation" class="email-container" border="0" cellspacing="0" cellpadding="0" width="600" style="width: 600px; max-width: 600px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);">
+            <!-- Header -->
+            <tr>
+              <td style="background-color: #7a1f1f; padding: 32px 40px; text-align: center; border-bottom: 4px solid #c9a227;">
+                <table role="presentation" border="0" cellspacing="0" cellpadding="0" align="center" style="margin: 0 auto;">
+                  <tr>
+                    <td style="padding-bottom: 16px;">
+                      <img src="{{logo}}" alt="Logo CBTIS 61" width="80" height="80" class="email-logo" style="display: block; width: 80px; height: auto; border: 0; margin: 0 auto;" />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="font-family: Georgia, 'Times New Roman', Times, serif; font-size: 20px; font-weight: bold; color: #ffffff; text-align: center; letter-spacing: 0.5px;">
+                      IMPULSO
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="font-family: Georgia, 'Times New Roman', Times, serif; font-size: 13px; color: #e8e8e8; text-align: center; padding-top: 4px; text-transform: uppercase; letter-spacing: 1.5px;">
+                      CBTIS No. 61 — Huamantla, Tlaxcala
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Main content -->
+            <tr>
+              <td class="email-padding" style="padding: 48px 40px 40px 40px;">
+                <!-- Title -->
+                <table role="presentation" border="0" cellspacing="0" cellpadding="0" width="100%">
+                  <tr>
+                    <td class="email-title" style="font-family: Georgia, 'Times New Roman', Times, serif; font-size: 26px; font-weight: bold; line-height: 32px; color: #7a1f1f; padding-bottom: 20px; text-align: center;">
+                      {{title}}
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- Decorative line -->
+                <table role="presentation" border="0" cellspacing="0" cellpadding="0" align="center" style="margin: 0 auto 24px auto;">
+                  <tr>
+                    <td style="width: 60px; height: 3px; background-color: #c9a227; border-radius: 2px;"></td>
+                  </tr>
+                </table>
+
+                <!-- Message -->
+                <table role="presentation" border="0" cellspacing="0" cellpadding="0" width="100%">
+                  <tr>
+                    <td class="email-body" style="font-family: Georgia, 'Times New Roman', Times, serif; font-size: 16px; line-height: 26px; color: #4a4a4a; padding-bottom: 28px; text-align: left;">
+                      {{message}}
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- Extra information (optional) -->
+                {{extra_information_block}}
+
+                <!-- Button (optional) -->
+                {{button_block}}
+
+                <!-- Divider -->
+                <table role="presentation" border="0" cellspacing="0" cellpadding="0" width="100%" style="margin-top: 32px;">
+                  <tr>
+                    <td style="border-top: 1px solid #e5e5e5; height: 1px; font-size: 1px; line-height: 1px;">&nbsp;</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="background-color: #fafafa; padding: 32px 40px; text-align: center; border-top: 1px solid #eeeeee;">
+                <table role="presentation" border="0" cellspacing="0" cellpadding="0" align="center" width="100%">
+                  <tr>
+                    <td style="font-family: Georgia, 'Times New Roman', Times, serif; font-size: 15px; font-weight: bold; color: #7a1f1f; padding-bottom: 8px; text-align: center;">
+                      CBTIS No. 61
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="font-family: Georgia, 'Times New Roman', Times, serif; font-size: 13px; color: #777777; line-height: 20px; padding-bottom: 16px; text-align: center;">
+                      Huamantla, Tlaxcala
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="font-family: Georgia, 'Times New Roman', Times, serif; font-size: 12px; color: #999999; line-height: 18px; text-align: center; font-style: italic;">
+                      Este es un correo automático, por favor no responder.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="font-family: Georgia, 'Times New Roman', Times, serif; font-size: 12px; color: #aaaaaa; padding-top: 12px; text-align: center;">
+                      &copy; {{year}} IMPULSO — Todos los derechos reservados.
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
