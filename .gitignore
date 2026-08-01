@@ -157,5 +157,5 @@ sketch
 docker-compose.yml
 
 handoff.md
-/graphify-out
+graphify-out/
 AGENTS.md
