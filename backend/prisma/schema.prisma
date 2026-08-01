@@ -47,6 +47,14 @@ enum SemaphoreStatus {
   RED
 }
 
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  SIMULATED
+  READ
+}
+
 enum DayOfWeek {
   MONDAY
   TUESDAY
@@ -69,12 +77,14 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Relations
-  adminProfile   AdminProfile?
-  teacherProfile TeacherProfile?
-  studentProfile StudentProfile?
-  parentProfile  ParentProfile?
-  gradeLogs      GradeLog[]
-  notifications  Notification[]  @relation("NotificationSender")
+  adminProfile            AdminProfile?
+  teacherProfile          TeacherProfile?
+  studentProfile          StudentProfile?
+  parentProfile           ParentProfile?
+  gradeLogs               GradeLog[]
+  notifications           Notification[]         @relation("NotificationSender")
+  pushSubscriptions       PushSubscription[]
+  notificationPreferences NotificationPreference[]
 
   @@map("users")
 }
@@ -261,21 +271,52 @@ model Alert {
 }
 
 model Notification {
-  id            Int       @id @default(autoincrement())
+  id            Int                @id @default(autoincrement())
   alertId       Int
   senderId      Int
   recipientType String // "STUDENT", "PARENT", "TEACHER", "ADMIN"
   recipientId   Int
-  channel       String // "EMAIL", "SMS", "IN_APP"
-  status        String    @default("PENDING") // "PENDING", "SENT", "FAILED"
+  channel       String // "EMAIL", "SMS", "WHATSAPP", "PUSH", "IN_APP"
+  status        NotificationStatus @default(PENDING)
   content       String
+  metadata      Json? // { simulated?: true; reason?: string; retryable?: boolean }
   sentAt        DateTime?
-  createdAt     DateTime  @default(now())
+  createdAt     DateTime           @default(now())
 
   alert  Alert @relation(fields: [alertId], references: [id])
   sender User  @relation("NotificationSender", fields: [senderId], references: [id])
 
+  @@index([recipientId, status])
+  @@index([recipientId, recipientType, createdAt])
   @@map("notifications")
+}
+
+model PushSubscription {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  token     String // FCM token or Web Push endpoint
+  p256dh    String? // Web Push public key (only for WEB_PUSH)
+  auth      String? // Web Push auth secret (only for WEB_PUSH)
+  platform  String // "WEB_PUSH" | "FCM_ANDROID" | "FCM_IOS"
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, token])
+  @@map("push_subscriptions")
+}
+
+model NotificationPreference {
+  id      Int     @id @default(autoincrement())
+  userId  Int
+  channel String // "EMAIL" | "SMS" | "WHATSAPP" | "PUSH" | "IN_APP"
+  enabled Boolean @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, channel])
+  @@map("notification_preferences")
 }
 
 model Class {

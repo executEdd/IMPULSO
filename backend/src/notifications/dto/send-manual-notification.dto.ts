@@ -23,11 +23,11 @@ export class SendManualNotificationDto {
   @ApiProperty({
     description: "Canal de envío",
     example: "EMAIL",
-    enum: ["EMAIL", "SMS", "IN_APP"],
+    enum: ["EMAIL", "SMS", "WHATSAPP", "PUSH", "IN_APP"],
   })
   @IsString()
   @IsNotEmpty()
-  @IsEnum(["EMAIL", "SMS", "IN_APP"])
+  @IsEnum(["EMAIL", "SMS", "WHATSAPP", "PUSH", "IN_APP"])
   channel!: string;
 
   @ApiProperty({

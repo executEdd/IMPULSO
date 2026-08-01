@@ -1,4 +1,15 @@
 -- ==========================================
+-- STEP 0: Ensure required enums exist
+-- ==========================================
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'DayOfWeek') THEN
+        CREATE TYPE "DayOfWeek" AS ENUM ('MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY');
+    END IF;
+END$$;
+
+-- ==========================================
 -- STEP 1: Schema Extension (Additive Changes)
 -- ==========================================
 

@@ -11,11 +11,15 @@ import {
   AlertPriority,
 } from "@prisma/client";
 import { PrismaService } from "../prisma.service";
+import { NotificationRouterService } from "../notifications/notification-router.service";
 import { QrScanDto } from "./dto/qr-scan.dto";
 
 @Injectable()
 export class AttendanceService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationRouter: NotificationRouterService,
+  ) {}
 
   private getMexicoCityTimeInfo(date: Date) {
     const formattedDateStr = new Intl.DateTimeFormat("en-US", {
@@ -330,7 +334,7 @@ export class AttendanceService {
       throw new BadRequestException("El alumno no pertenece a este grupo");
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       // Verificar duplicado dentro de la transacción
       const existing = await tx.attendance.findFirst({
         where: {
@@ -357,21 +361,32 @@ export class AttendanceService {
       });
 
       // MOTOR DE ALERTAS: Verificar regla de las 3 faltas
-      await this.checkAndTriggerAttendanceAlert(studentId, student, tx);
+      const alertResult = await this.checkAndTriggerAttendanceAlert(
+        studentId,
+        student,
+        tx,
+      );
 
-      return {
-        success: true,
-        message: `Falta registrada para ${student.user.firstName} ${student.user.lastName}`,
-        attendance,
-      };
+      return { attendance, alertResult };
     });
+
+    // Dispatch notifications after the transaction commits.
+    if (result.alertResult) {
+      await this.dispatchAttendanceAlert(result.alertResult, student);
+    }
+
+    return {
+      success: true,
+      message: `Falta registrada para ${student.user.firstName} ${student.user.lastName}`,
+      attendance: result.attendance,
+    };
   }
 
   private async checkAndTriggerAttendanceAlert(
     studentId: number,
     student: any,
     tx?: any,
-  ) {
+  ): Promise<{ alert: any; absencesCount: number; admins: any[] } | null> {
     const client = tx || this.prisma;
 
     // Contar faltas del periodo actual (últimos 30 días como periodo de referencia)
@@ -394,7 +409,7 @@ export class AttendanceService {
       });
 
       if (currentStudentProfile?.semaphore === SemaphoreStatus.RED) {
-        return;
+        return null;
       }
 
       const admins = await client.user.findMany({
@@ -417,61 +432,49 @@ export class AttendanceService {
         },
       });
 
-      // Enviar notificación al padre de familia (simulado)
-      if (student.parent) {
-        await client.notification.create({
-          data: {
-            alertId: alert.id,
-            senderId: 1, // Sistema/Admin
-            recipientType: "PARENT",
-            recipientId: student.parent.user.id,
-            channel: "EMAIL",
-            status: "SENT",
-            content: `Estimado padre/tutor de ${student.user.firstName} ${student.user.lastName}:
- 
-Le informamos que su hijo(a) ha acumulado ${absencesCount} faltas en el periodo actual. El sistema ha activado el Semáforo Rojo de alerta académica.
- 
-Por favor, comuníquese con la Subdirección Académica del CBTIS 61 para mayor información.
- 
-Grupo: ${student.group.name}
-Fecha: ${new Date().toLocaleDateString("es-MX")}
- 
-CBTIS 61 - Sistema de Gestión Académica`,
-            sentAt: new Date(),
-          },
-        });
-
-        // Notificación SMS (simulada)
-        await client.notification.create({
-          data: {
-            alertId: alert.id,
-            senderId: 1,
-            recipientType: "PARENT",
-            recipientId: student.parent.user.id,
-            channel: "SMS",
-            status: "SENT",
-            content: `CBTIS 61: Alerta de asistencia. Su hijo(a) ${student.user.firstName} tiene ${absencesCount} faltas. Semáforo Rojo activado. Contacte Subdirección.`,
-            sentAt: new Date(),
-          },
-        });
-      }
-
-      // Notificación a Subdirección (Admin)
-      for (const admin of admins) {
-        await client.notification.create({
-          data: {
-            alertId: alert.id,
-            senderId: 1,
-            recipientType: "ADMIN",
-            recipientId: admin.id,
-            channel: "IN_APP",
-            status: "SENT",
-            content: `Semáforo Rojo: ${student.user.firstName} ${student.user.lastName} (${student.group.name}) - ${absencesCount} faltas acumuladas.`,
-            sentAt: new Date(),
-          },
-        });
-      }
+      return { alert, absencesCount, admins };
     }
+
+    return null;
+  }
+
+  private async dispatchAttendanceAlert(
+    alertResult: { alert: any; absencesCount: number; admins: any[] },
+    student: any,
+  ): Promise<void> {
+    const { alert, absencesCount, admins } = alertResult;
+
+    const recipients = [];
+
+    if (student.parent?.user) {
+      recipients.push({
+        userId: student.parent.user.id,
+        email: student.parent.user.email,
+        phone: student.parent.phone,
+        channels: ["EMAIL", "SMS"],
+      });
+    }
+
+    for (const admin of admins) {
+      recipients.push({
+        userId: admin.id,
+        email: admin.email,
+        channels: ["IN_APP", "PUSH"],
+      });
+    }
+
+    await this.notificationRouter.dispatch({
+      alert: {
+        id: alert.id,
+        studentId: alert.studentId,
+        type: alert.type,
+        priority: alert.priority,
+        message: `Semáforo Rojo: ${student.user.firstName} ${student.user.lastName} (${student.group.name}) - ${absencesCount} faltas acumuladas.`,
+      },
+      recipients,
+      senderId: 1,
+      title: "Alerta CBTIS 61",
+    });
   }
 
   async findAll(filters?: {

@@ -16,9 +16,13 @@ import {
   ApiCreatedResponse,
   ApiNotFoundResponse,
   ApiBadRequestResponse,
+  ApiBody,
+  ApiUnauthorizedResponse,
+  ApiForbiddenResponse,
 } from "@nestjs/swagger";
 import { NotificationsService } from "./notifications.service";
 import { CreateNotificationDto } from "./dto/create-notification.dto";
+import { NotificationResponseDto } from "./dto/notification-response.dto";
 import { SendManualNotificationDto } from "./dto/send-manual-notification.dto";
 import { Roles } from "../common/decorators/roles.decorator";
 import { UserRole } from "../common/enums/roles.enum";
@@ -33,11 +37,16 @@ export class NotificationsController {
   @Post()
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: "Crear notificación" })
+  @ApiBody({ type: CreateNotificationDto })
   @ApiCreatedResponse({
     description: "Notificación creada y registrada exitosamente.",
+    type: NotificationResponseDto,
   })
   @ApiBadRequestResponse({
     description: "Error al validar los parámetros de la notificación.",
+  })
+  @ApiUnauthorizedResponse({
+    description: "Usuario no autenticado.",
   })
   async create(
     @Body() createNotificationDto: CreateNotificationDto,
@@ -51,6 +60,10 @@ export class NotificationsController {
   @ApiOperation({ summary: "Listar todas las notificaciones" })
   @ApiOkResponse({
     description: "Listado completo de todas las notificaciones registradas.",
+    type: [NotificationResponseDto],
+  })
+  @ApiUnauthorizedResponse({
+    description: "Usuario no autenticado.",
   })
   async findAll() {
     return this.notificationsService.findAll();
@@ -62,6 +75,10 @@ export class NotificationsController {
   @ApiOkResponse({
     description:
       "Listado de notificaciones dirigidas al usuario autenticado actual.",
+    type: [NotificationResponseDto],
+  })
+  @ApiUnauthorizedResponse({
+    description: "Usuario no autenticado.",
   })
   async findByRecipient(
     @CurrentUser("id") recipientId: number,
@@ -79,6 +96,9 @@ export class NotificationsController {
   @ApiOkResponse({
     description: "Número total de notificaciones pendientes de leer.",
   })
+  @ApiUnauthorizedResponse({
+    description: "Usuario no autenticado.",
+  })
   async getUnreadCount(
     @CurrentUser("id") recipientId: number,
     @CurrentUser("role") recipientType: string,
@@ -89,8 +109,17 @@ export class NotificationsController {
   @Get(":id")
   @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT, UserRole.PARENT)
   @ApiOperation({ summary: "Obtener notificación por ID" })
-  @ApiOkResponse({ description: "Notificación encontrada." })
+  @ApiOkResponse({
+    description: "Notificación encontrada.",
+    type: NotificationResponseDto,
+  })
   @ApiNotFoundResponse({ description: "Notificación no encontrada." })
+  @ApiForbiddenResponse({
+    description: "No tiene permisos para ver esta notificación.",
+  })
+  @ApiUnauthorizedResponse({
+    description: "Usuario no autenticado.",
+  })
   async findOne(
     @Param("id", ParseIntPipe) id: number,
     @CurrentUser() user: any,
@@ -114,8 +143,15 @@ export class NotificationsController {
   @ApiOperation({ summary: "Marcar notificación como leída" })
   @ApiOkResponse({
     description: "Notificación marcada como leída exitosamente.",
+    type: NotificationResponseDto,
   })
   @ApiNotFoundResponse({ description: "Notificación no encontrada." })
+  @ApiForbiddenResponse({
+    description: "No tiene permisos para modificar esta notificación.",
+  })
+  @ApiUnauthorizedResponse({
+    description: "Usuario no autenticado.",
+  })
   async markAsRead(
     @Param("id", ParseIntPipe) id: number,
     @CurrentUser() user: any,
@@ -137,11 +173,16 @@ export class NotificationsController {
   @Post("send-manual")
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: "Enviar notificación manual a padre de familia" })
+  @ApiBody({ type: SendManualNotificationDto })
   @ApiCreatedResponse({
     description: "Notificación manual encolada y enviada correctamente.",
+    type: NotificationResponseDto,
   })
   @ApiBadRequestResponse({
     description: "Datos de envío incorrectos o canal inválido.",
+  })
+  @ApiUnauthorizedResponse({
+    description: "Usuario no autenticado.",
   })
   async sendManualNotification(
     @Body() sendManualNotificationDto: SendManualNotificationDto,
