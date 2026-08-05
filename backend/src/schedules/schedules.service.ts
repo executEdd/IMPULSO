@@ -157,7 +157,6 @@ export class SchedulesService {
       );
     }
 
-    // Buscar información de la clase para validar conflictos de docente y grupo
     const targetClass = await this.prisma.class.findUnique({
       where: { id: classId },
     });
@@ -166,7 +165,6 @@ export class SchedulesService {
     }
 
     return this.prisma.$transaction(async (tx) => {
-      // Bloqueamos la tabla de horarios de clase para evitar concurrencia
       await tx.$executeRawUnsafe(
         "LOCK TABLE classes_schedules IN EXCLUSIVE MODE",
       );
@@ -347,6 +345,83 @@ export class SchedulesService {
     });
   }
 
+  // --- NUEVO MÉTODO AGREGADO ---
+  async findByStudent(studentId: number, user: any) {
+    if (user.role === "STUDENT") {
+      if (user.studentProfile?.id !== studentId) {
+        throw new ForbiddenException(
+          "No autorizado para acceder a este horario",
+        );
+      }
+    }
+
+    if (user.role === "PARENT") {
+      const child = await this.prisma.studentProfile.findFirst({
+        where: {
+          id: studentId,
+          parentId: user.parentProfile.id,
+        },
+      });
+
+      if (!child) {
+        throw new ForbiddenException(
+          "No autorizado para acceder a este horario",
+        );
+      }
+    }
+
+    const student = await this.prisma.studentProfile.findUnique({
+      where: {
+        id: studentId,
+      },
+      include: {
+        group: true,
+      },
+    });
+
+    if (!student) {
+      throw new NotFoundException("Alumno no encontrado");
+    }
+
+    return this.prisma.classSchedule.findMany({
+      where: {
+        class: {
+          groupId: student.groupId,
+        },
+      },
+      include: {
+        class: {
+          include: {
+            subject: {
+              include: {
+                teacher: {
+                  include: {
+                    user: {
+                      select: {
+                        firstName: true,
+                        lastName: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            classroom: true,
+            group: true,
+          },
+        },
+      },
+      orderBy: [
+        {
+          dayOfWeek: "asc",
+        },
+        {
+          startTime: "asc",
+        },
+      ],
+    });
+  }
+
   async update(id: number, updateScheduleDto: UpdateScheduleDto) {
     const existing = await this.prisma.classSchedule.findUnique({
       where: { id },
@@ -371,7 +446,6 @@ export class SchedulesService {
       );
     }
 
-    // Buscar información de la clase objetivo
     const targetClass = await this.prisma.class.findUnique({
       where: { id: classId },
     });
