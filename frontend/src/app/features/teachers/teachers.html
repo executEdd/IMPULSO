@@ -1,0 +1,203 @@
+<div class="page-wrap">
+
+  <header class="page-hd">
+    <div>
+      <h1>Docentes y Profesores</h1>
+      <p>Gestión del cuerpo docente, asignaciones y especialidades del plantel</p>
+    </div>
+    <div class="hd-meta">
+      <span class="count-badge">
+        <i class="fa-solid fa-chalkboard-user"></i>
+        {{ filtered().length }} docentes
+      </span>
+      @if (isAdmin) {
+        <button class="primary-btn" (click)="openCreate()">
+          <i class="fa-solid fa-plus"></i>
+          Nuevo Docente
+        </button>
+      }
+    </div>
+  </header>
+
+  <!-- Toolbar -->
+  <div class="toolbar-row">
+    <div class="search-wrap">
+      <i class="fa-solid fa-magnifying-glass search-icon"></i>
+      <input
+        class="search-input"
+        type="text"
+        placeholder="Buscar por nombre, correo, especialidad o No. empleado..."
+        (input)="search.set($any($event.target).value)">
+    </div>
+  </div>
+
+  <!-- Content -->
+  @if (loading()) {
+    <div class="skeleton-wrap">
+      <div class="skeleton-line" style="width: 100%; height: 50px;"></div>
+      <div class="skeleton-line" style="width: 100%; height: 50px;"></div>
+      <div class="skeleton-line" style="width: 100%; height: 50px;"></div>
+    </div>
+  } @else if (filtered().length === 0) {
+    <div class="empty-card">
+      <div class="empty-icon"><i class="fa-solid fa-user-slash"></i></div>
+      <h3>No se encontraron docentes</h3>
+      <p>Prueba con otro término de búsqueda o registra un nuevo docente.</p>
+    </div>
+  } @else {
+    <div class="table-card">
+      <table class="custom-table">
+        <thead>
+          <tr>
+            <th>Docente</th>
+            <th>No. Empleado</th>
+            <th>Especialidad</th>
+            <th>Contacto</th>
+            <th>Estatus</th>
+            @if (isAdmin) {
+              <th style="text-align:right;">Acciones</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (t of filtered(); track t.id) {
+            <tr>
+              <td>
+                <div class="user-cell">
+                  <div class="avatar-circle">
+                    {{ initials(t) }}
+                  </div>
+                  <div>
+                    <span class="user-name">{{ t.firstName }} {{ t.lastName }}</span>
+                    <span class="user-sub">{{ t.email }}</span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="code-badge">
+                  <i class="fa-solid fa-id-card"></i>
+                  {{ t.teacherProfile?.employeeId || 'Sin asignar' }}
+                </span>
+              </td>
+              <td>
+                <span class="spec-badge">
+                  {{ t.teacherProfile?.specialty || 'General' }}
+                </span>
+              </td>
+              <td>
+                <div class="contact-info">
+                  @if (t.teacherProfile?.phone) {
+                    <span><i class="fa-solid fa-phone"></i> {{ t.teacherProfile?.phone }}</span>
+                  } @else {
+                    <span class="text-muted">Sin teléfono</span>
+                  }
+                </div>
+              </td>
+              <td>
+                <span class="status-chip chip-green">Activo</span>
+              </td>
+              @if (isAdmin) {
+                <td style="text-align:right;">
+                  <div class="action-btns">
+                    <button class="icon-btn" (click)="openEdit(t)" title="Editar docente">
+                      <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button
+                      class="icon-btn danger"
+                      [disabled]="deleting() === t.id"
+                      (click)="remove(t)"
+                      title="Eliminar docente">
+                      <i class="fa-solid fa-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+</div>
+
+<!-- Modal Formulario -->
+@if (modalOpen()) {
+  <div class="modal-backdrop" (click)="closeModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-hd">
+        <h2>{{ editing() ? 'Editar Docente' : 'Registrar Nuevo Docente' }}</h2>
+        <button class="icon-btn" (click)="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="save()" class="modal-form">
+
+        <div class="form-row">
+          <div class="field-group">
+            <label class="field-label">Nombre(s) *</label>
+            <input class="field-input" type="text" formControlName="firstName" placeholder="Ej. Roberto">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Apellido(s) *</label>
+            <input class="field-input" type="text" formControlName="lastName" placeholder="Ej. Hernández">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field-group">
+            <label class="field-label">Correo Electrónico *</label>
+            <input class="field-input" type="email" formControlName="email" placeholder="docente@cbtis61.edu.mx">
+          </div>
+          <div class="field-group">
+            <label class="field-label">No. de Empleado *</label>
+            <input class="field-input" type="text" formControlName="employeeId" placeholder="Ej. EMP-1049">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field-group">
+            <label class="field-label">Especialidad / Área</label>
+            <input class="field-input" type="text" formControlName="specialty" placeholder="Ej. Programación, Matemáticas">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Teléfono de contacto</label>
+            <input class="field-input" type="tel" formControlName="phone" placeholder="Ej. 246 123 4567">
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">
+            Contraseña
+            @if (editing()) { <span style="font-weight:400; color:#9CA3AF;">(Dejar vacía para conservar la actual)</span> }
+            @else { * }
+          </label>
+          <input class="field-input" type="password" formControlName="password" placeholder="••••••••">
+        </div>
+
+        @if (formError()) {
+          <div class="form-err">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            {{ formError() }}
+          </div>
+        }
+
+        <div class="modal-actions">
+          <button type="button" class="secondary-btn" (click)="closeModal()">Cancelar</button>
+          <button type="submit" class="primary-btn" [disabled]="form.invalid || saving()">
+            @if (saving()) { <i class="fa-solid fa-spinner fa-spin"></i> Guardando... }
+            @else { {{ editing() ? 'Guardar Cambios' : 'Registrar Docente' }} }
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+}
+
+<!-- Toast -->
+@if (toastMsg()) {
+  <div class="toast" [class.toast-ok]="toastOk()" [class.toast-err]="!toastOk()">
+    <i class="fa-solid" [class.fa-circle-check]="toastOk()" [class.fa-circle-xmark]="!toastOk()"></i>
+    {{ toastMsg() }}
+  </div>
+}

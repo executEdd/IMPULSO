@@ -4,7 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { DatePipe } from '@angular/common';
 import { AuthService } from '../../core/services/auth.service';
 
-const API = (import.meta as any).env.NG_APP_API_URL;
+import { API } from '../../core/config/api.config';
 interface NavItem {
   label: string;
   faIcon: string;
@@ -39,8 +39,9 @@ export class ShellComponent implements OnInit {
     {
       label: 'General',
       items: [
-        { label: 'Dashboard',  faIcon: 'fa-chart-pie',    route: '/dashboard' },
-        { label: 'Alumnos',    faIcon: 'fa-user-graduate', route: '/alumnos'  },
+        { label: 'Dashboard',  faIcon: 'fa-chart-pie',     route: '/dashboard' },
+        { label: 'Alumnos',    faIcon: 'fa-user-graduate', route: '/alumnos'   },
+        { label: 'Mi QR',      faIcon: 'fa-qrcode',        route: '/mi-qr'     },
       ]
     },
     {
@@ -61,9 +62,11 @@ export class ShellComponent implements OnInit {
       label: 'Administración',
       adminOnly: true,
       items: [
+        { label: 'Docentes', faIcon: 'fa-chalkboard-user', route: '/docentes' },
+        { label: 'Tutores',  faIcon: 'fa-users',           route: '/tutores'  },
         { label: 'Grupos',   faIcon: 'fa-users-line',      route: '/grupos'   },
         { label: 'Materias', faIcon: 'fa-book',            route: '/materias' },
-        { label: 'Clases',   faIcon: 'fa-chalkboard-user', route: '/clases'   },
+        { label: 'Clases',   faIcon: 'fa-school',           route: '/clases'   },
       ]
     }
   ];

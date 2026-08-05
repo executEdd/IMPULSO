@@ -11,7 +11,7 @@ import { catchError } from 'rxjs/operators';
 
 declare var Chart: any;
 
-const API = (import.meta as any).env.NG_APP_API_URL;
+import { API } from '../../core/config/api.config';
 
 interface KPI {
   label: string;

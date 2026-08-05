@@ -21,6 +21,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/students/students').then(m => m.StudentsComponent)
       },
       {
+        path: 'mi-qr',
+        loadComponent: () => import('./features/my-qr/my-qr').then(m => m.MyQrComponent)
+      },
+      {
         path: 'asistencia',
         loadComponent: () => import('./features/attendance/attendance').then(m => m.AttendanceComponent)
       },
@@ -47,6 +51,14 @@ export const routes: Routes = [
       {
         path: 'clases',
         loadComponent: () => import('./features/classes/classes').then(m => m.ClassesComponent)
+      },
+      {
+        path: 'docentes',
+        loadComponent: () => import('./features/teachers/teachers').then(m => m.TeachersComponent)
+      },
+      {
+        path: 'tutores',
+        loadComponent: () => import('./features/parents/parents').then(m => m.ParentsComponent)
       }
     ]
   },

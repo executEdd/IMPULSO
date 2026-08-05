@@ -4,7 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { AuthService } from '../../core/services/auth.service';
 
-const API = (import.meta as any).env.NG_APP_API_URL;
+import { API } from '../../core/config/api.config';
 
 @Component({
   selector: 'app-grades',
@@ -76,6 +76,10 @@ export class GradesComponent implements OnInit {
       next: subjects => this.subjects.set(subjects),
       error: () => {}
     });
+  }
+
+  exportCsv() {
+    window.open(`${API}/grades/export/csv`, '_blank');
   }
 
   fetchGrades() {

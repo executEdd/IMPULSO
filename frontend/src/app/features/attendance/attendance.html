@@ -10,8 +10,31 @@
         <i class="fa-solid fa-list-check"></i>
         {{ records().length }} registros
       </span>
+      @if (canMark) {
+        <button class="primary-btn" (click)="openScan()">
+          <i class="fa-solid fa-qrcode"></i>
+          Escanear QR Smart-Check
+        </button>
+      }
     </div>
   </header>
+
+  <!-- Banner Smart-Check -->
+  @if (canMark) {
+    <div class="qr-banner">
+      <div class="qr-icon">
+        <i class="fa-solid fa-qrcode"></i>
+      </div>
+      <div class="qr-body">
+        <p class="qr-title">QR Smart-Check</p>
+        <p class="qr-sub">Escanea la credencial digital del alumno con lector USB o cámara para tomar asistencia en tiempo real.</p>
+      </div>
+      <button class="qr-btn" (click)="openScan()">
+        <i class="fa-solid fa-camera"></i>
+        Abrir escáner
+      </button>
+    </div>
+  }
 
   <!-- Pase de lista manual -->
   @if (canMark) {
@@ -21,7 +44,7 @@
       </div>
       <div class="mark-body">
         <p class="qr-title">Pase de lista manual</p>
-        <p class="qr-sub">Registra la falta de un alumno en una clase específica. El registro por QR se hace desde la app móvil.</p>
+        <p class="qr-sub">Registra la falta de un alumno en una clase específica cuando no haya QR disponible.</p>
       </div>
       <div class="mark-controls">
         <select class="mark-select" [ngModel]="selSchedule()" (ngModelChange)="selSchedule.set($event)">
@@ -98,6 +121,114 @@
           </tbody>
         </table>
       }
+    </div>
+  }
+
+  <!-- ══ MODAL SMART-CHECK ══ -->
+  @if (scanOpen()) {
+    <div class="modal-backdrop" (click)="closeScan()"></div>
+    <div class="modal scan-modal" (click)="$event.stopPropagation()">
+      <div class="modal-hd">
+        <h2><i class="fa-solid fa-qrcode"></i> Escanear QR Smart-Check</h2>
+        <button class="icon-btn" (click)="closeScan()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="scan-body">
+        <div class="field-group">
+          <label class="field-label">Clase / horario</label>
+          <select class="field-input" [ngModel]="scanSchedule()" (ngModelChange)="scanSchedule.set($event)">
+            <option [ngValue]="null" disabled>Selecciona el bloque de clase</option>
+            @for (s of schedules(); track s.id) {
+              <option [ngValue]="s.id">{{ scheduleLabel(s) }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="scan-mode-tabs">
+          <button type="button" class="mode-tab" [class.active]="scanMode() === 'usb'" (click)="setScanMode('usb')">
+            <i class="fa-solid fa-barcode"></i> Lector USB
+          </button>
+          <button type="button" class="mode-tab" [class.active]="scanMode() === 'camera'" (click)="setScanMode('camera')">
+            <i class="fa-solid fa-camera"></i> Cámara
+          </button>
+        </div>
+
+        @if (scanMode() === 'usb') {
+          <div class="field-group">
+            <label class="field-label">Token QR del alumno</label>
+            <div class="token-wrap">
+              <i class="fa-solid fa-qrcode token-icon"></i>
+              <input
+                #tokenInput
+                class="field-input with-icon"
+                type="text"
+                placeholder="Escanea o pega el token y presiona Enter..."
+                [ngModel]="scanToken()"
+                (ngModelChange)="scanToken.set($event)"
+                (keydown)="onTokenKeydown($event)"
+                autocomplete="off"
+                autofocus>
+            </div>
+            <p class="field-hint">
+              <i class="fa-solid fa-circle-info"></i>
+              Los lectores USB actúan como teclado: al escanear se envía Enter automáticamente.
+            </p>
+          </div>
+        } @else {
+          <div class="cam-wrap">
+            @if (camActive()) {
+              <video #videoEl class="cam-video" playsinline muted autoplay></video>
+              <div class="cam-frame"></div>
+            } @else {
+              <div class="cam-placeholder">
+                <i class="fa-solid fa-camera"></i>
+                <span>Iniciando cámara...</span>
+              </div>
+            }
+            @if (camError()) {
+              <p class="cam-err"><i class="fa-solid fa-triangle-exclamation"></i> {{ camError() }}</p>
+            }
+            <div class="field-group" style="margin-top:12px">
+              <label class="field-label">O pega el token manualmente</label>
+              <input
+                class="field-input"
+                type="text"
+                placeholder="Token QR..."
+                [ngModel]="scanToken()"
+                (ngModelChange)="scanToken.set($event)"
+                (keydown)="onTokenKeydown($event)">
+            </div>
+          </div>
+        }
+
+        @if (lastScan(); as ls) {
+          <div class="last-scan-ok">
+            <i class="fa-solid fa-circle-check"></i>
+            <div>
+              <strong>Último registro exitoso</strong>
+              <span>
+                {{ ls.student?.user?.firstName ?? ls.student?.firstName ?? '' }}
+                {{ ls.student?.user?.lastName ?? '' }}
+                · {{ statusLabel(ls.status ?? 'PRESENT') }}
+              </span>
+            </div>
+          </div>
+        }
+
+        <div class="modal-actions">
+          <button type="button" class="ghost-btn" (click)="closeScan()">Cerrar</button>
+          <button
+            type="button"
+            class="primary-btn"
+            [disabled]="!scanSchedule() || !scanToken().trim() || scanning()"
+            (click)="submitScan()">
+            @if (scanning()) { <span class="btn-spinner-sm"></span> Registrando... }
+            @else { <i class="fa-solid fa-check"></i> Registrar asistencia }
+          </button>
+        </div>
+      </div>
     </div>
   }
 
