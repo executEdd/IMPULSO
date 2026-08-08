@@ -125,7 +125,9 @@ describe("Complex Scenarios & Tiers (e2e)", () => {
     }
 
     // Ensure admin user exists so that admin login does not fail
-    const adminUser = await prisma.user.findFirst({ where: { email: "subdirector@cbtis61.edu.mx" } });
+    const adminUser = await prisma.user.findFirst({
+      where: { email: "subdirector@cbtis61.edu.mx" },
+    });
     if (!adminUser) {
       const hashedAdminPassword = bcrypt.hashSync("admin123", 12);
       await prisma.user.create({
@@ -306,7 +308,8 @@ describe("Complex Scenarios & Tiers (e2e)", () => {
       if (groupId) await prisma.group.delete({ where: { id: groupId } });
     } catch (e) {}
     try {
-      if (semesterId) await prisma.semester.delete({ where: { id: semesterId } });
+      if (semesterId)
+        await prisma.semester.delete({ where: { id: semesterId } });
     } catch (e) {}
     try {
       if (schoolCycleId)

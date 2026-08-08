@@ -157,3 +157,8 @@ sketch
 docker-compose.yml
 
 handoff.md
+graphify-out/
+AGENTS.md
+
+firebase/
+firebase/*.json

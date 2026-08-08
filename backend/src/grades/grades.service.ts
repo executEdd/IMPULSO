@@ -170,7 +170,17 @@ export class GradesService {
             group: true,
           },
         },
-        subject: true,
+        subject: {
+          include: {
+            teacher: {
+              include: {
+                user: {
+                  select: { firstName: true, lastName: true },
+                },
+              },
+            },
+          },
+        },
         logs: {
           include: {
             user: { select: { firstName: true, lastName: true } },
@@ -192,7 +202,17 @@ export class GradesService {
             group: true,
           },
         },
-        subject: true,
+        subject: {
+          include: {
+            teacher: {
+              include: {
+                user: {
+                  select: { firstName: true, lastName: true },
+                },
+              },
+            },
+          },
+        },
         logs: {
           include: {
             user: { select: { firstName: true, lastName: true } },
@@ -213,7 +233,17 @@ export class GradesService {
     return this.prisma.grade.findMany({
       where: { studentId },
       include: {
-        subject: true,
+        subject: {
+          include: {
+            teacher: {
+              include: {
+                user: {
+                  select: { firstName: true, lastName: true },
+                },
+              },
+            },
+          },
+        },
         logs: {
           include: {
             user: { select: { firstName: true, lastName: true } },
@@ -405,5 +435,32 @@ export class GradesService {
       orderBy: { timestamp: "desc" },
       take: 100,
     });
+  }
+
+  async exportCsv(filters?: {
+    studentId?: number;
+    subjectId?: number;
+    period?: string;
+  }) {
+    const grades = await this.findAll(filters);
+    const sep = "sep=,\n";
+    const header =
+      "ID,Alumno,Matrícula,Grupo,Materia,Periodo,Parcial 1,Parcial 2,Parcial 3,Final,Estatus\n";
+    const rows = grades.map((g: any) => {
+      const studentName = `"${g.student?.user?.firstName || ""} ${g.student?.user?.lastName || ""}"`;
+      const enrollmentId = `"${g.student?.enrollmentId || ""}"`;
+      const groupName = `"${g.student?.group?.name || ""}"`;
+      const subjectName = `"${g.subject?.name || ""}"`;
+      const period = `"${g.period || ""}"`;
+      const p1 = g.partial1 ?? "";
+      const p2 = g.partial2 ?? "";
+      const p3 = g.partial3 ?? "";
+      const final = g.finalGrade ?? "";
+      const status = `"${g.status || ""}"`;
+      return `${g.id},${studentName},${enrollmentId},${groupName},${subjectName},${period},${p1},${p2},${p3},${final},${status}`;
+    });
+
+    const csvString = header + rows.join("\n");
+    return Buffer.from(csvString, "latin1");
   }
 }

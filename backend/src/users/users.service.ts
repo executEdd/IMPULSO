@@ -229,4 +229,131 @@ export class UsersService {
       },
     });
   }
+
+  async exportStudentsCsv() {
+    const students = await this.prisma.user.findMany({
+      where: { role: UserRole.STUDENT, isActive: true },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        studentProfile: {
+          include: {
+            group: true,
+            parent: {
+              include: {
+                user: {
+                  select: { firstName: true, lastName: true, email: true },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { lastName: "asc" },
+    });
+
+    const sep = "sep=,\n";
+    const header =
+      "ID,Nombre,Apellidos,Correo,Matrícula,Grupo,Semáforo,Tutor,Correo Tutor\n";
+    const rows = students.map((u: any) => {
+      const sp = u.studentProfile;
+      const firstName = `"${u.firstName || ""}"`;
+      const lastName = `"${u.lastName || ""}"`;
+      const email = `"${u.email || ""}"`;
+      const enrollmentId = `"${sp?.enrollmentId || ""}"`;
+      const groupName = `"${sp?.group?.name || ""}"`;
+      const semaphore = `"${sp?.semaphore || "GREEN"}"`;
+      const parentName = sp?.parent?.user
+        ? `"${sp.parent.user.firstName || ""} ${sp.parent.user.lastName || ""}"`
+        : '""';
+      const parentEmail = sp?.parent?.user?.email
+        ? `"${sp.parent.user.email}"`
+        : '""';
+      return `${u.id},${firstName},${lastName},${email},${enrollmentId},${groupName},${semaphore},${parentName},${parentEmail}`;
+    });
+
+    const csvString = header + rows.join("\n");
+    return Buffer.from(csvString, "latin1");
+  }
+
+  async assignParentToStudent(studentId: number, parentId: number) {
+    const student = await this.prisma.studentProfile.findUnique({
+      where: { id: studentId },
+    });
+
+    if (!student) {
+      throw new NotFoundException("Alumno no encontrado");
+    }
+
+    const parent = await this.prisma.parentProfile.findUnique({
+      where: { id: parentId },
+    });
+
+    if (!parent) {
+      throw new NotFoundException("Tutor no encontrado");
+    }
+
+    const updated = await this.prisma.studentProfile.update({
+      where: { id: studentId },
+      data: { parentId },
+      include: {
+        user: { select: { firstName: true, lastName: true, email: true } },
+        group: true,
+        parent: {
+          include: {
+            user: { select: { firstName: true, lastName: true, email: true } },
+          },
+        },
+      },
+    });
+
+    return {
+      message: "Tutor asignado correctamente al estudiante",
+      student: updated,
+    };
+  }
+
+  async getStudentParentInfo(studentId: number) {
+    const student = await this.prisma.studentProfile.findUnique({
+      where: { id: studentId },
+      include: {
+        user: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+        group: true,
+        parent: {
+          include: {
+            user: {
+              select: { id: true, firstName: true, lastName: true, email: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!student) {
+      throw new NotFoundException("Alumno no encontrado");
+    }
+
+    return student;
+  }
+
+  async findAllParents() {
+    return this.prisma.parentProfile.findMany({
+      include: {
+        user: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+        children: {
+          include: {
+            user: { select: { firstName: true, lastName: true } },
+            group: true,
+          },
+        },
+      },
+      orderBy: { id: "asc" },
+    });
+  }
 }

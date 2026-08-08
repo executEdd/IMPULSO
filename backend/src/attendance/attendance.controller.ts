@@ -5,9 +5,11 @@ import {
   Body,
   Param,
   Query,
+  Res,
   ParseIntPipe,
   BadRequestException,
 } from "@nestjs/common";
+import { Response } from "express";
 import {
   ApiTags,
   ApiOperation,
@@ -145,6 +147,18 @@ export class AttendanceController {
     return this.attendanceService.getRedSemaphoreStudents();
   }
 
+  @Get("semaphore/summary")
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  @ApiOperation({
+    summary: "Obtener resumen general y desglose por grupo de semáforos de riesgo",
+  })
+  @ApiOkResponse({
+    description: "Métricas globales y desglose por grupo de alumnos en riesgo.",
+  })
+  async getSemaphoreSummary() {
+    return this.attendanceService.getSemaphoreSummary();
+  }
+
   @Post("semaphore/reset/:studentId")
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: "Restablecer semáforo de un alumno a verde" })
@@ -152,5 +166,26 @@ export class AttendanceController {
   @ApiNotFoundResponse({ description: "Alumno no encontrado." })
   async resetSemaphore(@Param("studentId", ParseIntPipe) studentId: number) {
     return this.attendanceService.resetSemaphore(studentId);
+  }
+
+  @Get("export/csv")
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  @ApiOperation({ summary: "Exportar reporte de asistencias a CSV" })
+  async exportCsv(
+    @Res() res: Response,
+    @Query("studentId", new ParseIntPipe({ optional: true }))
+    studentId?: number,
+    @Query("classId", new ParseIntPipe({ optional: true })) classId?: number,
+  ) {
+    const csvContent = await this.attendanceService.exportCsv({
+      studentId,
+      classId,
+    });
+    res.setHeader("Content-Type", "text/csv; charset=latin1");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="reporte_asistencias_${Date.now()}.csv"`,
+    );
+    return res.end(csvContent);
   }
 }
