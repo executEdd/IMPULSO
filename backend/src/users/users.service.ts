@@ -304,7 +304,7 @@ export class UsersService {
       return `${u.id},${firstName},${lastName},${email},${enrollmentId},${groupName},${semaphore},${parentName},${parentEmail}`;
     });
 
-    const csvString = header + rows.join("\n");
+    const csvString = sep + header + rows.join("\n");
     return Buffer.from(csvString, "latin1");
   }
 
@@ -356,7 +356,12 @@ export class UsersService {
         parent: {
           include: {
             user: {
-              select: { id: true, firstName: true, lastName: true, email: true },
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
             },
           },
         },
