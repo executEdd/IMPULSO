@@ -3,6 +3,7 @@ import { ValidationPipe } from "@nestjs/common";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import compression from "compression";
 import helmet from "helmet";
+import cookieParser from "cookie-parser";
 import { AppModule } from "./app.module";
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 
@@ -15,6 +16,7 @@ async function bootstrap() {
     }),
   );
   app.use(compression());
+  app.use(cookieParser());
 
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:4200";
   const allowedOrigins = frontendUrl.split(",").map((o) => o.trim());
