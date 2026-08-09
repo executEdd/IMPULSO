@@ -169,22 +169,52 @@ export class UsersService {
       throw new NotFoundException("Usuario no encontrado");
     }
 
-    const { phone, ...userData } = updateUserDto as any;
+    const {
+      phone,
+      employeeId,
+      enrollmentId,
+      specialty,
+      address,
+      groupId,
+      parentId,
+      ...userData
+    } = updateUserDto as any;
     const data: any = { ...userData };
 
     if (updateUserDto.password) {
       data.password = await bcrypt.hash(updateUserDto.password, 12);
     }
 
+    const profileUpdate: any = {};
+
     if (phone !== undefined) {
+      profileUpdate.phone = phone || null;
+    }
+
+    if (user.role === UserRole.TEACHER) {
+      if (employeeId !== undefined) profileUpdate.employeeId = employeeId;
+      if (specialty !== undefined) profileUpdate.specialty = specialty;
+    }
+
+    if (user.role === UserRole.STUDENT) {
+      if (enrollmentId !== undefined) profileUpdate.enrollmentId = enrollmentId;
+      if (groupId !== undefined) profileUpdate.groupId = groupId;
+      if (parentId !== undefined) profileUpdate.parentId = parentId;
+    }
+
+    if (user.role === UserRole.PARENT && address !== undefined) {
+      profileUpdate.address = address;
+    }
+
+    if (Object.keys(profileUpdate).length > 0) {
       if (user.role === UserRole.ADMIN) {
-        data.adminProfile = { update: { phone: phone || null } };
+        data.adminProfile = { update: profileUpdate };
       } else if (user.role === UserRole.TEACHER) {
-        data.teacherProfile = { update: { phone: phone || null } };
+        data.teacherProfile = { update: profileUpdate };
       } else if (user.role === UserRole.STUDENT) {
-        data.studentProfile = { update: { phone: phone || null } };
+        data.studentProfile = { update: profileUpdate };
       } else if (user.role === UserRole.PARENT) {
-        data.parentProfile = { update: { phone: phone || "" } };
+        data.parentProfile = { update: profileUpdate };
       }
     }
 
