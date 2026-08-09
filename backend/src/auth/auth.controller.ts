@@ -25,7 +25,7 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Public()
-  @Throttle({ default: { limit: 5, ttl: 300000 } })
+  @Throttle({ default: { limit: 5, ttl: 300000, blockDuration: 300000 } })
   @Post("login")
   @ApiOperation({ summary: "Iniciar sesión" })
   @ApiCreatedResponse({
@@ -59,7 +59,7 @@ export class AuthController {
   }
 
   @Public()
-  @Throttle({ default: { limit: 5, ttl: 300000 } })
+  @Throttle({ default: { limit: 5, ttl: 300000, blockDuration: 300000 } })
   @Post("register")
   @ApiOperation({ summary: "Registrar nuevo usuario" })
   @ApiCreatedResponse({ description: "Usuario registrado exitosamente." })
