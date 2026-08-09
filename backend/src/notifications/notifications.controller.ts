@@ -7,6 +7,7 @@ import {
   Param,
   ParseIntPipe,
   ForbiddenException,
+  BadRequestException,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -189,7 +190,8 @@ export class NotificationsController {
     @CurrentUser("id") senderId: number,
   ) {
     const targetId =
-      sendManualNotificationDto.recipientId ?? sendManualNotificationDto.studentId;
+      sendManualNotificationDto.recipientId ??
+      sendManualNotificationDto.studentId;
 
     if (!targetId) {
       throw new BadRequestException(
