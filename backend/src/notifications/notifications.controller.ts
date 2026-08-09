@@ -7,6 +7,7 @@ import {
   Param,
   ParseIntPipe,
   ForbiddenException,
+  BadRequestException,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -188,8 +189,18 @@ export class NotificationsController {
     @Body() sendManualNotificationDto: SendManualNotificationDto,
     @CurrentUser("id") senderId: number,
   ) {
+    const targetId =
+      sendManualNotificationDto.recipientId ??
+      sendManualNotificationDto.studentId;
+
+    if (!targetId) {
+      throw new BadRequestException(
+        "Se requiere recipientId o studentId para enviar la notificación",
+      );
+    }
+
     return this.notificationsService.sendManualNotification(
-      sendManualNotificationDto.studentId,
+      targetId,
       sendManualNotificationDto.recipientType,
       sendManualNotificationDto.channel,
       sendManualNotificationDto.content,
