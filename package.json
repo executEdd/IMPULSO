@@ -25,5 +25,8 @@
   },
   "devDependencies": {
     "prettier": "^3.8.1"
+  },
+  "dependencies": {
+    "@nestjs/throttler": "^6.5.0"
   }
 }
