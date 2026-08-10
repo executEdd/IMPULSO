@@ -23,10 +23,13 @@ async function bootstrap() {
   const allowedOrigins = frontendUrl.split(",").map((o) => o.trim());
 
   app.enableCors({
-    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
       const isVercelProjectPreview =
         !!origin &&
-        origin.startsWith("https://impulso-cbtis61-") &&
+        origin.startsWith("https://impulso-cbtis61") &&
         origin.endsWith(".vercel.app");
 
       if (
@@ -60,7 +63,9 @@ async function bootstrap() {
   if (process.env.NODE_ENV !== "production") {
     const config = new DocumentBuilder()
       .setTitle("CBTIS 61 - Sistema de Gestión Académica")
-      .setDescription("API RESTful para el Sistema de Gestión Académica y Seguimiento de Alumnos del CBTIS 61")
+      .setDescription(
+        "API RESTful para el Sistema de Gestión Académica y Seguimiento de Alumnos del CBTIS 61",
+      )
       .setVersion("1.0.0")
       .addBearerAuth()
       .addTag("Autenticación")
