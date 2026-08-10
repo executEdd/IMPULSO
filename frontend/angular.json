@@ -28,11 +28,7 @@
             "styles": [
               "../node_modules/@angular/material/prebuilt-themes/rose-red.css",
               "src/styles.css"
-            ],
-            "define": {
-              "import.meta.env.NG_APP_API_URL": "\"http://localhost:3000/api\"",
-              "import.meta.env.API_URL": "\"http://localhost:3000/api\""
-            }
+            ]
           },
           "configurations": {
             "production": {
@@ -53,7 +49,11 @@
             "development": {
               "optimization": false,
               "extractLicenses": false,
-              "sourceMap": true
+              "sourceMap": true,
+              "define": {
+                "import.meta.env.NG_APP_API_URL": "\"http://localhost:3000/api\"",
+                "import.meta.env.API_URL": "\"http://localhost:3000/api\""
+              }
             }
           },
           "defaultConfiguration": "production"
