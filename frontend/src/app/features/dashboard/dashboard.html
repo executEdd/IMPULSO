@@ -7,13 +7,33 @@
         {{ greetingText }}, <span class="greeting-name">{{ firstName }}</span>
       </h1>
       <p class="greeting-date">
-        {{ todayLabel | titlecase }} &nbsp;·&nbsp; Ciclo escolar 2025–2026
+        @if (isParent) {
+          Seguimiento del alumno: <strong>{{ childName }}</strong> ({{ childGroup }}) &nbsp;·&nbsp; Matrícula {{ childEnrollment }}
+        } @else if (isStudent) {
+          Mi perfil escolar &nbsp;·&nbsp; {{ todayLabel | titlecase }} &nbsp;·&nbsp; Ciclo 2025–2026
+        } @else if (isTeacher) {
+          Panel Docente &nbsp;·&nbsp; {{ todayLabel | titlecase }} &nbsp;·&nbsp; Ciclo 2025–2026
+        } @else {
+          {{ todayLabel | titlecase }} &nbsp;·&nbsp; Ciclo escolar 2025–2026
+        }
       </p>
     </div>
-    <a routerLink="/asistencia" class="cta-btn">
-      <i class="fa-solid fa-qrcode"></i>
-      Registrar asistencia
-    </a>
+    @if (isAdminOrTeacher) {
+      <a routerLink="/asistencia" class="cta-btn">
+        <i class="fa-solid fa-qrcode"></i>
+        Registrar asistencia
+      </a>
+    } @else if (isStudent) {
+      <a routerLink="/mi-qr" class="cta-btn">
+        <i class="fa-solid fa-id-card"></i>
+        Mi Credencial QR
+      </a>
+    } @else if (isParent) {
+      <a routerLink="/alumnos" class="cta-btn">
+        <i class="fa-solid fa-children"></i>
+        Ver Alumnos a Cargo
+      </a>
+    }
   </header>
 
   <!-- ── KPI ROW ────────────────────────────── -->
@@ -40,7 +60,7 @@
               } @else if (kpi.trend < 0) {
                 <i class="fa-solid fa-arrow-trend-down"></i> {{ kpi.trend }}
               } @else {
-                <i class="fa-solid fa-minus"></i>
+                <i class="fa-solid fa-check"></i>
               }
             </div>
           </div>
@@ -52,100 +72,295 @@
     </div>
   }
 
-  <!-- ── MAIN GRID ───────────────────────────── -->
-  <div class="dash-grid-main">
-
-    <!-- Gráfica de asistencia -->
-    <div class="dash-card chart-card">
-      <div class="card-header">
-        <div>
-          <h3 class="card-title">Asistencia semanal</h3>
-          <p class="card-sub">Porcentaje por día · Semana actual</p>
+  <!-- ═════════════════════════════════════════════════
+       VISTA 1: ADMINISTRADOR (VISIÓN COMPLETA PLANTEL)
+       ═════════════════════════════════════════════════ -->
+  @if (isAdmin) {
+    <div class="dash-grid-main">
+      <!-- Gráfica de asistencia -->
+      <div class="dash-card chart-card">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">Asistencia semanal del plantel</h3>
+            <p class="card-sub">Porcentaje promedio por día · Todos los grupos</p>
+          </div>
+          <div class="card-actions">
+            <button class="pill-btn active">Semana</button>
+            <button class="pill-btn">Mes</button>
+          </div>
         </div>
-        <div class="card-actions">
-          <button class="pill-btn active">Semana</button>
-          <button class="pill-btn">Mes</button>
+        <div class="chart-wrap">
+          <canvas #chartCanvas></canvas>
         </div>
       </div>
-      <div class="chart-wrap">
-        <canvas #chartCanvas></canvas>
+
+      <!-- Semáforo de riesgo global -->
+      <div class="dash-card risk-card">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">Semáforo de riesgo</h3>
+            <p class="card-sub">Distribución académica institucional</p>
+          </div>
+        </div>
+        <div class="semaphore-row">
+          <div class="sem-item">
+            <div class="sem-ring green">{{ riskCounts().green }}</div>
+            <span class="sem-lbl">En orden</span>
+          </div>
+          <div class="sem-divider"></div>
+          <div class="sem-item">
+            <div class="sem-ring yellow">{{ riskCounts().yellow }}</div>
+            <span class="sem-lbl">Seguimiento</span>
+          </div>
+          <div class="sem-divider"></div>
+          <div class="sem-item">
+            <div class="sem-ring red">{{ riskCounts().red }}</div>
+            <span class="sem-lbl">En riesgo</span>
+          </div>
+        </div>
+        <div class="risk-alert-header">
+          <i class="fa-solid fa-circle-exclamation"></i>
+          Requieren atención inmediata
+        </div>
+        <ul class="risk-list">
+          <li class="risk-row">
+            <div class="risk-ava r">MS</div>
+            <div class="risk-info">
+              <span class="risk-name">Mario Solís González</span>
+              <span class="risk-meta">3A · 62% asistencia</span>
+            </div>
+            <span class="risk-chip red-chip">Crítico</span>
+          </li>
+          <li class="risk-row">
+            <div class="risk-ava r">AT</div>
+            <div class="risk-info">
+              <span class="risk-name">Ana Torres Ríos</span>
+              <span class="risk-meta">2B · 65% asistencia</span>
+            </div>
+            <span class="risk-chip red-chip">Crítico</span>
+          </li>
+          <li class="risk-row">
+            <div class="risk-ava y">JV</div>
+            <div class="risk-info">
+              <span class="risk-name">José Vega Morales</span>
+              <span class="risk-meta">1C · 71% asistencia</span>
+            </div>
+            <span class="risk-chip yellow-chip">Seguimiento</span>
+          </li>
+        </ul>
+        <a routerLink="/alumnos" class="see-all-link">
+          Ver todos los alumnos <i class="fa-solid fa-arrow-right"></i>
+        </a>
       </div>
     </div>
+  }
 
-    <!-- Semáforo de riesgo -->
-    <div class="dash-card risk-card">
-      <div class="card-header">
-        <div>
-          <h3 class="card-title">Semáforo de riesgo</h3>
-          <p class="card-sub">Distribución académica</p>
+  <!-- ═════════════════════════════════════════════════
+       VISTA 2: DOCENTE (MIS CLASES Y ALUMNOS)
+       ═════════════════════════════════════════════════ -->
+  @else if (isTeacher) {
+    <div class="dash-grid-main">
+      <div class="dash-card">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">Mis clases de hoy</h3>
+            <p class="card-sub">Horario y control de asistencia rápida</p>
+          </div>
+          <a routerLink="/asistencia" class="see-all-link">
+            Escanear QR <i class="fa-solid fa-qrcode"></i>
+          </a>
         </div>
+        <ul class="teacher-classes-list">
+          @for (c of teacherClassesToday; track c.time) {
+            <li class="class-item-row">
+              <div class="class-time-badge">
+                <i class="fa-regular fa-clock"></i> {{ c.time }}
+              </div>
+              <div class="class-info">
+                <strong class="class-subj">{{ c.subject }}</strong>
+                <span class="class-meta">{{ c.group }} · {{ c.room }}</span>
+              </div>
+              <span class="chip" [class.chip-green]="c.status === 'Tomada'" [class.chip-yellow]="c.status === 'Pendiente'">
+                {{ c.status }}
+              </span>
+            </li>
+          }
+        </ul>
       </div>
 
-      <div class="semaphore-row">
-        <div class="sem-item">
-          <div class="sem-ring green">{{ riskCounts().green }}</div>
-          <span class="sem-lbl">En orden</span>
+      <div class="dash-card risk-card">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">Alumnos en seguimiento</h3>
+            <p class="card-sub">En tus grupos asignados</p>
+          </div>
         </div>
-        <div class="sem-divider"></div>
-        <div class="sem-item">
-          <div class="sem-ring yellow">{{ riskCounts().yellow }}</div>
-          <span class="sem-lbl">Seguimiento</span>
-        </div>
-        <div class="sem-divider"></div>
-        <div class="sem-item">
-          <div class="sem-ring red">{{ riskCounts().red }}</div>
-          <span class="sem-lbl">En riesgo</span>
-        </div>
+        <ul class="risk-list">
+          <li class="risk-row">
+            <div class="risk-ava r">MS</div>
+            <div class="risk-info">
+              <span class="risk-name">Mario Solís González</span>
+              <span class="risk-meta">Grupo 3A · 62% asistencia en Matemáticas</span>
+            </div>
+            <span class="risk-chip red-chip">Crítico</span>
+          </li>
+          <li class="risk-row">
+            <div class="risk-ava y">JV</div>
+            <div class="risk-info">
+              <span class="risk-name">José Vega Morales</span>
+              <span class="risk-meta">Grupo 3A · 74% asistencia</span>
+            </div>
+            <span class="risk-chip yellow-chip">Seguimiento</span>
+          </li>
+        </ul>
+        <a routerLink="/calificaciones" class="see-all-link">
+          Capturar calificaciones <i class="fa-solid fa-arrow-right"></i>
+        </a>
       </div>
-
-      <div class="risk-alert-header">
-        <i class="fa-solid fa-circle-exclamation"></i>
-        Requieren atención inmediata
-      </div>
-
-      <ul class="risk-list">
-        <li class="risk-row">
-          <div class="risk-ava r">MS</div>
-          <div class="risk-info">
-            <span class="risk-name">Mario Solís González</span>
-            <span class="risk-meta">3A · 62% asistencia</span>
-          </div>
-          <span class="risk-chip red-chip">Crítico</span>
-        </li>
-        <li class="risk-row">
-          <div class="risk-ava r">AT</div>
-          <div class="risk-info">
-            <span class="risk-name">Ana Torres Ríos</span>
-            <span class="risk-meta">2B · 65% asistencia</span>
-          </div>
-          <span class="risk-chip red-chip">Crítico</span>
-        </li>
-        <li class="risk-row">
-          <div class="risk-ava y">JV</div>
-          <div class="risk-info">
-            <span class="risk-name">José Vega Morales</span>
-            <span class="risk-meta">1C · 71% asistencia</span>
-          </div>
-          <span class="risk-chip yellow-chip">Seguimiento</span>
-        </li>
-      </ul>
-
-      <a routerLink="/alumnos" class="see-all-link">
-        Ver todos <i class="fa-solid fa-arrow-right"></i>
-      </a>
     </div>
+  }
 
-  </div>
+  <!-- ═════════════════════════════════════════════════
+       VISTA 3: ALUMNO (MI PROMEDIO, MI BOLETA Y MI QR)
+       ═════════════════════════════════════════════════ -->
+  @else if (isStudent) {
+    <div class="dash-grid-main">
+      <div class="dash-card">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">Mis Calificaciones del Semestre</h3>
+            <p class="card-sub">Calificaciones por parcial y promedio final</p>
+          </div>
+          <a routerLink="/calificaciones" class="see-all-link">
+            Ver boleta completa <i class="fa-solid fa-arrow-right"></i>
+          </a>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Materia</th>
+              <th>P1</th>
+              <th>P2</th>
+              <th>P3</th>
+              <th>Final</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (g of childGrades; track g.subject) {
+              <tr class="trow">
+                <td>
+                  <strong>{{ g.subject }}</strong>
+                  <span style="display:block;font-size:12px;color:#9CA3AF">{{ g.code }}</span>
+                </td>
+                <td><span class="chip chip-green">{{ g.p1 }}</span></td>
+                <td><span class="chip chip-green">{{ g.p2 }}</span></td>
+                <td><span class="chip chip-green">{{ g.p3 }}</span></td>
+                <td><span class="chip chip-green" style="font-weight:700">{{ g.final }}</span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="dash-card">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">Mi Horario de Hoy</h3>
+            <p class="card-sub">Clases programadas para el día de hoy</p>
+          </div>
+          <a routerLink="/horarios" class="see-all-link">
+            Ver semana completa <i class="fa-solid fa-arrow-right"></i>
+          </a>
+        </div>
+        <ul class="schedule-today-list">
+          @for (s of childScheduleToday; track s.time) {
+            <li class="sched-item">
+              <div class="sched-time"><i class="fa-regular fa-clock"></i> {{ s.time }}</div>
+              <div class="sched-body">
+                <strong>{{ s.subject }}</strong>
+                <span>{{ s.room }} · Prof. {{ s.teacher }}</span>
+              </div>
+            </li>
+          }
+        </ul>
+      </div>
+    </div>
+  }
+
+  <!-- ═════════════════════════════════════════════════
+       VISTA 4: PADRE / TUTOR (BOLETA Y ASISTENCIA DEL HIJO)
+       ═════════════════════════════════════════════════ -->
+  @else if (isParent) {
+    <div class="dash-grid-main">
+      <div class="dash-card">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">Boleta de Calificaciones de tu Hijo/a</h3>
+            <p class="card-sub">Alumno: {{ childName }} ({{ childGroup }})</p>
+          </div>
+          <a routerLink="/calificaciones" class="see-all-link">
+            Ver detalle <i class="fa-solid fa-arrow-right"></i>
+          </a>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Materia</th>
+              <th>Parcial 1</th>
+              <th>Parcial 2</th>
+              <th>Parcial 3</th>
+              <th>Promedio Final</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (g of childGrades; track g.subject) {
+              <tr class="trow">
+                <td>
+                  <strong>{{ g.subject }}</strong>
+                  <span style="display:block;font-size:12px;color:#9CA3AF">{{ g.code }}</span>
+                </td>
+                <td><span class="chip chip-green">{{ g.p1 }}</span></td>
+                <td><span class="chip chip-green">{{ g.p2 }}</span></td>
+                <td><span class="chip chip-green">{{ g.p3 }}</span></td>
+                <td><span class="chip chip-green" style="font-weight:700">{{ g.final }}</span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div class="dash-card">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">Docentes a Cargo</h3>
+            <p class="card-sub">Directorio para comunicación con profesores</p>
+          </div>
+        </div>
+        <ul class="teachers-direct-list">
+          @for (t of childTeachers; track t.name) {
+            <li class="teacher-contact-item">
+              <div class="t-avatar"><i class="fa-solid fa-chalkboard-user"></i></div>
+              <div class="t-info">
+                <strong>{{ t.name }}</strong>
+                <span>{{ t.specialty }}</span>
+                <a href="mailto:{{ t.email }}" class="t-email">{{ t.email }}</a>
+              </div>
+            </li>
+          }
+        </ul>
+      </div>
+    </div>
+  }
 
   <!-- ── BOTTOM GRID ──────────────────────────── -->
   <div class="dash-grid-bottom">
 
-    <!-- Actividad reciente -->
+    <!-- Actividad / Avisos -->
     <div class="dash-card">
       <div class="card-header">
         <div>
-          <h3 class="card-title">Actividad reciente</h3>
-          <p class="card-sub">Últimas acciones del sistema</p>
+          <h3 class="card-title">Actividad y Avisos</h3>
+          <p class="card-sub">Registros del sistema</p>
         </div>
       </div>
       <ul class="activity-feed">
@@ -208,3 +423,4 @@
   </div>
 
 </div>
+

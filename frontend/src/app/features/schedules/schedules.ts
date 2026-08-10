@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
 
-const API = (import.meta as any).env.NG_APP_API_URL;
+import { API } from '../../core/config/api.config';
 
 const DAY_LABELS: Record<string, string> = {
   MONDAY: 'Lunes', TUESDAY: 'Martes', WEDNESDAY: 'Miércoles',
@@ -56,7 +56,24 @@ export class SchedulesComponent implements OnInit {
     endTime:     ['08:00', [Validators.required, Validators.pattern(/^([01]\d|2[0-3]):[0-5]\d$/)]],
   });
 
-  get isAdmin() { return this.auth.user()?.role === 'ADMIN'; }
+  get isAdmin()   { return this.auth.user()?.role === 'ADMIN'; }
+  get isTeacher() { return this.auth.user()?.role === 'TEACHER'; }
+  get isStudent() { return this.auth.user()?.role === 'STUDENT'; }
+  get isParent()  { return this.auth.user()?.role === 'PARENT'; }
+
+  get pageTitle(): string {
+    if (this.isStudent) return 'Mi Horario de Clases';
+    if (this.isParent)  return 'Horario de Clases de mi Hijo/a';
+    if (this.isTeacher) return 'Mi Horario de Impartición';
+    return 'Horarios Escolares';
+  }
+
+  get pageSubtitle(): string {
+    if (this.isStudent) return 'Consulta tus materias, aulas y profesores asignados por día';
+    if (this.isParent)  return 'Consulta la programación semanal de clases de tu hijo/a';
+    if (this.isTeacher) return 'Horario asignado para tus clases y grupos';
+    return 'Gestión y asignación de horarios por clase, aula y día de la semana';
+  }
 
   ngOnInit() { this.fetchAll(); }
 

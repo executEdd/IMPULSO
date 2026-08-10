@@ -5,7 +5,7 @@ import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AuthService } from '../../core/services/auth.service';
 
-const API = (import.meta as any).env.NG_APP_API_URL;
+import { API } from '../../core/config/api.config';
 
 @Component({
   selector: 'app-classes',

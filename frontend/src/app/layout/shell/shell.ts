@@ -4,18 +4,18 @@ import { HttpClient } from '@angular/common/http';
 import { DatePipe } from '@angular/common';
 import { AuthService } from '../../core/services/auth.service';
 
-const API = (import.meta as any).env.NG_APP_API_URL;
+import { API } from '../../core/config/api.config';
 interface NavItem {
   label: string;
   faIcon: string;
   route: string;
-
+  roles?: ('ADMIN' | 'TEACHER' | 'STUDENT' | 'PARENT')[];
 }
 
 interface NavGroup {
   label: string;
   items: NavItem[];
-  adminOnly?: boolean;
+  roles?: ('ADMIN' | 'TEACHER' | 'STUDENT' | 'PARENT')[];
 }
 
 @Component({
@@ -35,43 +35,142 @@ export class ShellComponent implements OnInit {
   notifs      = signal<any[]>([]);
   notifOpen   = signal(false);
   notifLoading = signal(false);
-  navGroups: NavGroup[] = [
-    {
-      label: 'General',
-      items: [
-        { label: 'Dashboard',  faIcon: 'fa-chart-pie',    route: '/dashboard' },
-        { label: 'Alumnos',    faIcon: 'fa-user-graduate', route: '/alumnos'  },
-      ]
-    },
-    {
-      label: 'Académico',
-      items: [
-        { label: 'Asistencia',     faIcon: 'fa-list-check',        route: '/asistencia'     },
-        { label: 'Calificaciones', faIcon: 'fa-star-half-stroke',  route: '/calificaciones' },
-        { label: 'Horarios',       faIcon: 'fa-calendar-days',     route: '/horarios'       },
-      ]
-    },
-    {
-      label: 'Comunicación',
-      items: [
-        { label: 'Notificaciones', faIcon: 'fa-bell', route: '/notificaciones' },
-      ]
-    },
-    {
-      label: 'Administración',
-      adminOnly: true,
-      items: [
-        { label: 'Grupos',   faIcon: 'fa-users-line',      route: '/grupos'   },
-        { label: 'Materias', faIcon: 'fa-book',            route: '/materias' },
-        { label: 'Clases',   faIcon: 'fa-chalkboard-user', route: '/clases'   },
-      ]
-    }
-  ];
 
   visibleGroups = computed(() => {
-    const isAdmin = this.auth.user()?.role === 'ADMIN';
-    return this.navGroups.filter(g => !g.adminOnly || isAdmin);
+    const role = this.auth.user()?.role || 'STUDENT';
+
+    const isStudent = role === 'STUDENT';
+    const isParent  = role === 'PARENT';
+    const isTeacher = role === 'TEACHER';
+    const isAdmin   = role === 'ADMIN';
+
+    // ── PADRE: solo Dashboard, Calificaciones, Horarios, Notificaciones ──
+    if (isParent) {
+      return [
+        {
+          label: 'General',
+          items: [
+            { label: 'Dashboard', faIcon: 'fa-chart-pie', route: '/dashboard' }
+          ]
+        },
+        {
+          label: 'Académico',
+          items: [
+            { label: 'Calificaciones', faIcon: 'fa-star-half-stroke', route: '/calificaciones' },
+            { label: 'Horarios',       faIcon: 'fa-calendar-days',    route: '/horarios'       },
+          ]
+        },
+        {
+          label: 'Comunicación',
+          items: [
+            { label: 'Notificaciones', faIcon: 'fa-bell', route: '/notificaciones' }
+          ]
+        }
+      ] as NavGroup[];
+    }
+
+    // ── ALUMNO: Dashboard, Mi QR, Asistencia, Calificaciones, Horarios, Notificaciones ──
+    if (isStudent) {
+      return [
+        {
+          label: 'General',
+          items: [
+            { label: 'Dashboard', faIcon: 'fa-chart-pie', route: '/dashboard' },
+            { label: 'Mi QR',     faIcon: 'fa-qrcode',   route: '/mi-qr'     }
+          ]
+        },
+        {
+          label: 'Académico',
+          items: [
+            { label: 'Asistencia',     faIcon: 'fa-list-check',       route: '/asistencia'     },
+            { label: 'Calificaciones', faIcon: 'fa-star-half-stroke', route: '/calificaciones' },
+            { label: 'Horarios',       faIcon: 'fa-calendar-days',    route: '/horarios'       },
+          ]
+        },
+        {
+          label: 'Comunicación',
+          items: [
+            { label: 'Notificaciones', faIcon: 'fa-bell', route: '/notificaciones' }
+          ]
+        }
+      ] as NavGroup[];
+    }
+
+    // ── DOCENTE: Dashboard, Alumnos, Asistencia, Calificaciones, Horarios, Clases, Notificaciones ──
+    if (isTeacher) {
+      return [
+        {
+          label: 'General',
+          items: [
+            { label: 'Dashboard', faIcon: 'fa-chart-pie',     route: '/dashboard' },
+            { label: 'Alumnos',   faIcon: 'fa-user-graduate', route: '/alumnos'   }
+          ]
+        },
+        {
+          label: 'Académico',
+          items: [
+            { label: 'Asistencia',     faIcon: 'fa-list-check',       route: '/asistencia'     },
+            { label: 'Calificaciones', faIcon: 'fa-star-half-stroke', route: '/calificaciones' },
+            { label: 'Horarios',       faIcon: 'fa-calendar-days',    route: '/horarios'       },
+            { label: 'Clases',         faIcon: 'fa-school',           route: '/clases'         },
+          ]
+        },
+        {
+          label: 'Comunicación',
+          items: [
+            { label: 'Notificaciones', faIcon: 'fa-bell', route: '/notificaciones' }
+          ]
+        }
+      ] as NavGroup[];
+    }
+
+    // ── ADMIN: todo ──
+    return [
+      {
+        label: 'General',
+        items: [
+          { label: 'Dashboard', faIcon: 'fa-chart-pie',     route: '/dashboard' },
+          { label: 'Alumnos',   faIcon: 'fa-user-graduate', route: '/alumnos'   }
+        ]
+      },
+      {
+        label: 'Académico',
+        items: [
+          { label: 'Asistencia',     faIcon: 'fa-list-check',       route: '/asistencia'     },
+          { label: 'Calificaciones', faIcon: 'fa-star-half-stroke', route: '/calificaciones' },
+          { label: 'Horarios',       faIcon: 'fa-calendar-days',    route: '/horarios'       },
+        ]
+      },
+      {
+        label: 'Administración',
+        items: [
+          { label: 'Docentes', faIcon: 'fa-chalkboard-user', route: '/docentes' },
+          { label: 'Tutores',  faIcon: 'fa-users',           route: '/tutores'  },
+          { label: 'Grupos',   faIcon: 'fa-users-line',      route: '/grupos'   },
+          { label: 'Materias', faIcon: 'fa-book',            route: '/materias' },
+          { label: 'Clases',   faIcon: 'fa-school',          route: '/clases'   },
+        ]
+      },
+      {
+        label: 'Comunicación',
+        items: [
+          { label: 'Notificaciones', faIcon: 'fa-bell', route: '/notificaciones' }
+        ]
+      }
+    ] as NavGroup[];
   });
+
+
+  get roleLabel(): string {
+    const r = this.auth.user()?.role;
+    switch (r) {
+      case 'ADMIN': return 'ADMIN';
+      case 'TEACHER': return 'DOCENTE';
+      case 'STUDENT': return 'ALUMNO';
+      case 'PARENT': return 'PADRE / TUTOR';
+      default: return '';
+    }
+  }
 
   ngOnInit() {
     this.refreshUnread();
