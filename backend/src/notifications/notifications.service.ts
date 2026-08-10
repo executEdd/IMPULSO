@@ -161,7 +161,9 @@ export class NotificationsService {
         phone: student.phone || undefined,
       };
     } else {
-      throw new BadRequestException("Tipo de destinatario no válido");
+      throw new BadRequestException(
+        "Tipo de destinatario no válido. Actualmente solo se soportan STUDENT y PARENT.",
+      );
     }
 
     const alert = await this.prisma.alert.create({

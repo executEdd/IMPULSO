@@ -1,4 +1,11 @@
-import { Controller, Post, Body, Get } from "@nestjs/common";
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Res,
+} from "@nestjs/common";
+import { Response } from "express";
 import {
   ApiTags,
   ApiOperation,
@@ -13,6 +20,10 @@ import { LoginDto } from "./dto/login.dto";
 import { RegisterDto } from "./dto/register.dto";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { Public } from "../common/decorators/public.decorator";
+
+const ACCESS_TOKEN_COOKIE = "access_token";
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
 @ApiTags("Autenticación")
 @Controller("auth")
 export class AuthController {
@@ -23,11 +34,32 @@ export class AuthController {
   @ApiOperation({ summary: "Iniciar sesión" })
   @ApiCreatedResponse({
     description:
-      "Inicio de sesión exitoso. Retorna el JWT y datos básicos del usuario.",
+      "Inicio de sesión exitoso. El JWT se establece como cookie httpOnly.",
   })
   @ApiUnauthorizedResponse({ description: "Credenciales inválidas." })
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
+  async login(
+    @Body() loginDto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { accessToken, user } = await this.authService.login(loginDto);
+
+    res.cookie(ACCESS_TOKEN_COOKIE, accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: ONE_DAY_MS,
+    });
+
+    return { user };
+  }
+
+  @Post("logout")
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Cerrar sesión" })
+  @ApiOkResponse({ description: "Sesión cerrada exitosamente." })
+  async logout(@Res({ passthrough: true }) res: Response) {
+    res.clearCookie(ACCESS_TOKEN_COOKIE);
+    return { message: "Sesión cerrada exitosamente" };
   }
 
   @Public()

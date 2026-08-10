@@ -351,137 +351,123 @@ async function main() {
       });
       console.log("Materias asignadas a docentes");
 
-      // Clases y Horarios
-      const teacherProfiles = await tx.teacherProfile.findMany();
-      const teacherMap = new Map(teacherProfiles.map((t) => [t.userId, t.id]));
+      // Clases y Horarios (con todos los días de lunes a viernes)
+const teacherProfiles = await tx.teacherProfile.findMany();
+const teacherMap = new Map(teacherProfiles.map((t) => [t.userId, t.id]));
 
-      for (const c of [
-        {
-          subjectId: subjects[0].id,
-          teacherId: teacherMap.get(teachers[0].id)!,
-          groupId: groups[0].id,
-          semesterId: semester.id,
-          classroomId: classroomMap.get("A-101")!,
-          schedules: {
-            create: [
-              { dayOfWeek: DayOfWeek.MONDAY, startTime: "07:00", endTime: "08:30", classroomId: classroomMap.get("A-101")! },
-              { dayOfWeek: DayOfWeek.TUESDAY, startTime: "08:30", endTime: "10:00", classroomId: classroomMap.get("A-101")! },
-            ],
-          },
-        },
-        {
-          subjectId: subjects[1].id,
-          teacherId: teacherMap.get(teachers[2].id)!,
-          groupId: groups[0].id,
-          semesterId: semester.id,
-          classroomId: classroomMap.get("A-101")!,
-          schedules: {
-            create: [
-              { dayOfWeek: DayOfWeek.MONDAY, startTime: "08:30", endTime: "10:00", classroomId: classroomMap.get("A-101")! },
-            ],
-          },
-        },
-        {
-          subjectId: subjects[2].id,
-          teacherId: teacherMap.get(teachers[1].id)!,
-          groupId: groups[0].id,
-          semesterId: semester.id,
-          classroomId: classroomMap.get("LAB-1")!,
-          schedules: {
-            create: [
-              { dayOfWeek: DayOfWeek.MONDAY, startTime: "10:00", endTime: "11:30", classroomId: classroomMap.get("LAB-1")! },
-              { dayOfWeek: DayOfWeek.TUESDAY, startTime: "11:30", endTime: "13:00", classroomId: classroomMap.get("LAB-1")! },
-            ],
-          },
-        },
-        {
-          subjectId: subjects[4].id,
-          teacherId: teacherMap.get(teachers[3].id)!,
-          groupId: groups[0].id,
-          semesterId: semester.id,
-          classroomId: classroomMap.get("A-101")!,
-          schedules: {
-            create: [
-              { dayOfWeek: DayOfWeek.MONDAY, startTime: "11:30", endTime: "13:00", classroomId: classroomMap.get("A-101")! },
-            ],
-          },
-        },
-        {
-          subjectId: subjects[3].id,
-          teacherId: teacherMap.get(teachers[1].id)!,
-          groupId: groups[0].id,
-          semesterId: semester.id,
-          classroomId: classroomMap.get("LAB-2")!,
-          schedules: {
-            create: [
-              { dayOfWeek: DayOfWeek.TUESDAY, startTime: "07:00", endTime: "08:30", classroomId: classroomMap.get("LAB-2")! },
-            ],
-          },
-        },
-        {
-          subjectId: subjects[5].id,
-          teacherId: teacherMap.get(teachers[0].id)!,
-          groupId: groups[0].id,
-          semesterId: semester.id,
-          classroomId: classroomMap.get("A-101")!,
-          schedules: {
-            create: [
-              { dayOfWeek: DayOfWeek.TUESDAY, startTime: "10:00", endTime: "11:30", classroomId: classroomMap.get("A-101")! },
-            ],
-          },
-        },
-        {
-          subjectId: subjects[0].id,
-          teacherId: teacherMap.get(teachers[0].id)!,
-          groupId: groups[1].id,
-          semesterId: semester.id,
-          classroomId: classroomMap.get("A-102")!,
-          schedules: {
-            create: [
-              { dayOfWeek: DayOfWeek.MONDAY, startTime: "13:30", endTime: "15:00", classroomId: classroomMap.get("A-102")! },
-            ],
-          },
-        },
-        {
-          subjectId: subjects[1].id,
-          teacherId: teacherMap.get(teachers[2].id)!,
-          groupId: groups[1].id,
-          semesterId: semester.id,
-          classroomId: classroomMap.get("A-102")!,
-          schedules: {
-            create: [
-              { dayOfWeek: DayOfWeek.MONDAY, startTime: "15:00", endTime: "16:30", classroomId: classroomMap.get("A-102")! },
-            ],
-          },
-        },
-        {
-          subjectId: subjects[7].id,
-          teacherId: teacherMap.get(teachers[3].id)!,
-          groupId: groups[2].id,
-          semesterId: semester.id,
-          classroomId: classroomMap.get("B-201")!,
-          schedules: {
-            create: [
-              { dayOfWeek: DayOfWeek.MONDAY, startTime: "07:00", endTime: "08:30", classroomId: classroomMap.get("B-201")! },
-            ],
-          },
-        },
-        {
-          subjectId: subjects[0].id,
-          teacherId: teacherMap.get(teachers[0].id)!,
-          groupId: groups[2].id,
-          semesterId: semester.id,
-          classroomId: classroomMap.get("B-201")!,
-          schedules: {
-            create: [
-              { dayOfWeek: DayOfWeek.MONDAY, startTime: "08:30", endTime: "10:00", classroomId: classroomMap.get("B-201")! },
-            ],
-          },
-        },
-      ]) {
-        await tx.class.create({ data: c });
-      }
-      console.log("Clases y Horarios creados");
+const daysOfWeek = [
+  DayOfWeek.MONDAY,
+  DayOfWeek.TUESDAY,
+  DayOfWeek.WEDNESDAY,
+  DayOfWeek.THURSDAY,
+  DayOfWeek.FRIDAY,
+];
+
+const timeSlots = [
+  { start: "07:00", end: "08:30" },
+  { start: "08:30", end: "10:00" },
+  { start: "10:00", end: "11:30" },
+  { start: "11:30", end: "13:00" },
+  { start: "13:00", end: "14:30" },
+];
+
+// Definición de las clases (sin horarios fijos)
+const classDefinitions = [
+  {
+    subjectId: subjects[0].id,
+    teacherId: teacherMap.get(teachers[0].id)!,
+    groupId: groups[0].id,
+    semesterId: semester.id,
+    classroomId: classroomMap.get("A-101")!,
+  },
+  {
+    subjectId: subjects[1].id,
+    teacherId: teacherMap.get(teachers[2].id)!,
+    groupId: groups[0].id,
+    semesterId: semester.id,
+    classroomId: classroomMap.get("A-101")!,
+  },
+  {
+    subjectId: subjects[2].id,
+    teacherId: teacherMap.get(teachers[1].id)!,
+    groupId: groups[0].id,
+    semesterId: semester.id,
+    classroomId: classroomMap.get("LAB-1")!,
+  },
+  {
+    subjectId: subjects[4].id,
+    teacherId: teacherMap.get(teachers[3].id)!,
+    groupId: groups[0].id,
+    semesterId: semester.id,
+    classroomId: classroomMap.get("A-101")!,
+  },
+  {
+    subjectId: subjects[3].id,
+    teacherId: teacherMap.get(teachers[1].id)!,
+    groupId: groups[0].id,
+    semesterId: semester.id,
+    classroomId: classroomMap.get("LAB-2")!,
+  },
+  {
+    subjectId: subjects[5].id,
+    teacherId: teacherMap.get(teachers[0].id)!,
+    groupId: groups[0].id,
+    semesterId: semester.id,
+    classroomId: classroomMap.get("A-101")!,
+  },
+  {
+    subjectId: subjects[0].id,
+    teacherId: teacherMap.get(teachers[0].id)!,
+    groupId: groups[1].id,
+    semesterId: semester.id,
+    classroomId: classroomMap.get("A-102")!,
+  },
+  {
+    subjectId: subjects[1].id,
+    teacherId: teacherMap.get(teachers[2].id)!,
+    groupId: groups[1].id,
+    semesterId: semester.id,
+    classroomId: classroomMap.get("A-102")!,
+  },
+  {
+    subjectId: subjects[7].id,
+    teacherId: teacherMap.get(teachers[3].id)!,
+    groupId: groups[2].id,
+    semesterId: semester.id,
+    classroomId: classroomMap.get("B-201")!,
+  },
+  {
+    subjectId: subjects[0].id,
+    teacherId: teacherMap.get(teachers[0].id)!,
+    groupId: groups[2].id,
+    semesterId: semester.id,
+    classroomId: classroomMap.get("B-201")!,
+  },
+];
+
+// Crear cada clase con sus horarios (uno por día, rotando bloques)
+for (let i = 0; i < classDefinitions.length; i++) {
+  const def = classDefinitions[i];
+  await tx.class.create({
+    data: {
+      ...def,
+      schedules: {
+        create: daysOfWeek.map((day, dayIndex) => {
+          // Rotar el bloque horario según el índice de la clase y el día
+          const slotIndex = (i + dayIndex) % timeSlots.length;
+          const slot = timeSlots[slotIndex];
+          return {
+            dayOfWeek: day,
+            startTime: slot.start,
+            endTime: slot.end,
+            classroomId: def.classroomId,
+          };
+        }),
+      },
+    },
+  });
+}
+console.log("Clases y Horarios creados (lunes a viernes)");
 
       // Calificaciones Iniciales para Alumno 1
       const firstStudent = await tx.studentProfile.findFirst({

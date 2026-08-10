@@ -26,7 +26,7 @@
               }
             ],
             "styles": [
-              "node_modules/@angular/material/prebuilt-themes/rose-red.css",
+              "../node_modules/@angular/material/prebuilt-themes/rose-red.css",
               "src/styles.css"
             ]
           },
