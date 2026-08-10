@@ -50,7 +50,7 @@ export class AuthController {
       maxAge: ONE_DAY_MS,
     });
 
-    return { user };
+    return { accessToken, user };
   }
 
   @Post("logout")
