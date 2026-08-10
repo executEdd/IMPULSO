@@ -1,14 +1,22 @@
-import { IsInt, IsString, IsNotEmpty, IsEnum } from "class-validator";
-import { ApiProperty } from "@nestjs/swagger";
+import { IsInt, IsString, IsNotEmpty, IsEnum, IsOptional } from "class-validator";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class SendManualNotificationDto {
-  @ApiProperty({
-    description: "ID del alumno asociado a la notificación",
+  @ApiPropertyOptional({
+    description: "ID del alumno asociado a la notificación (legacy field)",
     example: 1,
   })
   @IsInt()
-  @IsNotEmpty()
-  studentId!: number;
+  @IsOptional()
+  studentId?: number;
+
+  @ApiProperty({
+    description: "ID del destinatario asociado a la notificación",
+    example: 1,
+  })
+  @IsInt()
+  @IsOptional()
+  recipientId?: number;
 
   @ApiProperty({
     description: "Tipo de destinatario (usualmente PARENT para el tutor)",

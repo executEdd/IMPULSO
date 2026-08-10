@@ -1,0 +1,32 @@
+{
+  "name": "impulso",
+  "version": "1.0.0",
+  "description": "Sistema de Gestión Académica CBTIS 61",
+  "private": true,
+  "packageManager": "npm@11.16.0",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "install:all": "npm install",
+    "build": "npm run build -w backend && npm run build -w frontend",
+    "build:backend": "npm run build -w backend",
+    "build:frontend": "npm run build -w frontend",
+    "start:dev:backend": "npm run start:dev -w backend",
+    "start:dev:frontend": "npm run start -w frontend",
+    "lint:backend": "npm run lint -w backend",
+    "db:generate": "npm run db:generate -w backend",
+    "db:migrate": "npm run db:migrate -w backend",
+    "db:seed": "npm run db:seed -w backend",
+    "docker:up": "docker-compose -f docker-compose.yml up -d",
+    "docker:down": "docker-compose -f docker-compose.yml down",
+    "docker:logs": "docker-compose -f docker-compose.yml logs -f"
+  },
+  "devDependencies": {
+    "prettier": "^3.8.1"
+  },
+  "dependencies": {
+    "@nestjs/throttler": "^6.5.0"
+  }
+}

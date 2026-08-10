@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { tap } from 'rxjs/operators';
 import { AuthResponse, LoginPayload, User } from '../models/user.model';
 
-const API = (import.meta as any).env.NG_APP_API_URL;
+import { API } from '../config/api.config';
 const TOKEN_KEY = 'impulso_token';
 const USER_KEY  = 'impulso_user';
 
@@ -24,6 +24,25 @@ export class AuthService {
     return u ? `${u.firstName} ${u.lastName}` : '';
   });
 
+  constructor() {
+    if (this._token()) {
+      this.fetchProfile();
+    }
+  }
+
+  fetchProfile() {
+    if (!this._token()) return;
+    this.http.get<User>(`${API}/auth/profile`).subscribe({
+      next: fullUser => {
+        if (fullUser && fullUser.id) {
+          localStorage.setItem(USER_KEY, JSON.stringify(fullUser));
+          this._user.set(fullUser);
+        }
+      },
+      error: () => {}
+    });
+  }
+
   login(payload: LoginPayload) {
     return this.http.post<AuthResponse>(`${API}/auth/login`, payload).pipe(
       tap(res => {
@@ -31,6 +50,7 @@ export class AuthService {
         localStorage.setItem(USER_KEY, JSON.stringify(res.user));
         this._token.set(res.accessToken);
         this._user.set(res.user);
+        this.fetchProfile();
       })
     );
   }

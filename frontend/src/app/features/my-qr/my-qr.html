@@ -1,0 +1,152 @@
+<div class="page-wrap">
+
+  <header class="page-hd">
+    <div>
+      <h1>Credencial Digital</h1>
+      <p>Código QR dinámico para asistencia Smart-Check · CBTIS 61</p>
+    </div>
+    <div class="hd-meta">
+      <span class="count-badge">
+        <i class="fa-solid fa-qrcode"></i>
+        Mi QR
+      </span>
+    </div>
+  </header>
+
+  <!-- Selector admin/docente -->
+  @if (canLookup && !isStudent) {
+    <div class="lookup-banner">
+      <div class="lookup-icon">
+        <i class="fa-solid fa-user-graduate"></i>
+      </div>
+      <div class="lookup-body">
+        <p class="lookup-title">Consultar QR de alumno</p>
+        <p class="lookup-sub">Selecciona un alumno para ver o regenerar su credencial digital</p>
+      </div>
+      <div class="lookup-controls">
+        <select class="field-select" [ngModel]="selStudentId()" (ngModelChange)="selStudentId.set($event)">
+          <option [ngValue]="null" disabled>Selecciona alumno</option>
+          @for (s of students(); track s.id) {
+            <option [ngValue]="s.id">{{ s.name }}{{ s.enrollmentId ? ' · ' + s.enrollmentId : '' }}</option>
+          }
+        </select>
+        <button class="primary-btn" [disabled]="!selStudentId() || lookupLoading()" (click)="lookupStudent()">
+          @if (lookupLoading()) { <span class="btn-spinner-sm"></span> }
+          @else { <i class="fa-solid fa-magnifying-glass"></i> }
+          Consultar
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="cred-loading">
+      <div class="spinner"></div>
+    </div>
+  } @else if (!isStudent && !canLookup) {
+    <div class="table-card">
+      <div class="empty-state">
+        <i class="fa-solid fa-lock"></i>
+        <span>Tu rol no tiene acceso a la credencial digital</span>
+      </div>
+    </div>
+  } @else if (!qr() && !isStudent) {
+    <div class="table-card">
+      <div class="empty-state">
+        <i class="fa-solid fa-qrcode"></i>
+        <span>Selecciona un alumno para ver su credencial</span>
+      </div>
+    </div>
+  } @else {
+
+    <div class="cred-layout">
+      <!-- Credencial -->
+      <article class="cred-card" [class.expired]="qr() && !isValid()">
+        <div class="cred-header">
+          <div class="cred-brand">
+            <div class="cred-shield">
+              <i class="fa-solid fa-bolt-lightning"></i>
+            </div>
+            <div>
+              <span class="cred-school">CBTIS 61</span>
+              <span class="cred-sys">IMPULSO · Credencial Escolar</span>
+            </div>
+          </div>
+          <span class="cred-badge">ESTUDIANTE</span>
+        </div>
+
+        <div class="cred-body">
+          <div class="cred-identity">
+            <div class="cred-ava">{{ initials() }}</div>
+            <div class="cred-info">
+              <h2>{{ displayName() }}</h2>
+              <p>{{ displayMeta() }}</p>
+              <span class="cred-role-chip">
+                <i class="fa-solid fa-id-card"></i>
+                Credencial digital
+              </span>
+            </div>
+          </div>
+
+          <div class="cred-qr-wrap">
+            @if (qr()?.qrImage && isValid()) {
+              <img [src]="qr()!.qrImage!" alt="Código QR de asistencia" class="cred-qr-img" />
+            } @else {
+              <div class="cred-qr-placeholder">
+                <i class="fa-solid fa-qrcode"></i>
+                <span>{{ qr() ? 'QR expirado' : 'Sin QR' }}</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="cred-footer">
+          <div class="cred-vigencia">
+            <span class="vig-label">Vigencia</span>
+            @if (qr()?.expiresAt) {
+              <span class="vig-value" [class.vig-ok]="isValid()" [class.vig-bad]="!isValid()">
+                <i class="fa-solid" [class.fa-circle-check]="isValid()" [class.fa-circle-xmark]="!isValid()"></i>
+                {{ isValid() ? 'Válido · ' + expiresIn() : 'Expirado' }}
+              </span>
+              <span class="vig-date">{{ qr()!.expiresAt | date:'dd/MM/yyyy HH:mm:ss' }}</span>
+            } @else {
+              <span class="vig-value vig-bad">Sin vigencia</span>
+            }
+          </div>
+          <button class="refresh-btn" [disabled]="refreshing() || (!isStudent && !selStudentId())" (click)="refresh()">
+            @if (refreshing()) { <span class="btn-spinner-sm dark"></span> }
+            @else { <i class="fa-solid fa-rotate"></i> }
+            Renovar QR
+          </button>
+        </div>
+      </article>
+
+      <!-- Instrucciones -->
+      <aside class="cred-side">
+        <div class="side-card">
+          <h3><i class="fa-solid fa-circle-info"></i> Cómo usar</h3>
+          <ol class="side-steps">
+            <li>Presenta este código al docente al inicio de la clase.</li>
+            <li>El docente escanea con Smart-Check desde Asistencia.</li>
+            <li>El QR se renueva automáticamente por seguridad.</li>
+            <li>Si expiró, pulsa <strong>Renovar QR</strong>.</li>
+          </ol>
+        </div>
+        <div class="side-card side-hint">
+          <i class="fa-solid fa-shield-halved"></i>
+          <div>
+            <p class="hint-title">Seguridad dinámica</p>
+            <p class="hint-text">Cada token es de un solo uso y con vigencia corta para evitar reutilización.</p>
+          </div>
+        </div>
+      </aside>
+    </div>
+  }
+
+  @if (toastMsg()) {
+    <div class="toast" [class.toast-ok]="toastOk()" [class.toast-err]="!toastOk()">
+      <i class="fa-solid" [class.fa-circle-check]="toastOk()" [class.fa-circle-xmark]="!toastOk()"></i>
+      {{ toastMsg() }}
+    </div>
+  }
+</div>

@@ -2,14 +2,20 @@
 
   <header class="page-hd">
     <div>
-      <h1>Calificaciones</h1>
-      <p>Consulta y captura de parciales por alumno y materia</p>
+      <h1>{{ pageTitle }}</h1>
+      <p>{{ pageSubtitle }}</p>
     </div>
     <div class="hd-meta">
       <span class="count-badge">
         <i class="fa-solid fa-star-half-stroke"></i>
         {{ filtered().length }} registros
       </span>
+      @if (canEdit) {
+        <button class="secondary-btn" (click)="exportCsv()" title="Exportar reporte a CSV">
+          <i class="fa-solid fa-file-csv"></i>
+          Exportar CSV
+        </button>
+      }
       @if (canEdit) {
         <button class="primary-btn" (click)="openCreate()">
           <i class="fa-solid fa-plus"></i>

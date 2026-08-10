@@ -408,9 +408,35 @@
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── Help ── */
+.demo-roles-wrap {
+  margin-top: 18px; padding-top: 14px;
+  border-top: 1px dashed #E5E7EB;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.demo-title {
+  font-size: 11.5px; font-weight: 600; color: #9CA3AF;
+  text-transform: uppercase; letter-spacing: 0.5px; text-align: center;
+}
+.role-pills {
+  display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;
+}
+.role-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 12px; border-radius: 20px;
+  font-size: 12px; font-weight: 600; font-family: inherit;
+  border: 1px solid #E5E7EB; background: #FAFAFA; color: #4B5563;
+  cursor: pointer; transition: all 0.15s ease;
+}
+.role-pill i { font-size: 11px; }
+.role-pill:hover { transform: translateY(-1px); }
+.role-pill.admin:hover   { background: #FDF0F1; border-color: #7C1D2E; color: #7C1D2E; }
+.role-pill.teacher:hover { background: #EFF6FF; border-color: #3B82F6; color: #1D4ED8; }
+.role-pill.student:hover { background: #ECFDF5; border-color: #10B981; color: #047857; }
+.role-pill.parent:hover  { background: #FEF3C7; border-color: #F59E0B; color: #B45309; }
+
 .help-txt {
   font-size: 12.5px; color: #75758A;
-  text-align: center; margin: 6px 0 0; line-height: 1.5;
+  text-align: center; margin: 12px 0 0; line-height: 1.5;
 }
 .help-txt a { color: #7A1830; text-decoration: none; font-weight: 600; }
 .help-txt a:hover { text-decoration: underline; }

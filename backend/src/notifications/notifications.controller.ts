@@ -7,7 +7,9 @@ import {
   Param,
   ParseIntPipe,
   ForbiddenException,
+  BadRequestException,
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import {
   ApiTags,
   ApiOperation,
@@ -171,6 +173,7 @@ export class NotificationsController {
   }
 
   @Post("send-manual")
+  @Throttle({ default: { limit: 20, ttl: 60000, blockDuration: 60000 } })
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: "Enviar notificación manual a padre de familia" })
   @ApiBody({ type: SendManualNotificationDto })
@@ -188,8 +191,18 @@ export class NotificationsController {
     @Body() sendManualNotificationDto: SendManualNotificationDto,
     @CurrentUser("id") senderId: number,
   ) {
+    const targetId =
+      sendManualNotificationDto.recipientId ??
+      sendManualNotificationDto.studentId;
+
+    if (!targetId) {
+      throw new BadRequestException(
+        "Se requiere recipientId o studentId para enviar la notificación",
+      );
+    }
+
     return this.notificationsService.sendManualNotification(
-      sendManualNotificationDto.studentId,
+      targetId,
       sendManualNotificationDto.recipientType,
       sendManualNotificationDto.channel,
       sendManualNotificationDto.content,

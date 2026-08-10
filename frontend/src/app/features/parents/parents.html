@@ -1,0 +1,227 @@
+<div class="page-wrap">
+
+  <header class="page-hd">
+    <div>
+      <h1>Padres de Familia y Tutores</h1>
+      <p>Directorio de tutores, vinculación con estudiantes y vías de contacto</p>
+    </div>
+    <div class="hd-meta">
+      <span class="count-badge">
+        <i class="fa-solid fa-users"></i>
+        {{ filtered().length }} tutores
+      </span>
+      @if (isAdmin) {
+        <button class="primary-btn" (click)="openCreate()">
+          <i class="fa-solid fa-plus"></i>
+          Nuevo Tutor
+        </button>
+      }
+    </div>
+  </header>
+
+  <!-- Toolbar -->
+  <div class="toolbar-row">
+    <div class="search-wrap">
+      <i class="fa-solid fa-magnifying-glass search-icon"></i>
+      <input
+        class="search-input"
+        type="text"
+        placeholder="Buscar por nombre, correo, teléfono, dirección o alumno a su cargo..."
+        (input)="search.set($any($event.target).value)">
+    </div>
+  </div>
+
+  <!-- Content -->
+  @if (loading()) {
+    <div class="skeleton-wrap">
+      <div class="skeleton-line" style="width: 100%; height: 50px;"></div>
+      <div class="skeleton-line" style="width: 100%; height: 50px;"></div>
+      <div class="skeleton-line" style="width: 100%; height: 50px;"></div>
+    </div>
+  } @else if (filtered().length === 0) {
+    <div class="empty-card">
+      <div class="empty-icon"><i class="fa-solid fa-user-slash"></i></div>
+      <h3>No se encontraron tutores</h3>
+      <p>Prueba con otro término de búsqueda o registra un nuevo tutor.</p>
+    </div>
+  } @else {
+    <div class="table-card">
+      <table class="custom-table">
+        <thead>
+          <tr>
+            <th>Tutor</th>
+            <th>Teléfono</th>
+            <th>Dirección</th>
+            <th>Alumnos a cargo</th>
+            @if (isAdmin) {
+              <th style="text-align:right;">Acciones</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of filtered(); track p.id) {
+            <tr>
+              <td>
+                <div class="user-cell">
+                  <div class="avatar-circle">
+                    {{ initials(p.user) }}
+                  </div>
+                  <div>
+                    <span class="user-name">{{ p.user?.firstName }} {{ p.user?.lastName }}</span>
+                    <span class="user-sub">{{ p.user?.email }}</span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="contact-info">
+                  <span><i class="fa-solid fa-phone"></i> {{ p.phone || 'Sin registrar' }}</span>
+                </div>
+              </td>
+              <td>
+                <span class="address-text">{{ p.address || 'Sin dirección registrada' }}</span>
+              </td>
+              <td>
+                <button class="child-count-btn" (click)="viewChildren(p)" title="Ver alumnos vinculados">
+                  <i class="fa-solid fa-user-graduate"></i>
+                  {{ p.children?.length || 0 }} {{ (p.children?.length === 1) ? 'Alumno' : 'Alumnos' }}
+                </button>
+              </td>
+              @if (isAdmin) {
+                <td style="text-align:right;">
+                  <div class="action-btns">
+                    <button class="icon-btn" (click)="openEdit(p)" title="Editar tutor">
+                      <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button
+                      class="icon-btn danger"
+                      [disabled]="deleting() === p.user?.id"
+                      (click)="remove(p)"
+                      title="Eliminar tutor">
+                      <i class="fa-solid fa-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+</div>
+
+<!-- Drawer de Alumnos Vinculados -->
+@if (selected()) {
+  <div class="drawer-backdrop" (click)="closeDrawer()">
+    <div class="drawer-panel" (click)="$event.stopPropagation()">
+      <div class="drawer-hd">
+        <div>
+          <h2>Tutor: {{ selected()?.user?.firstName }} {{ selected()?.user?.lastName }}</h2>
+          <p>Alumnos bajo su tutela</p>
+        </div>
+        <button class="icon-btn" (click)="closeDrawer()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="drawer-content">
+        @if (selected()?.children?.length === 0) {
+          <div class="empty-card" style="margin-top:20px;">
+            <div class="empty-icon"><i class="fa-solid fa-graduation-cap"></i></div>
+            <h3>Sin alumnos asignados</h3>
+            <p>Este tutor aún no tiene alumnos vinculados en la institución.</p>
+          </div>
+        } @else {
+          <div class="children-list">
+            @for (c of selected()?.children; track c.id) {
+              <div class="child-card">
+                <div class="child-avatar">{{ initials(c.user) }}</div>
+                <div class="child-info">
+                  <h4>{{ c.user?.firstName }} {{ c.user?.lastName }}</h4>
+                  <p class="child-meta">
+                    <span><i class="fa-solid fa-id-card"></i> Matrícula: <strong>{{ c.enrollmentId }}</strong></span>
+                    <span><i class="fa-solid fa-users"></i> Grupo: <strong>{{ c.group?.name || 'Sin grupo' }}</strong></span>
+                  </p>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal Formulario -->
+@if (modalOpen()) {
+  <div class="modal-backdrop" (click)="closeModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-hd">
+        <h2>{{ editing() ? 'Editar Tutor' : 'Registrar Nuevo Tutor' }}</h2>
+        <button class="icon-btn" (click)="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="save()" class="modal-form">
+
+        <div class="form-row">
+          <div class="field-group">
+            <label class="field-label">Nombre(s) *</label>
+            <input class="field-input" type="text" formControlName="firstName" placeholder="Ej. Carlos">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Apellido(s) *</label>
+            <input class="field-input" type="text" formControlName="lastName" placeholder="Ej. Mendoza">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field-group">
+            <label class="field-label">Correo Electrónico *</label>
+            <input class="field-input" type="email" formControlName="email" placeholder="tutor@gmail.com">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Teléfono celular *</label>
+            <input class="field-input" type="tel" formControlName="phone" placeholder="Ej. 246 987 6543">
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Dirección particular</label>
+          <input class="field-input" type="text" formControlName="address" placeholder="Ej. Av. Universidad #104, Col. Centro, Tlaxcala">
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">
+            Contraseña
+            @if (editing()) { <span style="font-weight:400; color:#9CA3AF;">(Dejar vacía para conservar la actual)</span> }
+            @else { * }
+          </label>
+          <input class="field-input" type="password" formControlName="password" placeholder="••••••••">
+        </div>
+
+        @if (formError()) {
+          <div class="form-err">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            {{ formError() }}
+          </div>
+        }
+
+        <div class="modal-actions">
+          <button type="button" class="secondary-btn" (click)="closeModal()">Cancelar</button>
+          <button type="submit" class="primary-btn" [disabled]="form.invalid || saving()">
+            @if (saving()) { <i class="fa-solid fa-spinner fa-spin"></i> Guardando... }
+            @else { {{ editing() ? 'Guardar Cambios' : 'Registrar Tutor' }} }
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+}
+
+<!-- Toast -->
+@if (toastMsg()) {
+  <div class="toast" [class.toast-ok]="toastOk()" [class.toast-err]="!toastOk()">
+    <i class="fa-solid" [class.fa-circle-check]="toastOk()" [class.fa-circle-xmark]="!toastOk()"></i>
+    {{ toastMsg() }}
+  </div>
+}

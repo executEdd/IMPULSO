@@ -10,6 +10,10 @@
         <i class="fa-solid fa-user-graduate"></i>
         {{ filtered().length }} alumnos
       </span>
+      <button class="secondary-btn" (click)="exportCsv()" title="Exportar Padrón de Alumnos a CSV">
+        <i class="fa-solid fa-file-csv"></i>
+        Exportar CSV
+      </button>
       @if (isAdmin) {
         <button class="primary-btn" (click)="openCreate()">
           <i class="fa-solid fa-plus"></i>
@@ -192,6 +196,48 @@
                 </li>
               }
             </ul>
+          }
+        </div>
+
+        <!-- Tutor Responsable -->
+        <div class="drawer-section" style="margin-top: 20px;">
+          <h3><i class="fa-solid fa-users"></i> Tutor Responsable</h3>
+          @if (parentInfo(); as pi) {
+            @if (pi.parent) {
+              <div class="parent-card-box" style="padding: 12px; background: #FAFAFA; border: 1px solid #F0F2F5; border-radius: 10px; font-size: 13px;">
+                <div style="font-weight: 700; color: #1A1A2E; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                  <i class="fa-solid fa-user-shield" style="color: #7C1D2E;"></i>
+                  {{ pi.parent.user?.firstName }} {{ pi.parent.user?.lastName }}
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px; color: #6B7280; font-size: 12.5px;">
+                  <span><i class="fa-solid fa-envelope"></i> {{ pi.parent.user?.email }}</span>
+                  <span><i class="fa-solid fa-phone"></i> {{ pi.parent.phone || 'Sin teléfono' }}</span>
+                  <span><i class="fa-solid fa-location-dot"></i> {{ pi.parent.address || 'Sin dirección' }}</span>
+                </div>
+              </div>
+            } @else {
+              <p class="drawer-empty">Sin tutor asignado actualmente</p>
+            }
+          } @else {
+            <p class="drawer-empty">Cargando información de tutor...</p>
+          }
+
+          @if (isAdmin) {
+            <div style="margin-top: 12px;">
+              <label class="field-label" style="font-size:12px; margin-bottom:4px; display:block;">Asignar o Cambiar Tutor:</label>
+              <select
+                class="field-input"
+                #parentSelect
+                [disabled]="assigningParent()"
+                (change)="assignParent(parentSelect.value)">
+                <option value="">-- Seleccionar Tutor --</option>
+                @for (p of parentsList(); track p.id) {
+                  <option [value]="p.id">
+                    {{ p.user?.firstName }} {{ p.user?.lastName }} ({{ p.phone }})
+                  </option>
+                }
+              </select>
+            </div>
           }
         </div>
       }

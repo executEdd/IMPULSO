@@ -636,7 +636,7 @@ export class AttendanceService {
       return `${r.id},${dateStr},${studentName},${enrollmentId},${groupName},${subjectName},${status},${notes}`;
     });
 
-    const csvString = header + rows.join("\n");
+    const csvString = sep + header + rows.join("\n");
     return Buffer.from(csvString, "latin1");
   }
 

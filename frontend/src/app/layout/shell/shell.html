@@ -34,7 +34,7 @@
       <div class="user-ava">{{ initials }}</div>
       <div class="user-meta">
         <span class="user-name">{{ auth.fullName() }}</span>
-        <span class="user-role">{{ auth.user()?.role }}</span>
+        <span class="user-role">{{ roleLabel }}</span>
       </div>
       <button class="user-logout" (click)="auth.logout()" title="Cerrar sesión">
         <i class="fa-solid fa-right-from-bracket"></i>

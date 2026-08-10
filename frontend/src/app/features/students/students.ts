@@ -5,8 +5,7 @@ import { DatePipe } from '@angular/common';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AuthService } from '../../core/services/auth.service';
-
-const API = (import.meta as any).env.NG_APP_API_URL;
+import { API } from '../../core/config/api.config';
 
 @Component({
   selector: 'app-students',
@@ -25,12 +24,15 @@ export class StudentsComponent implements OnInit {
   search   = signal('');
 
   // ── Drawer de perfil ──
-  selected      = signal<any | null>(null);
-  drawerLoading = signal(false);
-  stats         = signal<{ absences: number; totalClasses: number; attendanceRate: string } | null>(null);
-  history       = signal<any[]>([]);
-  studentGrades = signal<any[]>([]);
-  resetting     = signal(false);
+  selected        = signal<any | null>(null);
+  drawerLoading   = signal(false);
+  stats           = signal<{ absences: number; totalClasses: number; attendanceRate: string } | null>(null);
+  history         = signal<any[]>([]);
+  studentGrades   = signal<any[]>([]);
+  parentInfo      = signal<any | null>(null);
+  parentsList     = signal<any[]>([]);
+  assigningParent = signal(false);
+  resetting       = signal(false);
 
   // ── Modal alta/edición ──
   modalOpen  = signal(false);
@@ -64,6 +66,10 @@ export class StudentsComponent implements OnInit {
 
   ngOnInit() { this.fetchAll(); }
 
+  exportCsv() {
+    window.open(`${API}/users/export/students/csv`, '_blank');
+  }
+
   fetchAll() {
     this.http.get<any[]>(`${API}/users`).subscribe({
       next: users => {
@@ -84,16 +90,40 @@ export class StudentsComponent implements OnInit {
     this.stats.set(null);
     this.history.set([]);
     this.studentGrades.set([]);
+    this.parentInfo.set(null);
 
     forkJoin({
-      stats:   this.http.get<any>(`${API}/attendance/stats/student/${s.id}`).pipe(catchError(() => of(null))),
-      history: this.http.get<any[]>(`${API}/attendance/student/${s.id}`).pipe(catchError(() => of([]))),
-      grades:  this.http.get<any[]>(`${API}/grades/student/${s.id}`).pipe(catchError(() => of([]))),
-    }).subscribe(({ stats, history, grades }) => {
+      stats:      this.http.get<any>(`${API}/attendance/stats/student/${s.id}`).pipe(catchError(() => of(null))),
+      history:    this.http.get<any[]>(`${API}/attendance/student/${s.id}`).pipe(catchError(() => of([]))),
+      grades:     this.http.get<any[]>(`${API}/grades/student/${s.id}`).pipe(catchError(() => of([]))),
+      parentInfo: this.http.get<any>(`${API}/users/students/${s.id}/parent-info`).pipe(catchError(() => of(null))),
+      parents:    this.http.get<any[]>(`${API}/users/parents`).pipe(catchError(() => of([]))),
+    }).subscribe(({ stats, history, grades, parentInfo, parents }) => {
       this.stats.set(stats);
       this.history.set((history ?? []).slice(0, 10));
       this.studentGrades.set(grades ?? []);
+      this.parentInfo.set(parentInfo);
+      this.parentsList.set(parents ?? []);
       this.drawerLoading.set(false);
+    });
+  }
+
+  assignParent(parentIdStr: string) {
+    const parentId = Number(parentIdStr);
+    const s = this.selected();
+    if (!s || !parentId || this.assigningParent()) return;
+
+    this.assigningParent.set(true);
+    this.http.put(`${API}/users/students/${s.id}/parent/${parentId}`, {}).subscribe({
+      next: (res: any) => {
+        this.assigningParent.set(false);
+        this.parentInfo.set(res);
+        this.showToast('Tutor asignado con éxito', true);
+      },
+      error: (err) => {
+        this.assigningParent.set(false);
+        this.showToast(err?.error?.message ?? 'Error al asignar tutor', false);
+      }
     });
   }
 
