@@ -18,16 +18,22 @@ async function bootstrap() {
   app.use(compression());
   app.use(cookieParser());
 
+  const isProduction = process.env.NODE_ENV === "production";
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:4200";
   const allowedOrigins = frontendUrl.split(",").map((o) => o.trim());
 
   app.enableCors({
     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      const isVercelProjectPreview =
+        !!origin &&
+        origin.startsWith("https://impulso-cbtis61-") &&
+        origin.endsWith(".vercel.app");
+
       if (
-        !origin ||
-        allowedOrigins.indexOf(origin) !== -1 ||
-        origin.endsWith(".vercel.app") ||
-        origin.startsWith("http://localhost:") ||
+        (!origin && !isProduction) ||
+        (!!origin && allowedOrigins.indexOf(origin) !== -1) ||
+        isVercelProjectPreview ||
+        origin?.startsWith("http://localhost:") ||
         origin === "https://localhost" ||
         origin === "capacitor://localhost"
       ) {

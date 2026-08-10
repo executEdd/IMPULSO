@@ -1,11 +1,6 @@
-import {
-  Controller,
-  Post,
-  Body,
-  Get,
-  Res,
-} from "@nestjs/common";
+import { Controller, Post, Body, Get, Res } from "@nestjs/common";
 import { Response } from "express";
+import { SkipThrottle, Throttle } from "@nestjs/throttler";
 import {
   ApiTags,
   ApiOperation,
@@ -30,6 +25,7 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 300000, blockDuration: 300000 } })
   @Post("login")
   @ApiOperation({ summary: "Iniciar sesión" })
   @ApiCreatedResponse({
@@ -50,7 +46,7 @@ export class AuthController {
       maxAge: ONE_DAY_MS,
     });
 
-    return { user };
+    return { accessToken, user };
   }
 
   @Post("logout")
@@ -63,6 +59,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 300000, blockDuration: 300000 } })
   @Post("register")
   @ApiOperation({ summary: "Registrar nuevo usuario" })
   @ApiCreatedResponse({ description: "Usuario registrado exitosamente." })
@@ -88,6 +85,7 @@ export class AuthController {
   }
 
   @Public()
+  @SkipThrottle()
   @Get("health")
   @ApiOperation({ summary: "Verificar estado del servidor y la base de datos" })
   async health() {

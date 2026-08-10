@@ -9,6 +9,7 @@ import {
   ForbiddenException,
   BadRequestException,
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import {
   ApiTags,
   ApiOperation,
@@ -172,6 +173,7 @@ export class NotificationsController {
   }
 
   @Post("send-manual")
+  @Throttle({ default: { limit: 20, ttl: 60000, blockDuration: 60000 } })
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: "Enviar notificación manual a padre de familia" })
   @ApiBody({ type: SendManualNotificationDto })
