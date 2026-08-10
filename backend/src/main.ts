@@ -24,15 +24,13 @@ async function bootstrap() {
 
   app.enableCors({
     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-      const isVercelProjectPreview =
-        !!origin &&
-        origin.startsWith("https://impulso-cbtis61-") &&
-        origin.endsWith(".vercel.app");
+      const isVercelDeployment =
+        !!origin && origin.endsWith(".vercel.app");
 
       if (
         (!origin && !isProduction) ||
         (!!origin && allowedOrigins.indexOf(origin) !== -1) ||
-        isVercelProjectPreview ||
+        isVercelDeployment ||
         origin?.startsWith("http://localhost:") ||
         origin === "https://localhost" ||
         origin === "capacitor://localhost"
