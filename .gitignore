@@ -1,9 +1,4 @@
 ### Node ###
-.agents/
-.claude/
-Claude/
-.opencode/
-
 # Logs
 logs
 *.log
