@@ -2,8 +2,8 @@
 
   <header class="page-hd">
     <div>
-      <h1>Centro de Notificaciones</h1>
-      <p>Historial de mensajes, envío de avisos y preferencias de alertas</p>
+      <h1>{{ pageTitle }}</h1>
+      <p>{{ pageSubtitle }}</p>
     </div>
     <div class="hd-meta">
       <div class="tab-pills">
@@ -14,13 +14,15 @@
           <i class="fa-solid fa-clock-rotate-left"></i>
           Historial
         </button>
-        <button
-          class="tab-btn"
-          [class.active]="activeTab() === 'send'"
-          (click)="activeTab.set('send')">
-          <i class="fa-solid fa-paper-plane"></i>
-          Enviar Aviso
-        </button>
+        @if (canSend) {
+          <button
+            class="tab-btn"
+            [class.active]="activeTab() === 'send'"
+            (click)="activeTab.set('send')">
+            <i class="fa-solid fa-paper-plane"></i>
+            Enviar Aviso
+          </button>
+        }
         <button
           class="tab-btn"
           [class.active]="activeTab() === 'preferences'"

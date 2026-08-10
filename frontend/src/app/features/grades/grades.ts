@@ -61,21 +61,41 @@ export class GradesComponent implements OnInit {
   });
 
   get isAdmin()   { return this.auth.user()?.role === 'ADMIN'; }
+  get isTeacher() { return this.auth.user()?.role === 'TEACHER'; }
+  get isStudent() { return this.auth.user()?.role === 'STUDENT'; }
+  get isParent()  { return this.auth.user()?.role === 'PARENT'; }
   get canEdit()   { const r = this.auth.user()?.role; return r === 'ADMIN' || r === 'TEACHER'; }
+
+  /** Título y subtítulo del encabezado según rol */
+  get pageTitle(): string {
+    if (this.isStudent) return 'Mis Calificaciones';
+    if (this.isParent)  return 'Boleta de mi Hijo/a';
+    if (this.isTeacher) return 'Calificaciones';
+    return 'Calificaciones';
+  }
+  get pageSubtitle(): string {
+    if (this.isStudent) return 'Consulta tus parciales y promedio por materia';
+    if (this.isParent)  return 'Revisa el desempeño académico de tu hijo/a por materia y parcial';
+    if (this.isTeacher) return 'Captura y consulta parciales por alumno y materia';
+    return 'Consulta y captura de parciales por alumno y materia';
+  }
 
   ngOnInit() {
     this.fetchGrades();
-    this.http.get<any[]>(`${API}/users`).subscribe({
-      next: users => this.students.set(
-        users.filter(u => u.role === 'STUDENT' && u.studentProfile)
-             .map(u => ({ id: u.studentProfile.id, name: `${u.firstName} ${u.lastName}` }))
-      ),
-      error: () => {}
-    });
-    this.http.get<any[]>(`${API}/subjects`).subscribe({
-      next: subjects => this.subjects.set(subjects),
-      error: () => {}
-    });
+    // Solo admin/maestro necesitan catálogos para capturar
+    if (this.canEdit) {
+      this.http.get<any[]>(`${API}/users`).subscribe({
+        next: users => this.students.set(
+          users.filter(u => u.role === 'STUDENT' && u.studentProfile)
+               .map(u => ({ id: u.studentProfile.id, name: `${u.firstName} ${u.lastName}` }))
+        ),
+        error: () => {}
+      });
+      this.http.get<any[]>(`${API}/subjects`).subscribe({
+        next: subjects => this.subjects.set(subjects),
+        error: () => {}
+      });
+    }
   }
 
   exportCsv() {
@@ -83,9 +103,24 @@ export class GradesComponent implements OnInit {
   }
 
   fetchGrades() {
-    this.http.get<any[]>(`${API}/grades`).subscribe({
+    const user = this.auth.user();
+    let url = `${API}/grades`;
+
+    if (this.isStudent) {
+      const studentId = user?.studentProfile?.id;
+      if (studentId) {
+        url = `${API}/grades/student/${studentId}`;
+      }
+    } else if (this.isParent) {
+      const childId = user?.parentProfile?.children?.[0]?.id;
+      if (childId) {
+        url = `${API}/grades/student/${childId}`;
+      }
+    }
+
+    this.http.get<any[]>(url).subscribe({
       next: data => {
-        this.all.set(data);
+        this.all.set(Array.isArray(data) ? data : []);
         this.loading.set(false);
       },
       error: () => this.loading.set(false)

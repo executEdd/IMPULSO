@@ -24,6 +24,25 @@ export class AuthService {
     return u ? `${u.firstName} ${u.lastName}` : '';
   });
 
+  constructor() {
+    if (this._token()) {
+      this.fetchProfile();
+    }
+  }
+
+  fetchProfile() {
+    if (!this._token()) return;
+    this.http.get<User>(`${API}/auth/profile`).subscribe({
+      next: fullUser => {
+        if (fullUser && fullUser.id) {
+          localStorage.setItem(USER_KEY, JSON.stringify(fullUser));
+          this._user.set(fullUser);
+        }
+      },
+      error: () => {}
+    });
+  }
+
   login(payload: LoginPayload) {
     return this.http.post<AuthResponse>(`${API}/auth/login`, payload).pipe(
       tap(res => {
@@ -31,6 +50,7 @@ export class AuthService {
         localStorage.setItem(USER_KEY, JSON.stringify(res.user));
         this._token.set(res.accessToken);
         this._user.set(res.user);
+        this.fetchProfile();
       })
     );
   }

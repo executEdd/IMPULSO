@@ -199,6 +199,25 @@
 
       </form>
 
+      <!-- Roles de Acceso Rápido -->
+      <div class="demo-roles-wrap">
+        <span class="demo-title">Acceso rápido por Rol:</span>
+        <div class="role-pills">
+          <button type="button" class="role-pill admin" (click)="fillRole('ADMIN')">
+            <i class="fa-solid fa-user-shield"></i> Admin
+          </button>
+          <button type="button" class="role-pill teacher" (click)="fillRole('TEACHER')">
+            <i class="fa-solid fa-chalkboard-user"></i> Docente
+          </button>
+          <button type="button" class="role-pill student" (click)="fillRole('STUDENT')">
+            <i class="fa-solid fa-user-graduate"></i> Alumno
+          </button>
+          <button type="button" class="role-pill parent" (click)="fillRole('PARENT')">
+            <i class="fa-solid fa-users"></i> Padre
+          </button>
+        </div>
+      </div>
+
       <p class="help-txt">¿Problemas para acceder? <a href="#">Contacta a administración</a></p>
 
     </div>

@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { API } from '../../core/config/api.config';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-notifications',
@@ -14,6 +15,23 @@ import { API } from '../../core/config/api.config';
 export class NotificationsComponent implements OnInit {
   private http = inject(HttpClient);
   private fb   = inject(FormBuilder);
+  auth = inject(AuthService);
+
+  get canSend() { const r = this.auth.user()?.role; return r === 'ADMIN' || r === 'TEACHER'; }
+  get isStudent() { return this.auth.user()?.role === 'STUDENT'; }
+  get isParent()  { return this.auth.user()?.role === 'PARENT'; }
+
+  get pageTitle(): string {
+    if (this.isStudent) return 'Mis Avisos y Alertas';
+    if (this.isParent)  return 'Avisos e Informes Escolares';
+    return 'Centro de Notificaciones';
+  }
+
+  get pageSubtitle(): string {
+    if (this.isStudent) return 'Consulta tus avisos recibidos y gestiona tus alertas';
+    if (this.isParent)  return 'Consulta comunicaciones oficiales y comunicados de la institución';
+    return 'Historial de mensajes, envío de avisos y preferencias de alertas';
+  }
 
   loading       = signal(true);
   sending       = signal(false);

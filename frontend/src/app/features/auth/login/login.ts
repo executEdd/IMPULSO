@@ -23,6 +23,18 @@ export class LoginComponent {
   errorMsg = signal('');
   showPass = signal(false);
 
+  fillRole(role: 'ADMIN' | 'TEACHER' | 'STUDENT' | 'PARENT') {
+    const creds = {
+      ADMIN:   { email: 'subdirector@cbtis61.edu.mx', password: 'admin123' },
+      TEACHER: { email: 'juan.perez@cbtis61.edu.mx',  password: 'teacher123' },
+      STUDENT: { email: 'alumno1@cbtis61.edu.mx',     password: 'student123' },
+      PARENT:  { email: 'padre1@email.com',            password: 'parent123' }
+    };
+    const c = creds[role];
+    this.form.patchValue({ email: c.email, password: c.password });
+    this.submit();
+  }
+
   submit() {
     if (this.form.invalid || this.loading()) return;
     this.errorMsg.set('');

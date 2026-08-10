@@ -50,7 +50,23 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   toastMsg = signal('');
   toastOk  = signal(true);
 
-  get canMark() { const r = this.auth.user()?.role; return r === 'ADMIN' || r === 'TEACHER'; }
+  get isAdmin()   { return this.auth.user()?.role === 'ADMIN'; }
+  get isTeacher() { return this.auth.user()?.role === 'TEACHER'; }
+  get isStudent() { return this.auth.user()?.role === 'STUDENT'; }
+  get isParent()  { return this.auth.user()?.role === 'PARENT'; }
+  get canMark()   { const r = this.auth.user()?.role; return r === 'ADMIN' || r === 'TEACHER'; }
+
+  get pageTitle(): string {
+    if (this.isStudent) return 'Mi Asistencia';
+    if (this.isParent)  return 'Asistencia de mi Hijo/a';
+    return 'Asistencia';
+  }
+  get pageSubtitle(): string {
+    if (this.isStudent) return 'Revisa tu historial de asistencia por materia y fecha';
+    if (this.isParent)  return 'Consulta el registro de entrada y asistencia de tu hijo/a';
+    if (this.isTeacher) return 'Toma asistencia de tus grupos mediante QR o pase de lista manual';
+    return 'Historial de registros y pase de lista por QR';
+  }
 
   ngOnInit() {
     this.fetchRecords();
@@ -74,8 +90,23 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   }
 
   fetchRecords() {
-    this.http.get<any[]>(`${API}/attendance`).subscribe({
-      next: data => { this.records.set(data); this.loading.set(false); },
+    const user = this.auth.user();
+    let url = `${API}/attendance`;
+
+    if (this.isStudent) {
+      const studentId = user?.studentProfile?.id;
+      if (studentId) {
+        url = `${API}/attendance/student/${studentId}`;
+      }
+    } else if (this.isParent) {
+      const childId = user?.parentProfile?.children?.[0]?.id;
+      if (childId) {
+        url = `${API}/attendance/student/${childId}`;
+      }
+    }
+
+    this.http.get<any[]>(url).subscribe({
+      next: data => { this.records.set(data ?? []); this.loading.set(false); },
       error: () => this.loading.set(false)
     });
   }
