@@ -58,7 +58,9 @@ async function bootstrap() {
   if (process.env.NODE_ENV !== "production") {
     const config = new DocumentBuilder()
       .setTitle("CBTIS 61 - Sistema de Gestión Académica")
-      .setDescription("API RESTful para el Sistema de Gestión Académica y Seguimiento de Alumnos del CBTIS 61")
+      .setDescription(
+        "API RESTful para el Sistema de Gestión Académica y Seguimiento de Alumnos del CBTIS 61",
+      )
       .setVersion("1.0.0")
       .addBearerAuth()
       .addTag("Autenticación")
