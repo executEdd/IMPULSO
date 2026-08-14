@@ -223,12 +223,24 @@ async function main() {
             create: { phone: "555-0303", address: "Calle Hidalgo #789, Ciudad" },
           },
         },
+        {
+          email: "padre4@email.com",
+          password: parentPassword,
+          firstName: "Patricia",
+          lastName: "Mendoza Ruiz",
+          role: UserRole.PARENT,
+          parentProfile: {
+            create: { phone: "555-0304", address: "Av. Reforma #321, Ciudad" },
+          },
+        },
       ]) {
         parents.push(await tx.user.create({ data: p }));
       }
       console.log("Padres de familia creados");
 
       // Alumnos
+      // Distribución pensada para que varios padres tengan hijos en 3A y 3B,
+      // facilitando pruebas de notificaciones agrupadas por familia.
       const students = [];
       for (const s of [
         {
@@ -240,7 +252,7 @@ async function main() {
           studentProfile: {
             create: {
               enrollmentId: "2024-001",
-              groupId: groups[0].id,
+              groupId: groups[0].id, // 3A
               parentId: (await tx.parentProfile.findUnique({ where: { userId: parents[0].id } }))!.id,
               phone: "246-100-0001",
               semaphore: SemaphoreStatus.GREEN,
@@ -256,7 +268,7 @@ async function main() {
           studentProfile: {
             create: {
               enrollmentId: "2024-002",
-              groupId: groups[0].id,
+              groupId: groups[0].id, // 3A
               parentId: (await tx.parentProfile.findUnique({ where: { userId: parents[1].id } }))!.id,
               phone: "246-100-0002",
               semaphore: SemaphoreStatus.GREEN,
@@ -267,13 +279,13 @@ async function main() {
           email: "alumno3@cbtis61.edu.mx",
           password: studentPassword,
           firstName: "Diego",
-          lastName: "Castillo Morales",
+          lastName: "Martínez Morales",
           role: UserRole.STUDENT,
           studentProfile: {
             create: {
               enrollmentId: "2024-003",
-              groupId: groups[1].id,
-              parentId: (await tx.parentProfile.findUnique({ where: { userId: parents[2].id } }))!.id,
+              groupId: groups[1].id, // 3B - hermano de alumno1
+              parentId: (await tx.parentProfile.findUnique({ where: { userId: parents[0].id } }))!.id,
               phone: "246-100-0003",
               semaphore: SemaphoreStatus.GREEN,
             },
@@ -283,13 +295,13 @@ async function main() {
           email: "alumno4@cbtis61.edu.mx",
           password: studentPassword,
           firstName: "Valentina",
-          lastName: "Hernández Silva",
+          lastName: "Díaz Silva",
           role: UserRole.STUDENT,
           studentProfile: {
             create: {
               enrollmentId: "2024-004",
-              groupId: groups[2].id,
-              parentId: (await tx.parentProfile.findUnique({ where: { userId: parents[0].id } }))!.id,
+              groupId: groups[1].id, // 3B - hermana de alumno2
+              parentId: (await tx.parentProfile.findUnique({ where: { userId: parents[1].id } }))!.id,
               phone: "246-100-0004",
               semaphore: SemaphoreStatus.GREEN,
             },
@@ -299,14 +311,62 @@ async function main() {
           email: "alumno5@cbtis61.edu.mx",
           password: studentPassword,
           firstName: "Mateo",
-          lastName: "García Torres",
+          lastName: "Castillo Torres",
           role: UserRole.STUDENT,
           studentProfile: {
             create: {
               enrollmentId: "2024-005",
-              groupId: groups[3].id,
-              parentId: (await tx.parentProfile.findUnique({ where: { userId: parents[1].id } }))!.id,
+              groupId: groups[0].id, // 3A
+              parentId: (await tx.parentProfile.findUnique({ where: { userId: parents[2].id } }))!.id,
               phone: "246-100-0005",
+              semaphore: SemaphoreStatus.GREEN,
+            },
+          },
+        },
+        {
+          email: "alumno6@cbtis61.edu.mx",
+          password: studentPassword,
+          firstName: "Isabella",
+          lastName: "Castillo Reyes",
+          role: UserRole.STUDENT,
+          studentProfile: {
+            create: {
+              enrollmentId: "2024-006",
+              groupId: groups[1].id, // 3B - hermana de alumno5
+              parentId: (await tx.parentProfile.findUnique({ where: { userId: parents[2].id } }))!.id,
+              phone: "246-100-0006",
+              semaphore: SemaphoreStatus.GREEN,
+            },
+          },
+        },
+        {
+          email: "alumno7@cbtis61.edu.mx",
+          password: studentPassword,
+          firstName: "Sebastián",
+          lastName: "Mendoza López",
+          role: UserRole.STUDENT,
+          studentProfile: {
+            create: {
+              enrollmentId: "2024-007",
+              groupId: groups[2].id, // 4A
+              parentId: (await tx.parentProfile.findUnique({ where: { userId: parents[3].id } }))!.id,
+              phone: "246-100-0007",
+              semaphore: SemaphoreStatus.GREEN,
+            },
+          },
+        },
+        {
+          email: "alumno8@cbtis61.edu.mx",
+          password: studentPassword,
+          firstName: "Camila",
+          lastName: "Mendoza López",
+          role: UserRole.STUDENT,
+          studentProfile: {
+            create: {
+              enrollmentId: "2024-008",
+              groupId: groups[3].id, // 5A
+              parentId: (await tx.parentProfile.findUnique({ where: { userId: parents[3].id } }))!.id,
+              phone: "246-100-0008",
               semaphore: SemaphoreStatus.GREEN,
             },
           },
@@ -351,144 +411,156 @@ async function main() {
       });
       console.log("Materias asignadas a docentes");
 
-      // Clases y Horarios (con todos los días de lunes a viernes)
-const teacherProfiles = await tx.teacherProfile.findMany();
-const teacherMap = new Map(teacherProfiles.map((t) => [t.userId, t.id]));
+      // Clases y Horarios (lunes a viernes)
+      const teacherProfiles = await tx.teacherProfile.findMany();
+      const teacherMap = new Map(teacherProfiles.map((t) => [t.userId, t.id]));
 
-const daysOfWeek = [
-  DayOfWeek.MONDAY,
-  DayOfWeek.TUESDAY,
-  DayOfWeek.WEDNESDAY,
-  DayOfWeek.THURSDAY,
-  DayOfWeek.FRIDAY,
-];
+      const daysOfWeek = [
+        DayOfWeek.MONDAY,
+        DayOfWeek.TUESDAY,
+        DayOfWeek.WEDNESDAY,
+        DayOfWeek.THURSDAY,
+        DayOfWeek.FRIDAY,
+      ];
 
-const timeSlots = [
-  { start: "07:00", end: "08:30" },
-  { start: "08:30", end: "10:00" },
-  { start: "10:00", end: "11:30" },
-  { start: "11:30", end: "13:00" },
-  { start: "13:00", end: "14:30" },
-];
+      const timeSlots = [
+        { start: "07:00", end: "08:30" },
+        { start: "08:30", end: "10:00" },
+        { start: "10:00", end: "11:30" },
+        { start: "11:30", end: "13:00" },
+        { start: "13:00", end: "14:30" },
+      ];
 
-// Definición de las clases (sin horarios fijos)
-const classDefinitions = [
-  {
-    subjectId: subjects[0].id,
-    teacherId: teacherMap.get(teachers[0].id)!,
-    groupId: groups[0].id,
-    semesterId: semester.id,
-    classroomId: classroomMap.get("A-101")!,
-  },
-  {
-    subjectId: subjects[1].id,
-    teacherId: teacherMap.get(teachers[2].id)!,
-    groupId: groups[0].id,
-    semesterId: semester.id,
-    classroomId: classroomMap.get("A-101")!,
-  },
-  {
-    subjectId: subjects[2].id,
-    teacherId: teacherMap.get(teachers[1].id)!,
-    groupId: groups[0].id,
-    semesterId: semester.id,
-    classroomId: classroomMap.get("LAB-1")!,
-  },
-  {
-    subjectId: subjects[4].id,
-    teacherId: teacherMap.get(teachers[3].id)!,
-    groupId: groups[0].id,
-    semesterId: semester.id,
-    classroomId: classroomMap.get("A-101")!,
-  },
-  {
-    subjectId: subjects[3].id,
-    teacherId: teacherMap.get(teachers[1].id)!,
-    groupId: groups[0].id,
-    semesterId: semester.id,
-    classroomId: classroomMap.get("LAB-2")!,
-  },
-  {
-    subjectId: subjects[5].id,
-    teacherId: teacherMap.get(teachers[0].id)!,
-    groupId: groups[0].id,
-    semesterId: semester.id,
-    classroomId: classroomMap.get("A-101")!,
-  },
-  {
-    subjectId: subjects[0].id,
-    teacherId: teacherMap.get(teachers[0].id)!,
-    groupId: groups[1].id,
-    semesterId: semester.id,
-    classroomId: classroomMap.get("A-102")!,
-  },
-  {
-    subjectId: subjects[1].id,
-    teacherId: teacherMap.get(teachers[2].id)!,
-    groupId: groups[1].id,
-    semesterId: semester.id,
-    classroomId: classroomMap.get("A-102")!,
-  },
-  {
-    subjectId: subjects[7].id,
-    teacherId: teacherMap.get(teachers[3].id)!,
-    groupId: groups[2].id,
-    semesterId: semester.id,
-    classroomId: classroomMap.get("B-201")!,
-  },
-  {
-    subjectId: subjects[0].id,
-    teacherId: teacherMap.get(teachers[0].id)!,
-    groupId: groups[2].id,
-    semesterId: semester.id,
-    classroomId: classroomMap.get("B-201")!,
-  },
-];
+      // Materias compartidas entre 3A y 3B (mismo grado/carrera, mismos maestros)
+      const programmingSubjects = [
+        { subjectId: subjects[0].id, teacherId: teacherMap.get(teachers[0].id)!, slotIndex: 0, classroom: "A-101" }, // Matemáticas IV
+        { subjectId: subjects[1].id, teacherId: teacherMap.get(teachers[2].id)!, slotIndex: 1, classroom: "A-101" }, // Física III
+        { subjectId: subjects[2].id, teacherId: teacherMap.get(teachers[1].id)!, slotIndex: 2, classroom: "LAB-1" }, // Programación Web
+        { subjectId: subjects[4].id, teacherId: teacherMap.get(teachers[3].id)!, slotIndex: 3, classroom: "A-101" }, // Inglés IV
+        { subjectId: subjects[3].id, teacherId: teacherMap.get(teachers[1].id)!, slotIndex: 4, classroom: "LAB-2" }, // Base de Datos
+        { subjectId: subjects[5].id, teacherId: teacherMap.get(teachers[0].id)!, slotIndex: 0, classroom: "A-101" }, // Ética Profesional
+      ];
 
-// Crear cada clase con sus horarios (uno por día, rotando bloques)
-for (let i = 0; i < classDefinitions.length; i++) {
-  const def = classDefinitions[i];
-  await tx.class.create({
-    data: {
-      ...def,
-      schedules: {
-        create: daysOfWeek.map((day, dayIndex) => {
-          // Rotar el bloque horario según el índice de la clase y el día
-          const slotIndex = (i + dayIndex) % timeSlots.length;
-          const slot = timeSlots[slotIndex];
-          return {
-            dayOfWeek: day,
-            startTime: slot.start,
-            endTime: slot.end,
-            classroomId: def.classroomId,
-          };
-        }),
-      },
-    },
-  });
-}
-console.log("Clases y Horarios creados (lunes a viernes)");
+      // Definición de las clases por grupo (aula base para cada grupo)
+      const classDefinitions: Array<{
+        subjectId: number;
+        teacherId: number;
+        groupId: number;
+        semesterId: number;
+        classroomId: number;
+        slotIndex: number;
+      }> = [];
 
-      // Calificaciones Iniciales para Alumno 1
-      const firstStudent = await tx.studentProfile.findFirst({
-        where: { user: { email: "alumno1@cbtis61.edu.mx" } },
-      });
-
-      if (firstStudent) {
-        await tx.grade.createMany({
-          data: [
-            { studentId: firstStudent.id, subjectId: subjects[0].id, partial1: 8.5, partial2: 9.0, partial3: 9.5, finalGrade: 9.0, status: GradeStatus.EXCELLENT, period: '2025-2026A' },
-            { studentId: firstStudent.id, subjectId: subjects[1].id, partial1: 7.8, partial2: 8.2, partial3: 8.6, finalGrade: 8.2, status: GradeStatus.REGULAR, period: '2025-2026A' },
-            { studentId: firstStudent.id, subjectId: subjects[2].id, partial1: 9.5, partial2: 9.8, partial3: 10.0, finalGrade: 9.8, status: GradeStatus.EXCELLENT, period: '2025-2026A' },
-            { studentId: firstStudent.id, subjectId: subjects[3].id, partial1: 8.7, partial2: 8.8, partial3: 9.2, finalGrade: 8.9, status: GradeStatus.REGULAR, period: '2025-2026A' },
-            { studentId: firstStudent.id, subjectId: subjects[4].id, partial1: 10.0, partial2: 10.0, partial3: 10.0, finalGrade: 10.0, status: GradeStatus.EXCELLENT, period: '2025-2026A' },
-            { studentId: firstStudent.id, subjectId: subjects[5].id, partial1: 9.0, partial2: 8.9, partial3: 9.4, finalGrade: 9.1, status: GradeStatus.EXCELLENT, period: '2025-2026A' },
-            { studentId: firstStudent.id, subjectId: subjects[6].id, partial1: 8.0, partial2: 8.5, partial3: 8.9, finalGrade: 8.5, status: GradeStatus.REGULAR, period: '2025-2026A' },
-            { studentId: firstStudent.id, subjectId: subjects[7].id, partial1: 9.2, partial2: 9.1, partial3: 9.6, finalGrade: 9.3, status: GradeStatus.EXCELLENT, period: '2025-2026A' },
-          ],
-          skipDuplicates: true,
+      // 3A - Programación (A-101)
+      for (const s of programmingSubjects) {
+        classDefinitions.push({
+          subjectId: s.subjectId,
+          teacherId: s.teacherId,
+          groupId: groups[0].id,
+          semesterId: semester.id,
+          classroomId: classroomMap.get(s.classroom)!,
+          slotIndex: s.slotIndex,
         });
-        console.log("Calificaciones iniciales creadas para alumno1@cbtis61.edu.mx");
+      }
+
+      // 3B - Programación (A-102): mismas materias, maestros y horarios que 3A, aula distinta
+      for (const s of programmingSubjects) {
+        const classroom3B = s.classroom === "LAB-1" ? "LAB-1" : s.classroom === "LAB-2" ? "LAB-2" : "A-102";
+        classDefinitions.push({
+          subjectId: s.subjectId,
+          teacherId: s.teacherId,
+          groupId: groups[1].id,
+          semesterId: semester.id,
+          classroomId: classroomMap.get(classroom3B)!,
+          slotIndex: s.slotIndex,
+        });
+      }
+
+      // 4A - Contabilidad (B-201)
+      classDefinitions.push(
+        {
+          subjectId: subjects[7].id,
+          teacherId: teacherMap.get(teachers[3].id)!,
+          groupId: groups[2].id,
+          semesterId: semester.id,
+          classroomId: classroomMap.get("B-201")!,
+          slotIndex: 0,
+        },
+        {
+          subjectId: subjects[0].id,
+          teacherId: teacherMap.get(teachers[0].id)!,
+          groupId: groups[2].id,
+          semesterId: semester.id,
+          classroomId: classroomMap.get("B-201")!,
+          slotIndex: 1,
+        }
+      );
+
+      // Crear cada clase con sus horarios (uno por día, en el mismo bloque)
+      for (const def of classDefinitions) {
+        const slot = timeSlots[def.slotIndex];
+        await tx.class.create({
+          data: {
+            subjectId: def.subjectId,
+            teacherId: def.teacherId,
+            groupId: def.groupId,
+            semesterId: def.semesterId,
+            classroomId: def.classroomId,
+            schedules: {
+              create: daysOfWeek.map((day) => ({
+                dayOfWeek: day,
+                startTime: slot.start,
+                endTime: slot.end,
+                classroomId: def.classroomId,
+              })),
+            },
+          },
+        });
+      }
+      console.log("Clases y Horarios creados (lunes a viernes)");
+
+      // Calificaciones Iniciales para alumnos de 3A y 3B
+      // Solo se crean para las materias que efectivamente cursan (índices 0-5).
+      const programmingSubjectIds = [subjects[0], subjects[1], subjects[2], subjects[3], subjects[4], subjects[5]];
+
+      const seedGrades = [
+        {
+          email: "alumno1@cbtis61.edu.mx",
+          grades: [8.5, 7.8, 9.5, 8.7, 10.0, 9.0],
+        },
+        {
+          email: "alumno3@cbtis61.edu.mx",
+          grades: [8.0, 8.3, 9.0, 8.5, 9.5, 8.8],
+        },
+      ];
+
+      for (const entry of seedGrades) {
+        const student = await tx.studentProfile.findFirst({
+          where: { user: { email: entry.email } },
+        });
+
+        if (student) {
+          const gradeData = programmingSubjectIds.map((subject, index) => {
+            const final = entry.grades[index];
+            let status: GradeStatus = GradeStatus.REGULAR;
+            if (final >= 9.0) status = GradeStatus.EXCELLENT;
+            else if (final < 6.0) status = GradeStatus.IRREGULAR;
+
+            return {
+              studentId: student.id,
+              subjectId: subject.id,
+              partial1: Number((final - 0.5 + Math.random() * 0.3).toFixed(1)),
+              partial2: Number((final - 0.2 + Math.random() * 0.3).toFixed(1)),
+              partial3: Number((final + 0.1 + Math.random() * 0.3).toFixed(1)),
+              finalGrade: final,
+              status,
+              period: "2025-2026A",
+            };
+          });
+
+          await tx.grade.createMany({ data: gradeData, skipDuplicates: true });
+          console.log(`Calificaciones iniciales creadas para ${entry.email}`);
+        }
       }
     }, { timeout: 30000 });
 
