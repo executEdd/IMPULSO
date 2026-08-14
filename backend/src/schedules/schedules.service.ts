@@ -7,6 +7,7 @@ import {
 import { PrismaService } from "../prisma.service";
 import { CreateScheduleDto } from "./dto/create-schedule.dto";
 import { UpdateScheduleDto } from "./dto/update-schedule.dto";
+import { UserRole } from "../common/enums/roles.enum";
 
 @Injectable()
 export class SchedulesService {
@@ -241,26 +242,64 @@ export class SchedulesService {
     });
   }
 
-  async findAll() {
-    return this.prisma.classSchedule.findMany({
-      include: {
-        class: {
-          include: {
-            subject: true,
-            teacher: {
-              include: {
-                user: { select: { firstName: true, lastName: true } },
-              },
+  async findAll(user: any, groupId?: number) {
+    const include = {
+      class: {
+        include: {
+          subject: true,
+          teacher: {
+            include: {
+              user: { select: { firstName: true, lastName: true } },
             },
-            group: true,
-            semester: true,
-            classroom: true,
           },
+          group: true,
+          semester: true,
+          classroom: true,
         },
-        classroom: true,
       },
-      orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
-    });
+      classroom: true,
+    };
+
+    switch (user.role) {
+      case UserRole.STUDENT:
+        return this.findByGroup(user.studentProfile?.groupId);
+
+      case UserRole.PARENT: {
+        const childrenGroupIds = await this.prisma.studentProfile.findMany({
+          where: { parentId: user.parentProfile?.id },
+          select: { groupId: true },
+        });
+        const groupIds = childrenGroupIds.map((c) => c.groupId);
+
+        if (groupId) {
+          if (!groupIds.includes(groupId)) {
+            throw new ForbiddenException(
+              "No autorizado para acceder a este grupo",
+            );
+          }
+          return this.findByGroup(groupId);
+        }
+
+        return this.prisma.classSchedule.findMany({
+          where: { class: { groupId: { in: groupIds } } },
+          include,
+          orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
+        });
+      }
+
+      case UserRole.TEACHER:
+        return this.findByTeacher(user.teacherProfile?.id);
+
+      case UserRole.ADMIN:
+      default:
+        if (groupId) {
+          return this.findByGroup(groupId);
+        }
+        return this.prisma.classSchedule.findMany({
+          include,
+          orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
+        });
+    }
   }
 
   async findOne(id: number) {
