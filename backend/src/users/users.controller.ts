@@ -25,6 +25,7 @@ import { UsersService } from "./users.service";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { Roles } from "../common/decorators/roles.decorator";
+import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { UserRole } from "../common/enums/roles.enum";
 
 @ApiTags("Usuarios")
@@ -63,6 +64,26 @@ export class UsersController {
   @ApiOkResponse({ description: "Listado de tutores recuperado exitosamente." })
   async findAllParents() {
     return this.usersService.findAllParents();
+  }
+
+  @Get("teachers")
+  @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT, UserRole.PARENT)
+  @ApiOperation({ summary: "Listar docentes" })
+  @ApiOkResponse({
+    description: "Listado de docentes recuperado exitosamente.",
+  })
+  async findTeachers() {
+    return this.usersService.findTeachers();
+  }
+
+  @Get("students")
+  @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT, UserRole.PARENT)
+  @ApiOperation({ summary: "Listar estudiantes según el rol del usuario" })
+  @ApiOkResponse({
+    description: "Listado de estudiantes recuperado exitosamente.",
+  })
+  async findStudents(@CurrentUser() user: { id: number; role: UserRole }) {
+    return this.usersService.findStudents(user);
   }
 
   @Get("students/:studentId/parent-info")
