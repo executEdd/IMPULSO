@@ -5,6 +5,7 @@ import {
   DayOfWeek,
   SemaphoreStatus,
   GradeStatus,
+  AttendanceStatus,
 } from "@prisma/client";
 import * as bcrypt from "bcryptjs";
 
@@ -26,6 +27,8 @@ async function main() {
       await tx.gradeLog.deleteMany();
       await tx.notification.deleteMany();
       await tx.alert.deleteMany();
+      await tx.pushSubscription.deleteMany();
+      await tx.notificationPreference.deleteMany();
       await tx.grade.deleteMany();
       await tx.attendance.deleteMany();
       await tx.classSchedule.deleteMany();
@@ -59,6 +62,8 @@ async function main() {
       await tx.$executeRawUnsafe('ALTER SEQUENCE IF EXISTS classes_id_seq RESTART WITH 1;');
       await tx.$executeRawUnsafe('ALTER SEQUENCE IF EXISTS classrooms_id_seq RESTART WITH 1;');
       await tx.$executeRawUnsafe('ALTER SEQUENCE IF EXISTS classes_schedules_id_seq RESTART WITH 1;');
+      await tx.$executeRawUnsafe('ALTER SEQUENCE IF EXISTS push_subscriptions_id_seq RESTART WITH 1;');
+      await tx.$executeRawUnsafe('ALTER SEQUENCE IF EXISTS notification_preferences_id_seq RESTART WITH 1;');
 
       console.log("Base de datos limpia y secuencias reiniciadas");
 
@@ -429,6 +434,7 @@ async function main() {
         { start: "10:00", end: "11:30" },
         { start: "11:30", end: "13:00" },
         { start: "13:00", end: "14:30" },
+        { start: "14:30", end: "16:00" },
       ];
 
       // Materias compartidas entre 3A y 3B (mismo grado/carrera, mismos maestros)
@@ -438,7 +444,7 @@ async function main() {
         { subjectId: subjects[2].id, teacherId: teacherMap.get(teachers[1].id)!, slotIndex: 2, classroom: "LAB-1" }, // Programación Web
         { subjectId: subjects[4].id, teacherId: teacherMap.get(teachers[3].id)!, slotIndex: 3, classroom: "A-101" }, // Inglés IV
         { subjectId: subjects[3].id, teacherId: teacherMap.get(teachers[1].id)!, slotIndex: 4, classroom: "LAB-2" }, // Base de Datos
-        { subjectId: subjects[5].id, teacherId: teacherMap.get(teachers[0].id)!, slotIndex: 0, classroom: "A-101" }, // Ética Profesional
+        { subjectId: subjects[5].id, teacherId: teacherMap.get(teachers[0].id)!, slotIndex: 5, classroom: "A-101" }, // Ética Profesional
       ];
 
       // Definición de las clases por grupo (aula base para cada grupo)
@@ -523,45 +529,123 @@ async function main() {
       // Solo se crean para las materias que efectivamente cursan (índices 0-5).
       const programmingSubjectIds = [subjects[0], subjects[1], subjects[2], subjects[3], subjects[4], subjects[5]];
 
-      const seedGrades = [
-        {
-          email: "alumno1@cbtis61.edu.mx",
-          grades: [8.5, 7.8, 9.5, 8.7, 10.0, 9.0],
-        },
-        {
-          email: "alumno3@cbtis61.edu.mx",
-          grades: [8.0, 8.3, 9.0, 8.5, 9.5, 8.8],
-        },
-      ];
+      const studentProfiles3A3B = await tx.studentProfile.findMany({
+        where: { groupId: { in: [groups[0].id, groups[1].id] } },
+        include: { user: true },
+      });
 
-      for (const entry of seedGrades) {
-        const student = await tx.studentProfile.findFirst({
-          where: { user: { email: entry.email } },
-        });
+      function clamp(num: number, min: number, max: number) {
+        return Math.min(max, Math.max(min, num));
+      }
 
-        if (student) {
-          const gradeData = programmingSubjectIds.map((subject, index) => {
-            const final = entry.grades[index];
-            let status: GradeStatus = GradeStatus.REGULAR;
-            if (final >= 9.0) status = GradeStatus.EXCELLENT;
-            else if (final < 6.0) status = GradeStatus.IRREGULAR;
+      function generatePartials(final: number) {
+        return {
+          partial1: clamp(Number((final - 0.4 + Math.random() * 0.8).toFixed(1)), 0, 10),
+          partial2: clamp(Number((final - 0.2 + Math.random() * 0.6).toFixed(1)), 0, 10),
+          partial3: clamp(Number((final - 0.1 + Math.random() * 0.5).toFixed(1)), 0, 10),
+        };
+      }
 
-            return {
-              studentId: student.id,
-              subjectId: subject.id,
-              partial1: Number((final - 0.5 + Math.random() * 0.3).toFixed(1)),
-              partial2: Number((final - 0.2 + Math.random() * 0.3).toFixed(1)),
-              partial3: Number((final + 0.1 + Math.random() * 0.3).toFixed(1)),
-              finalGrade: final,
-              status,
-              period: "2025-2026A",
-            };
+      const gradeOverrides: Record<string, number[]> = {
+        "alumno1@cbtis61.edu.mx": [8.5, 7.8, 9.5, 8.7, 10.0, 9.0],
+        "alumno2@cbtis61.edu.mx": [9.0, 8.5, 9.2, 8.8, 9.7, 9.5],
+        "alumno3@cbtis61.edu.mx": [8.0, 8.3, 9.0, 8.5, 9.5, 8.8],
+        "alumno4@cbtis61.edu.mx": [8.7, 8.0, 9.3, 8.6, 9.8, 9.2],
+        "alumno5@cbtis61.edu.mx": [7.5, 7.0, 8.5, 8.0, 8.8, 8.2],
+        "alumno6@cbtis61.edu.mx": [8.2, 7.9, 8.8, 8.4, 9.3, 8.9],
+      };
+
+      const defaultGrades = [8.0, 8.0, 8.0, 8.0, 8.0, 8.0];
+      const gradeData = [];
+
+      for (const student of studentProfiles3A3B) {
+        const grades = gradeOverrides[student.user.email] || defaultGrades;
+        for (let i = 0; i < programmingSubjectIds.length; i++) {
+          const final = grades[i];
+          let status: GradeStatus = GradeStatus.REGULAR;
+          if (final >= 9.0) status = GradeStatus.EXCELLENT;
+          else if (final < 6.0) status = GradeStatus.IRREGULAR;
+
+          const partials = generatePartials(final);
+
+          gradeData.push({
+            studentId: student.id,
+            subjectId: programmingSubjectIds[i].id,
+            ...partials,
+            finalGrade: final,
+            status,
+            period: "2025-2026A",
           });
-
-          await tx.grade.createMany({ data: gradeData, skipDuplicates: true });
-          console.log(`Calificaciones iniciales creadas para ${entry.email}`);
         }
       }
+
+      if (gradeData.length > 0) {
+        await tx.grade.createMany({ data: gradeData, skipDuplicates: true });
+        console.log(`Calificaciones iniciales creadas para ${studentProfiles3A3B.length} alumnos de 3A/3B`);
+      }
+
+      // Asistencias semilla para probar alertas y semáforo
+      const mathClass3A = await tx.class.findFirst({
+        where: { groupId: groups[0].id, subjectId: subjects[0].id },
+        include: { schedules: true },
+      });
+      const mathClass3B = await tx.class.findFirst({
+        where: { groupId: groups[1].id, subjectId: subjects[0].id },
+        include: { schedules: true },
+      });
+
+      function getRecentDateForDay(dayOfWeek: DayOfWeek): Date {
+        const dayMap: Record<DayOfWeek, number> = {
+          MONDAY: 1,
+          TUESDAY: 2,
+          WEDNESDAY: 3,
+          THURSDAY: 4,
+          FRIDAY: 5,
+          SATURDAY: 6,
+          SUNDAY: 0,
+        };
+        const targetDay = dayMap[dayOfWeek];
+        const today = new Date();
+        const diff = (today.getDay() - targetDay + 7) % 7;
+        const date = new Date(today);
+        date.setDate(today.getDate() - diff);
+        date.setHours(12, 0, 0, 0);
+        return date;
+      }
+
+      const studentProfileMap = new Map(studentProfiles3A3B.map((s) => [s.user.email, s]));
+
+      async function seedAbsences(studentEmail: string, cls: typeof mathClass3A, count: number) {
+        const student = studentProfileMap.get(studentEmail);
+        if (!student || !cls) return;
+        const schedules = cls.schedules.slice(0, count);
+        for (const schedule of schedules) {
+          await tx.attendance.create({
+            data: {
+              studentId: student.id,
+              classId: cls.id,
+              classScheduleId: schedule.id,
+              date: getRecentDateForDay(schedule.dayOfWeek),
+              status: AttendanceStatus.ABSENT,
+              notes: "Falta semilla para pruebas de alerta",
+            },
+          });
+        }
+      }
+
+      await seedAbsences("alumno1@cbtis61.edu.mx", mathClass3A, 3); // activa semáforo rojo
+      await seedAbsences("alumno3@cbtis61.edu.mx", mathClass3B, 2); // cerca del umbral
+
+      // Reflejar el semáforo rojo para el alumno con 3 faltas
+      const seedAlertStudent = studentProfileMap.get("alumno1@cbtis61.edu.mx");
+      if (seedAlertStudent) {
+        await tx.studentProfile.update({
+          where: { id: seedAlertStudent.id },
+          data: { semaphore: SemaphoreStatus.RED },
+        });
+      }
+
+      console.log("Asistencias semilla creadas");
     }, { timeout: 30000 });
 
     console.log("\n✅ Seed completado exitosamente!");
