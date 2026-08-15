@@ -992,7 +992,7 @@ async function main() {
       }
 
       console.log("Asistencias semilla creadas");
-    }, { timeout: 30000 });
+    }, { timeout: 300000 });
 
     console.log("\n✅ Seed completado exitosamente!");
     console.log("\n📋 Credenciales de prueba:");
