@@ -39,7 +39,6 @@ describe("Seed and DB integrity (e2e)", () => {
 
     // Execute npm.cmd run db:seed synchronously. Set timeout to 120000ms.
     const output = execSync("cmd /c npm.cmd run db:seed", {
-      cwd: "C:\\Users\\Ed\\Documents\\Develop\\Impulso\\app\\backend",
       timeout: 120000,
     }).toString();
 
