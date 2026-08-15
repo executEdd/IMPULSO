@@ -4,7 +4,9 @@ import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import compression from "compression";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
+import type { Request, Response, NextFunction } from "express";
 import { AppModule } from "./app.module";
+import { PrismaService } from "./prisma.service";
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 
 async function bootstrap() {
@@ -21,6 +23,45 @@ async function bootstrap() {
   const isProduction = process.env.NODE_ENV === "production";
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:4200";
   const allowedOrigins = frontendUrl.split(",").map((o) => o.trim());
+
+  // Health-check endpoint con CORS permisivo para monitoreo externo (UptimeRobot, etc.)
+  const prisma = app.get(PrismaService);
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const healthPaths = ["/auth/health", "/api/auth/health", "/health", "/api/health"];
+    if (!healthPaths.includes(req.path)) {
+      return next();
+    }
+
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept");
+
+    if (req.method === "OPTIONS") {
+      return res.sendStatus(204);
+    }
+
+    if (req.method === "GET" || req.method === "HEAD") {
+      prisma.$queryRaw`SELECT 1`
+        .then(() =>
+          res.json({
+            status: "ok",
+            database: "connected",
+            timestamp: new Date(),
+          }),
+        )
+        .catch((error: any) =>
+          res.status(503).json({
+            status: "error",
+            database: "disconnected",
+            error: error.message,
+            timestamp: new Date(),
+          }),
+        );
+      return;
+    }
+
+    next();
+  });
 
   app.enableCors({
     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
