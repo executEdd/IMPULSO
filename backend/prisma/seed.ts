@@ -93,8 +93,11 @@ async function main() {
         { name: "A-101", capacity: 40, description: "Aula del Edificio A" },
         { name: "A-102", capacity: 40, description: "Aula del Edificio A" },
         { name: "B-201", capacity: 40, description: "Aula del Edificio B" },
+        { name: "B-202", capacity: 40, description: "Aula del Edificio B" },
         { name: "C-301", capacity: 40, description: "Aula del Edificio C" },
+        { name: "C-302", capacity: 40, description: "Aula del Edificio C" },
         { name: "D-401", capacity: 40, description: "Aula del Edificio D" },
+        { name: "D-402", capacity: 40, description: "Aula del Edificio D" },
         { name: "LAB-1", capacity: 30, description: "Laboratorio de Cómputo 1" },
         { name: "LAB-2", capacity: 30, description: "Laboratorio de Cómputo 2" },
       ]) {
@@ -110,8 +113,11 @@ async function main() {
         { name: "3A - Programación", gradeLevel: 3, career: "Programación" },
         { name: "3B - Programación", gradeLevel: 3, career: "Programación" },
         { name: "4A - Contabilidad", gradeLevel: 4, career: "Contabilidad" },
+        { name: "4B - Contabilidad", gradeLevel: 4, career: "Contabilidad" },
         { name: "5A - Electrónica", gradeLevel: 5, career: "Electrónica" },
+        { name: "5B - Electrónica", gradeLevel: 5, career: "Electrónica" },
         { name: "6A - Mecatrónica", gradeLevel: 6, career: "Mecatrónica" },
+        { name: "6B - Mecatrónica", gradeLevel: 6, career: "Mecatrónica" },
       ]) {
         groups.push(await tx.group.create({ data: g }));
       }
@@ -128,6 +134,9 @@ async function main() {
         { name: "Ética Profesional", code: "ETI-201", description: "Valores y ética en el trabajo", credits: 2 },
         { name: "Electrónica Digital", code: "ELE-501", description: "Circuitos digitales", credits: 5 },
         { name: "Contabilidad General", code: "CON-301", description: "Principios de contabilidad", credits: 4 },
+        { name: "Contabilidad de Costos", code: "CON-302", description: "Costos y presupuestos", credits: 4 },
+        { name: "Electrónica Analógica", code: "ELE-502", description: "Análisis de circuitos analógicos", credits: 5 },
+        { name: "Automatización", code: "AUT-601", description: "Sistemas automatizados industriales", credits: 5 },
       ]) {
         subjects.push(await tx.subject.create({ data: s }));
       }
@@ -190,6 +199,36 @@ async function main() {
             create: { employeeId: "DOC-004", specialty: "Inglés", phone: "555-0204" },
           },
         },
+        {
+          email: "carlos.ruiz@cbtis61.edu.mx",
+          password: teacherPassword,
+          firstName: "Carlos",
+          lastName: "Ruiz Hernández",
+          role: UserRole.TEACHER,
+          teacherProfile: {
+            create: { employeeId: "DOC-005", specialty: "Contabilidad", phone: "555-0205" },
+          },
+        },
+        {
+          email: "elena.vargas@cbtis61.edu.mx",
+          password: teacherPassword,
+          firstName: "Elena",
+          lastName: "Vargas Soto",
+          role: UserRole.TEACHER,
+          teacherProfile: {
+            create: { employeeId: "DOC-006", specialty: "Electrónica", phone: "555-0206" },
+          },
+        },
+        {
+          email: "diego.morales@cbtis61.edu.mx",
+          password: teacherPassword,
+          firstName: "Diego",
+          lastName: "Morales Flores",
+          role: UserRole.TEACHER,
+          teacherProfile: {
+            create: { employeeId: "DOC-007", specialty: "Mecatrónica", phone: "555-0207" },
+          },
+        },
       ]) {
         teachers.push(await tx.user.create({ data: t }));
       }
@@ -236,6 +275,36 @@ async function main() {
           role: UserRole.PARENT,
           parentProfile: {
             create: { phone: "555-0304", address: "Av. Reforma #321, Ciudad" },
+          },
+        },
+        {
+          email: "padre5@email.com",
+          password: parentPassword,
+          firstName: "Jorge",
+          lastName: "Hernández Luna",
+          role: UserRole.PARENT,
+          parentProfile: {
+            create: { phone: "555-0305", address: "Calle Madero #555, Ciudad" },
+          },
+        },
+        {
+          email: "padre6@email.com",
+          password: parentPassword,
+          firstName: "Carmen",
+          lastName: "Ortiz Pérez",
+          role: UserRole.PARENT,
+          parentProfile: {
+            create: { phone: "555-0306", address: "Av. Hidalgo #777, Ciudad" },
+          },
+        },
+        {
+          email: "padre7@email.com",
+          password: parentPassword,
+          firstName: "Miguel",
+          lastName: "Torres Díaz",
+          role: UserRole.PARENT,
+          parentProfile: {
+            create: { phone: "555-0307", address: "Calle Juárez #999, Ciudad" },
           },
         },
       ]) {
@@ -369,9 +438,105 @@ async function main() {
           studentProfile: {
             create: {
               enrollmentId: "2024-008",
-              groupId: groups[3].id, // 5A
+              groupId: groups[4].id, // 5A
               parentId: (await tx.parentProfile.findUnique({ where: { userId: parents[3].id } }))!.id,
               phone: "246-100-0008",
+              semaphore: SemaphoreStatus.GREEN,
+            },
+          },
+        },
+        {
+          email: "alumno9@cbtis61.edu.mx",
+          password: studentPassword,
+          firstName: "Daniel",
+          lastName: "Hernández Ruiz",
+          role: UserRole.STUDENT,
+          studentProfile: {
+            create: {
+              enrollmentId: "2024-009",
+              groupId: groups[3].id, // 4B
+              parentId: (await tx.parentProfile.findUnique({ where: { userId: parents[4].id } }))!.id,
+              phone: "246-100-0009",
+              semaphore: SemaphoreStatus.GREEN,
+            },
+          },
+        },
+        {
+          email: "alumno10@cbtis61.edu.mx",
+          password: studentPassword,
+          firstName: "Mariana",
+          lastName: "Ortiz Soto",
+          role: UserRole.STUDENT,
+          studentProfile: {
+            create: {
+              enrollmentId: "2024-010",
+              groupId: groups[3].id, // 4B - hermana de alumno9
+              parentId: (await tx.parentProfile.findUnique({ where: { userId: parents[5].id } }))!.id,
+              phone: "246-100-0010",
+              semaphore: SemaphoreStatus.GREEN,
+            },
+          },
+        },
+        {
+          email: "alumno11@cbtis61.edu.mx",
+          password: studentPassword,
+          firstName: "Andrés",
+          lastName: "Ortiz Vargas",
+          role: UserRole.STUDENT,
+          studentProfile: {
+            create: {
+              enrollmentId: "2024-011",
+              groupId: groups[5].id, // 5B - hermano de alumno10
+              parentId: (await tx.parentProfile.findUnique({ where: { userId: parents[5].id } }))!.id,
+              phone: "246-100-0011",
+              semaphore: SemaphoreStatus.GREEN,
+            },
+          },
+        },
+        {
+          email: "alumno12@cbtis61.edu.mx",
+          password: studentPassword,
+          firstName: "Paula",
+          lastName: "Torres Vega",
+          role: UserRole.STUDENT,
+          studentProfile: {
+            create: {
+              enrollmentId: "2024-012",
+              groupId: groups[5].id, // 5B
+              parentId: (await tx.parentProfile.findUnique({ where: { userId: parents[6].id } }))!.id,
+              phone: "246-100-0012",
+              semaphore: SemaphoreStatus.GREEN,
+            },
+          },
+        },
+        {
+          email: "alumno13@cbtis61.edu.mx",
+          password: studentPassword,
+          firstName: "Emilio",
+          lastName: "Torres Morales",
+          role: UserRole.STUDENT,
+          studentProfile: {
+            create: {
+              enrollmentId: "2024-013",
+              groupId: groups[7].id, // 6B - hermano de alumno12
+              parentId: (await tx.parentProfile.findUnique({ where: { userId: parents[6].id } }))!.id,
+              phone: "246-100-0013",
+              semaphore: SemaphoreStatus.GREEN,
+            },
+          },
+        },
+        {
+          email: "alumno14@cbtis61.edu.mx",
+          password: studentPassword,
+          firstName: "Renata",
+          lastName: "Hernández Luna",
+          role: UserRole.STUDENT,
+          studentProfile: {
+            create: {
+              enrollmentId: "2024-014",
+              groupId: groups[7].id, // 6B - hermana de alumno9
+              parentId: (await tx.parentProfile.findUnique({ where: { userId: parents[4].id } }))!.id,
+              phone: "246-100-0014",
               semaphore: SemaphoreStatus.GREEN,
             },
           },
@@ -408,11 +573,23 @@ async function main() {
       });
       await tx.subject.update({
         where: { id: subjects[6].id },
-        data: { teacherId: (await tx.teacherProfile.findUnique({ where: { userId: teachers[2].id } }))!.id },
+        data: { teacherId: (await tx.teacherProfile.findUnique({ where: { userId: teachers[5].id } }))!.id },
       });
       await tx.subject.update({
         where: { id: subjects[7].id },
-        data: { teacherId: (await tx.teacherProfile.findUnique({ where: { userId: teachers[3].id } }))!.id },
+        data: { teacherId: (await tx.teacherProfile.findUnique({ where: { userId: teachers[4].id } }))!.id },
+      });
+      await tx.subject.update({
+        where: { id: subjects[8].id },
+        data: { teacherId: (await tx.teacherProfile.findUnique({ where: { userId: teachers[4].id } }))!.id },
+      });
+      await tx.subject.update({
+        where: { id: subjects[9].id },
+        data: { teacherId: (await tx.teacherProfile.findUnique({ where: { userId: teachers[5].id } }))!.id },
+      });
+      await tx.subject.update({
+        where: { id: subjects[10].id },
+        data: { teacherId: (await tx.teacherProfile.findUnique({ where: { userId: teachers[6].id } }))!.id },
       });
       console.log("Materias asignadas a docentes");
 
@@ -486,7 +663,7 @@ async function main() {
       classDefinitions.push(
         {
           subjectId: subjects[7].id,
-          teacherId: teacherMap.get(teachers[3].id)!,
+          teacherId: teacherMap.get(teachers[4].id)!,
           groupId: groups[2].id,
           semesterId: semester.id,
           classroomId: classroomMap.get("B-201")!,
@@ -499,6 +676,138 @@ async function main() {
           semesterId: semester.id,
           classroomId: classroomMap.get("B-201")!,
           slotIndex: 1,
+        }
+      );
+
+      // 4B - Contabilidad (B-202)
+      classDefinitions.push(
+        {
+          subjectId: subjects[7].id,
+          teacherId: teacherMap.get(teachers[4].id)!,
+          groupId: groups[3].id,
+          semesterId: semester.id,
+          classroomId: classroomMap.get("B-202")!,
+          slotIndex: 0,
+        },
+        {
+          subjectId: subjects[8].id,
+          teacherId: teacherMap.get(teachers[4].id)!,
+          groupId: groups[3].id,
+          semesterId: semester.id,
+          classroomId: classroomMap.get("B-202")!,
+          slotIndex: 1,
+        }
+      );
+
+      // 5A - Electrónica (C-301)
+      classDefinitions.push(
+        {
+          subjectId: subjects[6].id,
+          teacherId: teacherMap.get(teachers[5].id)!,
+          groupId: groups[4].id,
+          semesterId: semester.id,
+          classroomId: classroomMap.get("C-301")!,
+          slotIndex: 0,
+        },
+        {
+          subjectId: subjects[0].id,
+          teacherId: teacherMap.get(teachers[0].id)!,
+          groupId: groups[4].id,
+          semesterId: semester.id,
+          classroomId: classroomMap.get("C-301")!,
+          slotIndex: 1,
+        },
+        {
+          subjectId: subjects[1].id,
+          teacherId: teacherMap.get(teachers[2].id)!,
+          groupId: groups[4].id,
+          semesterId: semester.id,
+          classroomId: classroomMap.get("C-301")!,
+          slotIndex: 2,
+        }
+      );
+
+      // 5B - Electrónica (C-302)
+      classDefinitions.push(
+        {
+          subjectId: subjects[9].id,
+          teacherId: teacherMap.get(teachers[5].id)!,
+          groupId: groups[5].id,
+          semesterId: semester.id,
+          classroomId: classroomMap.get("C-302")!,
+          slotIndex: 0,
+        },
+        {
+          subjectId: subjects[0].id,
+          teacherId: teacherMap.get(teachers[0].id)!,
+          groupId: groups[5].id,
+          semesterId: semester.id,
+          classroomId: classroomMap.get("C-302")!,
+          slotIndex: 1,
+        },
+        {
+          subjectId: subjects[1].id,
+          teacherId: teacherMap.get(teachers[2].id)!,
+          groupId: groups[5].id,
+          semesterId: semester.id,
+          classroomId: classroomMap.get("C-302")!,
+          slotIndex: 2,
+        }
+      );
+
+      // 6A - Mecatrónica (D-401)
+      classDefinitions.push(
+        {
+          subjectId: subjects[6].id,
+          teacherId: teacherMap.get(teachers[5].id)!,
+          groupId: groups[6].id,
+          semesterId: semester.id,
+          classroomId: classroomMap.get("D-401")!,
+          slotIndex: 0,
+        },
+        {
+          subjectId: subjects[0].id,
+          teacherId: teacherMap.get(teachers[0].id)!,
+          groupId: groups[6].id,
+          semesterId: semester.id,
+          classroomId: classroomMap.get("D-401")!,
+          slotIndex: 1,
+        },
+        {
+          subjectId: subjects[1].id,
+          teacherId: teacherMap.get(teachers[2].id)!,
+          groupId: groups[6].id,
+          semesterId: semester.id,
+          classroomId: classroomMap.get("D-401")!,
+          slotIndex: 2,
+        }
+      );
+
+      // 6B - Mecatrónica (D-402)
+      classDefinitions.push(
+        {
+          subjectId: subjects[10].id,
+          teacherId: teacherMap.get(teachers[6].id)!,
+          groupId: groups[7].id,
+          semesterId: semester.id,
+          classroomId: classroomMap.get("D-402")!,
+          slotIndex: 0,
+        },
+        {
+          subjectId: subjects[0].id,
+          teacherId: teacherMap.get(teachers[0].id)!,
+          groupId: groups[7].id,
+          semesterId: semester.id,
+          classroomId: classroomMap.get("D-402")!,
+          slotIndex: 1,
+        },
+        {
+          subjectId: subjects[1].id,
+          teacherId: teacherMap.get(teachers[2].id)!,
+          groupId: groups[7].id,
+          semesterId: semester.id,
+          classroomId: classroomMap.get("D-402")!,
+          slotIndex: 2,
         }
       );
 
@@ -525,12 +834,8 @@ async function main() {
       }
       console.log("Clases y Horarios creados (lunes a viernes)");
 
-      // Calificaciones Iniciales para alumnos de 3A y 3B
-      // Solo se crean para las materias que efectivamente cursan (índices 0-5).
-      const programmingSubjectIds = [subjects[0], subjects[1], subjects[2], subjects[3], subjects[4], subjects[5]];
-
-      const studentProfiles3A3B = await tx.studentProfile.findMany({
-        where: { groupId: { in: [groups[0].id, groups[1].id] } },
+      // Calificaciones Iniciales
+      const allStudents = await tx.studentProfile.findMany({
         include: { user: true },
       });
 
@@ -553,15 +858,33 @@ async function main() {
         "alumno4@cbtis61.edu.mx": [8.7, 8.0, 9.3, 8.6, 9.8, 9.2],
         "alumno5@cbtis61.edu.mx": [7.5, 7.0, 8.5, 8.0, 8.8, 8.2],
         "alumno6@cbtis61.edu.mx": [8.2, 7.9, 8.8, 8.4, 9.3, 8.9],
+        "alumno7@cbtis61.edu.mx": [8.5, 9.0],
+        "alumno8@cbtis61.edu.mx": [8.5, 9.0, 7.8],
+        "alumno9@cbtis61.edu.mx": [8.0, 8.5],
+        "alumno10@cbtis61.edu.mx": [8.7, 9.0],
+        "alumno11@cbtis61.edu.mx": [8.5, 9.0, 7.8],
+        "alumno12@cbtis61.edu.mx": [8.0, 8.5, 8.8],
+        "alumno13@cbtis61.edu.mx": [8.5, 9.0, 7.8],
+        "alumno14@cbtis61.edu.mx": [8.0, 8.5, 8.8],
       };
 
-      const defaultGrades = [8.0, 8.0, 8.0, 8.0, 8.0, 8.0];
-      const gradeData = [];
+      const groupSubjects = new Map<number, number[]>();
+      groupSubjects.set(groups[0].id, [subjects[0], subjects[1], subjects[2], subjects[3], subjects[4], subjects[5]].map((s) => s.id));
+      groupSubjects.set(groups[1].id, [subjects[0], subjects[1], subjects[2], subjects[3], subjects[4], subjects[5]].map((s) => s.id));
+      groupSubjects.set(groups[2].id, [subjects[7], subjects[0]].map((s) => s.id));
+      groupSubjects.set(groups[3].id, [subjects[7], subjects[8]].map((s) => s.id));
+      groupSubjects.set(groups[4].id, [subjects[6], subjects[0], subjects[1]].map((s) => s.id));
+      groupSubjects.set(groups[5].id, [subjects[9], subjects[0], subjects[1]].map((s) => s.id));
+      groupSubjects.set(groups[6].id, [subjects[6], subjects[0], subjects[1]].map((s) => s.id));
+      groupSubjects.set(groups[7].id, [subjects[10], subjects[0], subjects[1]].map((s) => s.id));
 
-      for (const student of studentProfiles3A3B) {
-        const grades = gradeOverrides[student.user.email] || defaultGrades;
-        for (let i = 0; i < programmingSubjectIds.length; i++) {
-          const final = grades[i];
+      const gradeData = [];
+      for (const student of allStudents) {
+        const subjectIds = groupSubjects.get(student.groupId) || [];
+        const grades = gradeOverrides[student.user.email] || subjectIds.map(() => 8.0);
+
+        for (let i = 0; i < subjectIds.length; i++) {
+          const final = grades[i] ?? 8.0;
           let status: GradeStatus = GradeStatus.REGULAR;
           if (final >= 9.0) status = GradeStatus.EXCELLENT;
           else if (final < 6.0) status = GradeStatus.IRREGULAR;
@@ -570,7 +893,7 @@ async function main() {
 
           gradeData.push({
             studentId: student.id,
-            subjectId: programmingSubjectIds[i].id,
+            subjectId: subjectIds[i],
             ...partials,
             finalGrade: final,
             status,
@@ -581,7 +904,7 @@ async function main() {
 
       if (gradeData.length > 0) {
         await tx.grade.createMany({ data: gradeData, skipDuplicates: true });
-        console.log(`Calificaciones iniciales creadas para ${studentProfiles3A3B.length} alumnos de 3A/3B`);
+        console.log(`Calificaciones iniciales creadas para ${allStudents.length} alumnos`);
       }
 
       // Asistencias semilla para probar alertas y semáforo
@@ -591,6 +914,10 @@ async function main() {
       });
       const mathClass3B = await tx.class.findFirst({
         where: { groupId: groups[1].id, subjectId: subjects[0].id },
+        include: { schedules: true },
+      });
+      const accountingClass4B = await tx.class.findFirst({
+        where: { groupId: groups[3].id, subjectId: subjects[7].id },
         include: { schedules: true },
       });
 
@@ -613,7 +940,7 @@ async function main() {
         return date;
       }
 
-      const studentProfileMap = new Map(studentProfiles3A3B.map((s) => [s.user.email, s]));
+      const studentProfileMap = new Map(allStudents.map((s) => [s.user.email, s]));
 
       async function seedAbsences(studentEmail: string, cls: typeof mathClass3A, count: number) {
         const student = studentProfileMap.get(studentEmail);
@@ -635,6 +962,7 @@ async function main() {
 
       await seedAbsences("alumno1@cbtis61.edu.mx", mathClass3A, 3); // activa semáforo rojo
       await seedAbsences("alumno3@cbtis61.edu.mx", mathClass3B, 2); // cerca del umbral
+      await seedAbsences("alumno9@cbtis61.edu.mx", accountingClass4B, 2); // alerta en 4B
 
       // Reflejar el semáforo rojo para el alumno con 3 faltas
       const seedAlertStudent = studentProfileMap.get("alumno1@cbtis61.edu.mx");
