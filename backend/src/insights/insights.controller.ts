@@ -1,10 +1,4 @@
-import {
-  Controller,
-  Get,
-  Param,
-  ParseIntPipe,
-  Query,
-} from "@nestjs/common";
+import { Controller, Get, Param, ParseIntPipe, Query } from "@nestjs/common";
 import {
   ApiTags,
   ApiOperation,
@@ -29,12 +23,7 @@ export class InsightsController {
   constructor(private insightsService: InsightsService) {}
 
   @Get("students/:studentId")
-  @Roles(
-    UserRole.ADMIN,
-    UserRole.TEACHER,
-    UserRole.STUDENT,
-    UserRole.PARENT,
-  )
+  @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT, UserRole.PARENT)
   @ApiOperation({ summary: "Obtener insights de un alumno" })
   @ApiOkResponse({ description: "Insights del alumno recuperados." })
   @ApiNotFoundResponse({ description: "Alumno no encontrado." })
@@ -44,7 +33,11 @@ export class InsightsController {
     @CurrentUser() user: { id: number; role: UserRole },
     @Query() query: StudentInsightQueryDto,
   ) {
-    return this.insightsService.getStudentInsight(studentId, user, query.period);
+    return this.insightsService.getStudentInsight(
+      studentId,
+      user,
+      query.period,
+    );
   }
 
   @Get("dashboard")
