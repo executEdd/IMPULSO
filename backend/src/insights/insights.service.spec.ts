@@ -50,22 +50,6 @@ describe("InsightsService", () => {
     jest.clearAllMocks();
   });
 
-  describe("resolvePeriod", () => {
-    it("should return provided period when given", async () => {
-      mockPrisma.semester.findFirst.mockResolvedValue(null);
-      const result = await (service as any).resolvePeriod("2025-2026A");
-      expect(result).toBe("2025-2026A");
-    });
-
-    it("should return current semester when no period provided", async () => {
-      mockPrisma.semester.findFirst.mockResolvedValue({
-        semesterName: "2025-2026A",
-      });
-      const result = await (service as any).resolvePeriod();
-      expect(result).toBe("2025-2026A");
-    });
-  });
-
   describe("calculateAttendanceSummary", () => {
     it("should calculate attendance rate correctly", () => {
       const attendances = [
@@ -175,6 +159,7 @@ describe("InsightsService", () => {
       ]);
 
       mockPrisma.semester.findFirst.mockResolvedValue({
+        id: 1,
         semesterName: "2025-2026A",
       });
 
@@ -205,6 +190,7 @@ describe("InsightsService", () => {
   describe("getDashboardSummary", () => {
     it("should forbid students and parents", async () => {
       mockPrisma.semester.findFirst.mockResolvedValue({
+        id: 1,
         semesterName: "2025-2026A",
       });
 

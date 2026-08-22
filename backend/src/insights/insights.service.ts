@@ -23,7 +23,15 @@ export class InsightsService {
   ): Promise<StudentInsight> {
     await this.verifyStudentAccess(studentId, currentUser);
 
-    const resolvedPeriod = await this.resolvePeriod(period);
+    const { period: resolvedPeriod, semesterId } =
+      await this.resolvePeriodContext(period);
+
+    const attendanceWhere: any = {};
+    if (semesterId) {
+      attendanceWhere.classes = { semesterId };
+    } else {
+      attendanceWhere.classes = { semester: { semesterName: resolvedPeriod } };
+    }
 
     const student = await this.prisma.studentProfile.findUnique({
       where: { id: studentId },
@@ -31,11 +39,7 @@ export class InsightsService {
         user: { select: { firstName: true, lastName: true } },
         group: true,
         attendances: {
-          where: {
-            classes: {
-              semester: { semesterName: resolvedPeriod },
-            },
-          },
+          where: attendanceWhere,
           select: { status: true },
         },
         grades: {
@@ -49,11 +53,14 @@ export class InsightsService {
       throw new NotFoundException("Alumno no encontrado");
     }
 
-    const attendanceSummary = this.calculateAttendanceSummary(student.attendances);
+    const attendanceSummary = this.calculateAttendanceSummary(
+      student.attendances,
+    );
     const gradeSummary = this.calculateGradeSummary(student.grades);
     const groupComparison = await this.calculateGroupComparison(
       student.groupId,
       resolvedPeriod,
+      semesterId,
       attendanceSummary.attendanceRate,
       gradeSummary.average,
     );
@@ -90,7 +97,8 @@ export class InsightsService {
     period?: string,
     groupId?: number,
   ): Promise<DashboardSummary> {
-    const resolvedPeriod = await this.resolvePeriod(period);
+    const { period: resolvedPeriod, semesterId } =
+      await this.resolvePeriodContext(period);
 
     if (
       currentUser.role !== UserRole.ADMIN &&
@@ -125,6 +133,13 @@ export class InsightsService {
       baseWhere.studentProfile = { groupId: { in: groupIds } };
     }
 
+    const attendanceWhere: any = {};
+    if (semesterId) {
+      attendanceWhere.classes = { semesterId };
+    } else {
+      attendanceWhere.classes = { semester: { semesterName: resolvedPeriod } };
+    }
+
     const students = await this.prisma.user.findMany({
       where: baseWhere,
       include: {
@@ -132,11 +147,7 @@ export class InsightsService {
           include: {
             group: true,
             attendances: {
-              where: {
-                classes: {
-                  semester: { semesterName: resolvedPeriod },
-                },
-              },
+              where: attendanceWhere,
               select: { status: true },
             },
             grades: {
@@ -213,32 +224,68 @@ export class InsightsService {
     throw new ForbiddenException("Rol no autorizado");
   }
 
-  private async resolvePeriod(period?: string): Promise<string> {
+  private async resolvePeriodContext(period?: string): Promise<{
+    period: string;
+    semesterId?: number;
+  }> {
+    const fallbackSemester = async () => {
+      const now = new Date();
+      const active = await this.prisma.semester.findFirst({
+        where: {
+          startDate: { lte: now },
+          finishDate: { gte: now },
+        },
+        orderBy: { startDate: "desc" },
+      });
+      if (active) return active;
+      return this.prisma.semester.findFirst({
+        orderBy: { finishDate: "desc" },
+      });
+    };
+
     if (period) {
-      return period;
+      const semester = await this.prisma.semester.findFirst({
+        where: { semesterName: period },
+      });
+      if (semester) {
+        return { period, semesterId: semester.id };
+      }
+      const fallback = await fallbackSemester();
+      return { period, semesterId: fallback?.id };
     }
 
-    const now = new Date();
-    const semester = await this.prisma.semester.findFirst({
-      where: {
-        startDate: { lte: now },
-        finishDate: { gte: now },
-      },
-      orderBy: { startDate: "desc" },
+    const latestGradePeriod = await this.prisma.grade.findFirst({
+      orderBy: { createdAt: "desc" },
+      select: { period: true },
     });
 
-    if (semester) {
-      return semester.semesterName;
+    if (latestGradePeriod) {
+      const semester = await this.prisma.semester.findFirst({
+        where: { semesterName: latestGradePeriod.period },
+      });
+      if (semester) {
+        return {
+          period: latestGradePeriod.period,
+          semesterId: semester.id,
+        };
+      }
+      const fallback = await fallbackSemester();
+      return {
+        period: latestGradePeriod.period,
+        semesterId: fallback?.id,
+      };
     }
 
-    const lastSemester = await this.prisma.semester.findFirst({
-      orderBy: { finishDate: "desc" },
-    });
-
-    return lastSemester?.semesterName ?? "2025-2026A";
+    const fallback = await fallbackSemester();
+    return {
+      period: fallback?.semesterName ?? "2025-2026A",
+      semesterId: fallback?.id,
+    };
   }
 
-  private calculateAttendanceSummary(attendances: { status: AttendanceStatus }[]) {
+  private calculateAttendanceSummary(
+    attendances: { status: AttendanceStatus }[],
+  ) {
     const total = attendances.length;
     const present = attendances.filter(
       (a) => a.status === AttendanceStatus.PRESENT,
@@ -311,18 +358,22 @@ export class InsightsService {
   private async calculateGroupComparison(
     groupId: number,
     period: string,
+    semesterId: number | undefined,
     studentAttendanceRate: number,
     studentAverage: number,
   ) {
+    const attendanceWhere: any = {};
+    if (semesterId) {
+      attendanceWhere.classes = { semesterId };
+    } else {
+      attendanceWhere.classes = { semester: { semesterName: period } };
+    }
+
     const groupStudents = await this.prisma.studentProfile.findMany({
       where: { groupId },
       include: {
         attendances: {
-          where: {
-            classes: {
-              semester: { semesterName: period },
-            },
-          },
+          where: attendanceWhere,
           select: { status: true },
         },
         grades: {
@@ -363,7 +414,8 @@ export class InsightsService {
     return {
       groupAverage: Math.round(groupAverage * 100) / 100,
       groupAttendanceRate: Math.round(groupAttendanceRate * 100) / 100,
-      studentAverageDiff: Math.round((studentAverage - groupAverage) * 100) / 100,
+      studentAverageDiff:
+        Math.round((studentAverage - groupAverage) * 100) / 100,
       studentAttendanceDiff:
         Math.round((studentAttendanceRate - groupAttendanceRate) * 100) / 100,
     };
@@ -472,7 +524,8 @@ export class InsightsService {
     for (const student of students) {
       const profile = student.studentProfile;
       if (profile.semaphore === SemaphoreStatus.GREEN) semaphoreCounts.green++;
-      if (profile.semaphore === SemaphoreStatus.YELLOW) semaphoreCounts.yellow++;
+      if (profile.semaphore === SemaphoreStatus.YELLOW)
+        semaphoreCounts.yellow++;
       if (profile.semaphore === SemaphoreStatus.RED) semaphoreCounts.red++;
 
       for (const att of profile.attendances) {
