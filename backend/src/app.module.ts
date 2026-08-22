@@ -14,6 +14,7 @@ import { SubjectsModule } from "./subjects/subjects.module";
 import { GroupsModule } from "./groups/groups.module";
 import { ClassesModule } from "./classes/classes.module";
 import { InsightsModule } from "./insights/insights.module";
+import { AiInsightsModule } from "./ai-insights/ai-insights.module";
 import { JwtAuthGuard } from "./auth/guards/jwt-auth.guard";
 import { RolesGuard } from "./common/guards/roles.guard";
 import { QrService } from "./qr.service";
@@ -43,6 +44,7 @@ import { QrController } from "./qr.controller";
     GroupsModule,
     ClassesModule,
     InsightsModule,
+    AiInsightsModule,
   ],
   controllers: [QrController],
   providers: [
