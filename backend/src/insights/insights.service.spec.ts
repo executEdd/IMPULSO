@@ -6,7 +6,6 @@ import { SemaphoreStatus, AttendanceStatus } from "@prisma/client";
 
 describe("InsightsService", () => {
   let service: InsightsService;
-  let prisma: PrismaService;
 
   const mockPrisma = {
     studentProfile: {
@@ -47,7 +46,6 @@ describe("InsightsService", () => {
     }).compile();
 
     service = module.get<InsightsService>(InsightsService);
-    prisma = module.get<PrismaService>(PrismaService);
 
     jest.clearAllMocks();
   });
@@ -122,9 +120,7 @@ describe("InsightsService", () => {
       const attendance = { attendanceRate: 70, absent: 4 };
       const grades = {
         average: 6.5,
-        atRiskSubjects: [
-          { subjectName: "Physics" } as any,
-        ],
+        atRiskSubjects: [{ subjectName: "Physics" } as any],
       };
       const result = (service as any).buildRiskFactors(
         SemaphoreStatus.RED,
