@@ -1,7 +1,7 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { InsightsService } from "./insights.service";
-import { PrismaService } from "../prisma.service";
-import { UserRole } from "../common/enums/roles.enum";
+import { InsightsService } from "../src/insights/insights.service";
+import { PrismaService } from "../src/prisma.service";
+import { UserRole } from "../src/common/enums/roles.enum";
 import { SemaphoreStatus, AttendanceStatus } from "@prisma/client";
 
 describe("InsightsService", () => {
