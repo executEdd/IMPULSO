@@ -13,6 +13,7 @@ import { NotificationsModule } from "./notifications/notifications.module";
 import { SubjectsModule } from "./subjects/subjects.module";
 import { GroupsModule } from "./groups/groups.module";
 import { ClassesModule } from "./classes/classes.module";
+import { InsightsModule } from "./insights/insights.module";
 import { JwtAuthGuard } from "./auth/guards/jwt-auth.guard";
 import { RolesGuard } from "./common/guards/roles.guard";
 import { QrService } from "./qr.service";
@@ -41,6 +42,7 @@ import { QrController } from "./qr.controller";
     SubjectsModule,
     GroupsModule,
     ClassesModule,
+    InsightsModule,
   ],
   controllers: [QrController],
   providers: [
