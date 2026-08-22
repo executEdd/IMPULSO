@@ -150,7 +150,8 @@ export class AttendanceController {
   @Get("semaphore/summary")
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @ApiOperation({
-    summary: "Obtener resumen general y desglose por grupo de semáforos de riesgo",
+    summary:
+      "Obtener resumen general y desglose por grupo de semáforos de riesgo",
   })
   @ApiOkResponse({
     description: "Métricas globales y desglose por grupo de alumnos en riesgo.",
