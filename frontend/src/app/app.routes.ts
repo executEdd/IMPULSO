@@ -30,9 +30,9 @@ export const routes: Routes = [
         loadComponent: () => import('./features/my-qr/my-qr').then(m => m.MyQrComponent)
       },
       {
-        // Asistencia: ADMIN, TEACHER y STUDENT (no padre)
+        // Asistencia: ADMIN, TEACHER, STUDENT, PARENT
         path: 'asistencia',
-        canActivate: [roleGuard('ADMIN', 'TEACHER', 'STUDENT')],
+        canActivate: [roleGuard('ADMIN', 'TEACHER', 'STUDENT', 'PARENT')],
         loadComponent: () => import('./features/attendance/attendance').then(m => m.AttendanceComponent)
       },
       {
