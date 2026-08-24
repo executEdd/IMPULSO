@@ -148,6 +148,40 @@ export class DashboardComponent implements OnInit, AfterViewInit {
       .toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
   }
 
+  aiInsight = signal<any | null>(null);
+  aiLoading = signal(false);
+
+  fetchAiInsight() {
+    if (this.aiLoading()) return;
+    this.aiLoading.set(true);
+
+    const user = this.auth.user();
+    const targetStudentId = this.isStudent
+      ? user?.studentProfile?.id
+      : this.isParent
+        ? user?.parentProfile?.children?.[0]?.id
+        : null;
+
+    const url = this.isAdminOrTeacher
+      ? `${API}/ai-insights/dashboard`
+      : targetStudentId
+        ? `${API}/ai-insights/students/${targetStudentId}`
+        : null;
+
+    if (!url) {
+      this.aiLoading.set(false);
+      return;
+    }
+
+    this.http.post<any>(url, {}).subscribe({
+      next: (res) => {
+        this.aiInsight.set(res);
+        this.aiLoading.set(false);
+      },
+      error: () => this.aiLoading.set(false)
+    });
+  }
+
   ngOnInit() {
     this.buildCalendar();
     this.fetchData();
