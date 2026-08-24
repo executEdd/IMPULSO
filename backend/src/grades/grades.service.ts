@@ -460,7 +460,7 @@ export class GradesService {
       return `${g.id},${studentName},${enrollmentId},${groupName},${subjectName},${period},${p1},${p2},${p3},${final},${status}`;
     });
 
-    const csvString = header + rows.join("\n");
+    const csvString = sep + header + rows.join("\n");
     return Buffer.from(csvString, "latin1");
   }
 }

@@ -1,7 +1,8 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, ForbiddenException } from "@nestjs/common";
 import { PrismaService } from "../prisma.service";
 import { CreateClassDto } from "./dto/create-class.dto";
 import { UpdateClassDto } from "./dto/update-class.dto";
+import { UserRole } from "../common/enums/roles.enum";
 
 @Injectable()
 export class ClassesService {
@@ -20,11 +21,50 @@ export class ClassesService {
     });
   }
 
-  async findAll(groupId?: number, teacherId?: number, semesterId?: number) {
+  async findAll(
+    user: any,
+    filters: { groupId?: number; teacherId?: number; semesterId?: number },
+  ) {
     const where: any = {};
-    if (groupId) where.groupId = groupId;
-    if (teacherId) where.teacherId = teacherId;
-    if (semesterId) where.semesterId = semesterId;
+
+    switch (user.role) {
+      case UserRole.STUDENT:
+        where.groupId = user.studentProfile?.groupId;
+        break;
+
+      case UserRole.PARENT: {
+        const childrenGroupIds = await this.prisma.studentProfile.findMany({
+          where: { parentId: user.parentProfile?.id },
+          select: { groupId: true },
+        });
+        const groupIds = childrenGroupIds.map((c) => c.groupId);
+
+        if (filters.groupId) {
+          if (!groupIds.includes(filters.groupId)) {
+            throw new ForbiddenException(
+              "No autorizado para acceder a este grupo",
+            );
+          }
+          where.groupId = filters.groupId;
+        } else {
+          where.groupId = { in: groupIds };
+        }
+        break;
+      }
+
+      case UserRole.TEACHER:
+        where.teacherId = user.teacherProfile?.id;
+        if (filters.groupId) where.groupId = filters.groupId;
+        if (filters.semesterId) where.semesterId = filters.semesterId;
+        break;
+
+      case UserRole.ADMIN:
+      default:
+        if (filters.groupId) where.groupId = filters.groupId;
+        if (filters.teacherId) where.teacherId = filters.teacherId;
+        if (filters.semesterId) where.semesterId = filters.semesterId;
+        break;
+    }
 
     return this.prisma.class.findMany({
       where,

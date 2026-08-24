@@ -169,22 +169,52 @@ export class UsersService {
       throw new NotFoundException("Usuario no encontrado");
     }
 
-    const { phone, ...userData } = updateUserDto as any;
+    const {
+      phone,
+      employeeId,
+      enrollmentId,
+      specialty,
+      address,
+      groupId,
+      parentId,
+      ...userData
+    } = updateUserDto as any;
     const data: any = { ...userData };
 
     if (updateUserDto.password) {
       data.password = await bcrypt.hash(updateUserDto.password, 12);
     }
 
+    const profileUpdate: any = {};
+
     if (phone !== undefined) {
+      profileUpdate.phone = phone || null;
+    }
+
+    if (user.role === UserRole.TEACHER) {
+      if (employeeId !== undefined) profileUpdate.employeeId = employeeId;
+      if (specialty !== undefined) profileUpdate.specialty = specialty;
+    }
+
+    if (user.role === UserRole.STUDENT) {
+      if (enrollmentId !== undefined) profileUpdate.enrollmentId = enrollmentId;
+      if (groupId !== undefined) profileUpdate.groupId = groupId;
+      if (parentId !== undefined) profileUpdate.parentId = parentId;
+    }
+
+    if (user.role === UserRole.PARENT && address !== undefined) {
+      profileUpdate.address = address;
+    }
+
+    if (Object.keys(profileUpdate).length > 0) {
       if (user.role === UserRole.ADMIN) {
-        data.adminProfile = { update: { phone: phone || null } };
+        data.adminProfile = { update: profileUpdate };
       } else if (user.role === UserRole.TEACHER) {
-        data.teacherProfile = { update: { phone: phone || null } };
+        data.teacherProfile = { update: profileUpdate };
       } else if (user.role === UserRole.STUDENT) {
-        data.studentProfile = { update: { phone: phone || null } };
+        data.studentProfile = { update: profileUpdate };
       } else if (user.role === UserRole.PARENT) {
-        data.parentProfile = { update: { phone: phone || "" } };
+        data.parentProfile = { update: profileUpdate };
       }
     }
 
@@ -228,6 +258,118 @@ export class UsersService {
         parentProfile: role === UserRole.PARENT,
       },
     });
+  }
+
+  async findTeachers() {
+    return this.prisma.user.findMany({
+      where: { role: UserRole.TEACHER, isActive: true },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        teacherProfile: true,
+      },
+      orderBy: { lastName: "asc" },
+    });
+  }
+
+  async findStudents(currentUser: { id: number; role: UserRole }) {
+    const studentSelect = {
+      id: true,
+      email: true,
+      firstName: true,
+      lastName: true,
+      role: true,
+      isActive: true,
+      createdAt: true,
+      studentProfile: {
+        include: {
+          group: true,
+          parent: {
+            include: {
+              user: {
+                select: { firstName: true, lastName: true, email: true },
+              },
+            },
+          },
+        },
+      },
+    };
+
+    switch (currentUser.role) {
+      case UserRole.ADMIN:
+        return this.prisma.user.findMany({
+          where: { role: UserRole.STUDENT, isActive: true },
+          select: studentSelect,
+          orderBy: { lastName: "asc" },
+        });
+
+      case UserRole.STUDENT:
+        return this.prisma.user.findMany({
+          where: { id: currentUser.id, role: UserRole.STUDENT },
+          select: studentSelect,
+          orderBy: { lastName: "asc" },
+        });
+
+      case UserRole.PARENT: {
+        const parent = await this.prisma.parentProfile.findUnique({
+          where: { userId: currentUser.id },
+        });
+
+        if (!parent) {
+          return [];
+        }
+
+        return this.prisma.user.findMany({
+          where: {
+            role: UserRole.STUDENT,
+            isActive: true,
+            studentProfile: { parentId: parent.id },
+          },
+          select: studentSelect,
+          orderBy: { lastName: "asc" },
+        });
+      }
+
+      case UserRole.TEACHER: {
+        const teacher = await this.prisma.teacherProfile.findUnique({
+          where: { userId: currentUser.id },
+        });
+
+        if (!teacher) {
+          return [];
+        }
+
+        const classes = await this.prisma.class.findMany({
+          where: { teacherId: teacher.id },
+          select: { groupId: true },
+          distinct: ["groupId"],
+        });
+
+        const groupIds = classes.map((c) => c.groupId);
+
+        if (groupIds.length === 0) {
+          return [];
+        }
+
+        return this.prisma.user.findMany({
+          where: {
+            role: UserRole.STUDENT,
+            isActive: true,
+            studentProfile: { groupId: { in: groupIds } },
+          },
+          select: studentSelect,
+          orderBy: { lastName: "asc" },
+        });
+      }
+
+      default:
+        return [];
+    }
   }
 
   async exportStudentsCsv() {
@@ -274,7 +416,7 @@ export class UsersService {
       return `${u.id},${firstName},${lastName},${email},${enrollmentId},${groupName},${semaphore},${parentName},${parentEmail}`;
     });
 
-    const csvString = header + rows.join("\n");
+    const csvString = sep + header + rows.join("\n");
     return Buffer.from(csvString, "latin1");
   }
 
@@ -326,7 +468,12 @@ export class UsersService {
         parent: {
           include: {
             user: {
-              select: { id: true, firstName: true, lastName: true, email: true },
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
             },
           },
         },

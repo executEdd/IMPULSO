@@ -4,6 +4,7 @@ import {
   MinLength,
   IsOptional,
   IsBoolean,
+  IsInt,
 } from "class-validator";
 
 export class UpdateUserDto {
@@ -31,4 +32,28 @@ export class UpdateUserDto {
   @IsString()
   @IsOptional()
   phone?: string;
+
+  @IsString()
+  @IsOptional()
+  employeeId?: string;
+
+  @IsString()
+  @IsOptional()
+  enrollmentId?: string;
+
+  @IsString()
+  @IsOptional()
+  specialty?: string;
+
+  @IsString()
+  @IsOptional()
+  address?: string;
+
+  @IsInt()
+  @IsOptional()
+  groupId?: number;
+
+  @IsInt()
+  @IsOptional()
+  parentId?: number;
 }

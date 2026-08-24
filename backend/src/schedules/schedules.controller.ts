@@ -48,21 +48,29 @@ export class SchedulesController {
 
   @Get()
   @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT, UserRole.PARENT)
-  @ApiOperation({ summary: "Listar todos los horarios de clases" })
-  @ApiOkResponse({
-    description: "Listado completo de bloques de horario de la institución.",
+  @ApiOperation({
+    summary: "Listar horarios de clases según el rol del usuario",
   })
-  async findAll() {
-    return this.schedulesService.findAll();
+  @ApiOkResponse({
+    description: "Listado de bloques de horario filtrado por rol.",
+  })
+  @ApiQuery({ name: "groupId", required: false, type: Number })
+  async findAll(@CurrentUser() user: any, @Query("groupId") groupId?: string) {
+    return this.schedulesService.findAll(
+      user,
+      groupId ? parseInt(groupId, 10) : undefined,
+    );
   }
 
-  @Get(":id")
+  @Get("student/:studentId")
   @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT, UserRole.PARENT)
-  @ApiOperation({ summary: "Obtener un bloque de horario por ID" })
-  @ApiOkResponse({ description: "Horario encontrado." })
-  @ApiNotFoundResponse({ description: "Horario no encontrado." })
-  async findOne(@Param("id", ParseIntPipe) id: number) {
-    return this.schedulesService.findOne(id);
+  @ApiOperation({ summary: "Obtener horario de un estudiante" })
+  @ApiOkResponse({ description: "Horario del estudiante recuperado." })
+  async findByStudent(
+    @Param("studentId", ParseIntPipe) studentId: number,
+    @CurrentUser() user: any,
+  ) {
+    return this.schedulesService.findByStudent(studentId, user);
   }
 
   @Get("teacher/:teacherId")
@@ -87,29 +95,6 @@ export class SchedulesController {
   ) {
     await this.schedulesService.verifyGroupAccess(user, groupId);
     return this.schedulesService.findByGroup(groupId);
-  }
-
-  @Put(":id")
-  @Roles(UserRole.ADMIN)
-  @ApiOperation({
-    summary: "Actualizar un bloque de horario (con validación de conflictos)",
-  })
-  @ApiOkResponse({ description: "Horario actualizado exitosamente." })
-  @ApiNotFoundResponse({ description: "Horario no encontrado." })
-  async update(
-    @Param("id", ParseIntPipe) id: number,
-    @Body() updateScheduleDto: UpdateScheduleDto,
-  ) {
-    return this.schedulesService.update(id, updateScheduleDto);
-  }
-
-  @Delete(":id")
-  @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: "Eliminar bloque de horario" })
-  @ApiOkResponse({ description: "Horario eliminado correctamente." })
-  @ApiNotFoundResponse({ description: "Horario no encontrado." })
-  async remove(@Param("id", ParseIntPipe) id: number) {
-    return this.schedulesService.remove(id);
   }
 
   @Get("check-conflicts")
@@ -156,5 +141,37 @@ export class SchedulesController {
       endTime,
       classroomId,
     );
+  }
+
+  @Get(":id")
+  @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT, UserRole.PARENT)
+  @ApiOperation({ summary: "Obtener un bloque de horario por ID" })
+  @ApiOkResponse({ description: "Horario encontrado." })
+  @ApiNotFoundResponse({ description: "Horario no encontrado." })
+  async findOne(@Param("id", ParseIntPipe) id: number) {
+    return this.schedulesService.findOne(id);
+  }
+
+  @Put(":id")
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: "Actualizar un bloque de horario (con validación de conflictos)",
+  })
+  @ApiOkResponse({ description: "Horario actualizado exitosamente." })
+  @ApiNotFoundResponse({ description: "Horario no encontrado." })
+  async update(
+    @Param("id", ParseIntPipe) id: number,
+    @Body() updateScheduleDto: UpdateScheduleDto,
+  ) {
+    return this.schedulesService.update(id, updateScheduleDto);
+  }
+
+  @Delete(":id")
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: "Eliminar bloque de horario" })
+  @ApiOkResponse({ description: "Horario eliminado correctamente." })
+  @ApiNotFoundResponse({ description: "Horario no encontrado." })
+  async remove(@Param("id", ParseIntPipe) id: number) {
+    return this.schedulesService.remove(id);
   }
 }

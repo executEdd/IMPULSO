@@ -25,6 +25,7 @@ import { UsersService } from "./users.service";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { Roles } from "../common/decorators/roles.decorator";
+import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { UserRole } from "../common/enums/roles.enum";
 
 @ApiTags("Usuarios")
@@ -42,6 +43,74 @@ export class UsersController {
   })
   async findAll(@Query("role") role?: UserRole) {
     return this.usersService.findAll(role);
+  }
+
+  @Get("export/students/csv")
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  @ApiOperation({ summary: "Exportar padrón de alumnos con semáforo a CSV" })
+  async exportStudentsCsv(@Res() res: Response) {
+    const csvContent = await this.usersService.exportStudentsCsv();
+    res.setHeader("Content-Type", "text/csv; charset=latin1");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="padron_alumnos_${Date.now()}.csv"`,
+    );
+    return res.end(csvContent);
+  }
+
+  @Get("parents")
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  @ApiOperation({ summary: "Listar todos los perfiles de tutores/padres" })
+  @ApiOkResponse({ description: "Listado de tutores recuperado exitosamente." })
+  async findAllParents() {
+    return this.usersService.findAllParents();
+  }
+
+  @Get("teachers")
+  @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT, UserRole.PARENT)
+  @ApiOperation({ summary: "Listar docentes" })
+  @ApiOkResponse({
+    description: "Listado de docentes recuperado exitosamente.",
+  })
+  async findTeachers() {
+    return this.usersService.findTeachers();
+  }
+
+  @Get("students")
+  @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT, UserRole.PARENT)
+  @ApiOperation({ summary: "Listar estudiantes según el rol del usuario" })
+  @ApiOkResponse({
+    description: "Listado de estudiantes recuperado exitosamente.",
+  })
+  async findStudents(@CurrentUser() user: { id: number; role: UserRole }) {
+    return this.usersService.findStudents(user);
+  }
+
+  @Get("students/:studentId/parent-info")
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  @ApiOperation({
+    summary: "Obtener la ficha completa del alumno con información de su tutor",
+  })
+  @ApiOkResponse({ description: "Ficha del alumno y tutor recuperada." })
+  @ApiNotFoundResponse({ description: "Alumno no encontrado." })
+  async getStudentParentInfo(
+    @Param("studentId", ParseIntPipe) studentId: number,
+  ) {
+    return this.usersService.getStudentParentInfo(studentId);
+  }
+
+  @Put("students/:studentId/parent/:parentId")
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: "Vincular o actualizar el tutor asignado a un estudiante",
+  })
+  @ApiOkResponse({ description: "Tutor asignado correctamente." })
+  @ApiNotFoundResponse({ description: "Alumno o tutor no encontrado." })
+  async assignParentToStudent(
+    @Param("studentId", ParseIntPipe) studentId: number,
+    @Param("parentId", ParseIntPipe) parentId: number,
+  ) {
+    return this.usersService.assignParentToStudent(studentId, parentId);
   }
 
   @Get(":id")
@@ -85,53 +154,5 @@ export class UsersController {
   @ApiNotFoundResponse({ description: "Usuario no encontrado." })
   async remove(@Param("id", ParseIntPipe) id: number) {
     return this.usersService.remove(id);
-  }
-
-  @Get("export/students/csv")
-  @Roles(UserRole.ADMIN, UserRole.TEACHER)
-  @ApiOperation({ summary: "Exportar padrón de alumnos con semáforo a CSV" })
-  async exportStudentsCsv(@Res() res: Response) {
-    const csvContent = await this.usersService.exportStudentsCsv();
-    res.setHeader("Content-Type", "text/csv; charset=latin1");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="padron_alumnos_${Date.now()}.csv"`,
-    );
-    return res.end(csvContent);
-  }
-
-  @Get("parents")
-  @Roles(UserRole.ADMIN, UserRole.TEACHER)
-  @ApiOperation({ summary: "Listar todos los perfiles de tutores/padres" })
-  @ApiOkResponse({ description: "Listado de tutores recuperado exitosamente." })
-  async findAllParents() {
-    return this.usersService.findAllParents();
-  }
-
-  @Get("students/:studentId/parent-info")
-  @Roles(UserRole.ADMIN, UserRole.TEACHER)
-  @ApiOperation({
-    summary: "Obtener la ficha completa del alumno con información de su tutor",
-  })
-  @ApiOkResponse({ description: "Ficha del alumno y tutor recuperada." })
-  @ApiNotFoundResponse({ description: "Alumno no encontrado." })
-  async getStudentParentInfo(
-    @Param("studentId", ParseIntPipe) studentId: number,
-  ) {
-    return this.usersService.getStudentParentInfo(studentId);
-  }
-
-  @Put("students/:studentId/parent/:parentId")
-  @Roles(UserRole.ADMIN)
-  @ApiOperation({
-    summary: "Vincular o actualizar el tutor asignado a un estudiante",
-  })
-  @ApiOkResponse({ description: "Tutor asignado correctamente." })
-  @ApiNotFoundResponse({ description: "Alumno o tutor no encontrado." })
-  async assignParentToStudent(
-    @Param("studentId", ParseIntPipe) studentId: number,
-    @Param("parentId", ParseIntPipe) parentId: number,
-  ) {
-    return this.usersService.assignParentToStudent(studentId, parentId);
   }
 }
