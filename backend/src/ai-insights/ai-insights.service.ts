@@ -17,7 +17,8 @@ import {
 export class AiInsightsService {
   private readonly logger = new Logger(AiInsightsService.name);
   private readonly genAI?: GoogleGenerativeAI;
-  private readonly model?: GenerativeModel;
+  private readonly primaryModelName: string;
+  private readonly fallbackModelName: string;
   private readonly hasApiKey: boolean;
 
   constructor(
@@ -25,10 +26,16 @@ export class AiInsightsService {
     private insightsService: InsightsService,
   ) {
     const apiKey = this.configService.get<string>("GEMINI_API_KEY");
+    this.primaryModelName =
+      this.configService.get<string>("GEMINI_PRIMARY_MODEL") ||
+      "gemini-3.5-flash";
+    this.fallbackModelName =
+      this.configService.get<string>("GEMINI_SECONDARY_MODEL") ||
+      "gemini-3.5-flash-lite";
+
     this.hasApiKey = !!apiKey;
     if (apiKey) {
       this.genAI = new GoogleGenerativeAI(apiKey);
-      this.model = this.genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
     } else {
       this.logger.warn(
         "GEMINI_API_KEY no configurada. AiInsights devolverá resúmenes locales.",
@@ -47,15 +54,14 @@ export class AiInsightsService {
       period,
     );
 
-    if (!this.hasApiKey || !this.model) {
+    if (!this.hasApiKey || !this.genAI) {
       return this.buildLocalStudentResult(insight);
     }
 
     try {
       const anonymized = this.anonymizeStudentInsight(insight);
       const prompt = this.buildStudentPrompt(anonymized);
-      const result = await this.model.generateContent(prompt);
-      const text = result.response.text();
+      const text = await this.generateContentWithRetryAndFallback(prompt);
       const parsed = this.parseStudentJsonResponse(text);
       return {
         ...parsed,
@@ -64,7 +70,7 @@ export class AiInsightsService {
       };
     } catch (error) {
       this.logger.error(
-        "Error al generar insight con IA, usando resumen local",
+        "Error al generar insight con IA tras agotar reintentos y modelo de respaldo, usando resumen local.",
         error instanceof Error ? error.message : String(error),
       );
       return this.buildLocalStudentResult(insight);
@@ -82,14 +88,13 @@ export class AiInsightsService {
       groupId,
     );
 
-    if (!this.hasApiKey || !this.model) {
+    if (!this.hasApiKey || !this.genAI) {
       return this.buildLocalDashboardResult(dashboard);
     }
 
     try {
       const prompt = this.buildDashboardPrompt(dashboard);
-      const result = await this.model.generateContent(prompt);
-      const text = result.response.text();
+      const text = await this.generateContentWithRetryAndFallback(prompt);
       const parsed = this.parseDashboardJsonResponse(text);
       return {
         ...parsed,
@@ -98,11 +103,72 @@ export class AiInsightsService {
       };
     } catch (error) {
       this.logger.error(
-        "Error al generar insight de dashboard con IA, usando resumen local",
+        "Error al generar insight de dashboard con IA tras agotar reintentos y modelo de respaldo, usando resumen local.",
         error instanceof Error ? error.message : String(error),
       );
       return this.buildLocalDashboardResult(dashboard);
     }
+  }
+
+  private async generateContentWithRetryAndFallback(
+    prompt: string,
+  ): Promise<string> {
+    if (!this.genAI) {
+      throw new Error("GoogleGenerativeAI instance not initialized");
+    }
+
+    const primaryModel = this.genAI.getGenerativeModel({
+      model: this.primaryModelName,
+    });
+    const fallbackModel = this.genAI.getGenerativeModel({
+      model: this.fallbackModelName,
+    });
+
+    // 1. Reintentar con modelo primario (hasta 3 intentos)
+    const maxPrimaryAttempts = 3;
+    for (let attempt = 1; attempt <= maxPrimaryAttempts; attempt++) {
+      try {
+        const result = await primaryModel.generateContent(prompt);
+        return result.response.text();
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        this.logger.warn(
+          `Intento ${attempt}/${maxPrimaryAttempts} con modelo primario (${this.primaryModelName}) falló: ${errorMsg}`,
+        );
+        if (attempt < maxPrimaryAttempts) {
+          await this.delay(400 * attempt);
+        }
+      }
+    }
+
+    // 2. Cambiar a modelo secundario (gemini-3.5-flash-lite) si el primario falló los 3 intentos
+    this.logger.warn(
+      `Modelo primario (${this.primaryModelName}) agotó reintentos. Cambiando a modelo de respaldo (${this.fallbackModelName})...`,
+    );
+
+    const maxFallbackAttempts = 2;
+    for (let attempt = 1; attempt <= maxFallbackAttempts; attempt++) {
+      try {
+        const result = await fallbackModel.generateContent(prompt);
+        return result.response.text();
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        this.logger.warn(
+          `Intento ${attempt}/${maxFallbackAttempts} con modelo secundario (${this.fallbackModelName}) falló: ${errorMsg}`,
+        );
+        if (attempt < maxFallbackAttempts) {
+          await this.delay(400 * attempt);
+        }
+      }
+    }
+
+    throw new Error(
+      `Todos los intentos de IA con ${this.primaryModelName} y modelo de respaldo ${this.fallbackModelName} fallaron.`,
+    );
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   private anonymizeStudentInsight(
