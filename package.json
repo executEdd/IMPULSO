@@ -26,5 +26,7 @@
   "devDependencies": {
     "prettier": "^3.8.1"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@playwright/test": "^1.62.1"
+  }
 }

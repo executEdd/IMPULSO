@@ -118,6 +118,31 @@
 }
 .icon-btn:hover { background: #F3F4F6; color: #1A1A2E; }
 
+.ai-gen-sub-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: #FDF0F1;
+  color: #7C1D2E;
+  border: 1px solid rgba(124, 29, 46, 0.2);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.ai-gen-sub-btn:hover:not(:disabled) {
+  background: #7C1D2E;
+  color: #fff;
+}
+.ai-gen-sub-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Loading */
 .loading-box {
   display: flex; align-items: center; justify-content: center;

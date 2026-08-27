@@ -28,9 +28,7 @@ export class AiInsightsService {
     this.hasApiKey = !!apiKey;
     if (apiKey) {
       this.genAI = new GoogleGenerativeAI(apiKey);
-      this.model = this.genAI.getGenerativeModel({
-        model: "gemini-3.1-flash-lite",
-      });
+      this.model = this.genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
     } else {
       this.logger.warn(
         "GEMINI_API_KEY no configurada. AiInsights devolverá resúmenes locales.",
