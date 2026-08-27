@@ -1,8 +1,8 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { ConfigService } from "@nestjs/config";
-import { AiInsightsService } from "./ai-insights.service";
-import { InsightsService } from "../insights/insights.service";
-import { UserRole } from "../common/enums/roles.enum";
+import { AiInsightsService } from "../src/ai-insights/ai-insights.service";
+import { InsightsService } from "../src/insights/insights.service";
+import { UserRole } from "../src/common/enums/roles.enum";
 import { SemaphoreStatus } from "@prisma/client";
 
 const mockGenerateContent = jest.fn();
@@ -117,7 +117,8 @@ describe("AiInsightsService", () => {
             get: jest.fn().mockImplementation((key: string) => {
               if (key === "GEMINI_API_KEY") return "fake-api-key";
               if (key === "GEMINI_PRIMARY_MODEL") return "gemini-3.5-flash";
-              if (key === "GEMINI_SECONDARY_MODEL") return "gemini-3.5-flash-lite";
+              if (key === "GEMINI_SECONDARY_MODEL")
+                return "gemini-3.5-flash-lite";
               return undefined;
             }),
           },
