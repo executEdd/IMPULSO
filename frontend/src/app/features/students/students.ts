@@ -127,7 +127,8 @@ export class StudentsComponent implements OnInit {
           summary: insights.recommendations?.[0] ?? 'Rendimiento académico regular.',
           strengths: insights.topSubject ? [`Desempeño destacado en ${insights.topSubject}`] : [],
           areasOfImprovement: insights.weakestSubject ? [`Atención prioritaria en ${insights.weakestSubject}`] : [],
-          actionPlan: insights.riskFactors ?? []
+          actionPlan: insights.riskFactors ?? [],
+          source: 'local'
         });
       }
       this.drawerLoading.set(false);

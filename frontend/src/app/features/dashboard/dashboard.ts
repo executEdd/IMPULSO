@@ -175,7 +175,14 @@ export class DashboardComponent implements OnInit, AfterViewInit {
 
     this.http.post<any>(url, {}).subscribe({
       next: (res) => {
-        this.aiInsight.set(res);
+        const normalized = {
+          ...res,
+          institutionalOverview: res.institutionalOverview || res.summary,
+          keyObservations: res.keyObservations || res.highlights || res.strengths || [],
+          executiveActions: res.executiveActions || res.recommendations || res.actionPlan || [],
+          riskAnalysis: res.riskAnalysis || (Array.isArray(res.concerns) && res.concerns.length > 0 ? res.concerns.join(' · ') : null)
+        };
+        this.aiInsight.set(normalized);
         this.aiLoading.set(false);
       },
       error: () => this.aiLoading.set(false)
