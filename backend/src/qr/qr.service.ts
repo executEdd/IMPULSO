@@ -1,8 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { PrismaService } from "./prisma.service";
+import { PrismaService } from "../prisma.service";
 import * as QRCode from "qrcode";
-import { randomBytes } from "crypto";
+import * as crypto from "crypto";
 
 export interface StudentQrResponse {
   qrToken: string | null;
@@ -18,8 +18,15 @@ export class QrService {
     private readonly configService: ConfigService,
   ) {}
 
-  private generateToken(): string {
-    return randomBytes(32).toString("hex");
+  private generateToken(studentId: number): string {
+    const secret = this.configService.get<string>("QR_SECRET") || "impulso_secret";
+    const dateStr = new Date().toISOString().split("T")[0];
+    
+    const hash = crypto.createHmac("sha256", secret)
+      .update(`${studentId}-${dateStr}`)
+      .digest("hex");
+      
+    return `${studentId}:${dateStr}:${hash}`;
   }
 
   private async generateQrImage(qrToken: string): Promise<string> {
@@ -34,14 +41,10 @@ export class QrService {
   }
 
   async generateQrForStudent(studentId: number): Promise<StudentQrResponse> {
-    const refreshInterval = parseInt(
-      this.configService.get<string>("QR_REFRESH_INTERVAL") || "30",
-      10,
-    );
+    const qrToken = this.generateToken(studentId);
 
-    const qrToken = this.generateToken();
-
-    const expiresAt = new Date(Date.now() + refreshInterval * 1000);
+    const now = new Date();
+    const expiresAt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
     await this.prisma.studentProfile.update({
       where: {
@@ -115,34 +118,35 @@ export class QrService {
     studentId?: number;
     message?: string;
   }> {
-    const student = await this.prisma.studentProfile.findUnique({
-      where: {
-        qrToken,
-      },
-      select: {
-        id: true,
-        qrExpiresAt: true,
-      },
-    });
+    if (!qrToken) return { valid: false, message: "Token QR no proporcionado" };
 
-    if (!student) {
-      return {
-        valid: false,
-        message: "Token QR no encontrado",
-      };
+    const parts = qrToken.split(":");
+    if (parts.length !== 3) return { valid: false, message: "Formato de token QR inválido" };
+
+    const [studentIdStr, dateStr, signature] = parts;
+    const studentId = parseInt(studentIdStr, 10);
+    
+    if (isNaN(studentId)) return { valid: false, message: "ID inválido en el token" };
+
+    const tokenDate = new Date(dateStr);
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    if (tokenDate.getTime() > todayStart.getTime()) {
+       return { valid: false, message: "El token QR es de una fecha futura" };
     }
 
-    if (student.qrExpiresAt && new Date() > student.qrExpiresAt) {
-      return {
-        valid: false,
-        message: "Token QR expirado",
-        studentId: student.id,
-      };
+    const secret = this.configService.get<string>("QR_SECRET") || "impulso_secret";
+    
+    const expectedHash = crypto
+      .createHmac("sha256", secret)
+      .update(`${studentId}-${dateStr}`)
+      .digest("hex");
+
+    if (signature !== expectedHash) {
+      return { valid: false, message: "Firma de QR inválida o alterada" };
     }
 
-    return {
-      valid: true,
-      studentId: student.id,
-    };
+    return { valid: true, studentId };
   }
 }

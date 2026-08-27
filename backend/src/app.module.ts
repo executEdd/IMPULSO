@@ -17,8 +17,7 @@ import { InsightsModule } from "./insights/insights.module";
 import { AiInsightsModule } from "./ai-insights/ai-insights.module";
 import { JwtAuthGuard } from "./auth/guards/jwt-auth.guard";
 import { RolesGuard } from "./common/guards/roles.guard";
-import { QrService } from "./qr.service";
-import { QrController } from "./qr.controller";
+import { QrModule } from "./qr/qr.module";
 
 @Module({
   imports: [
@@ -45,10 +44,10 @@ import { QrController } from "./qr.controller";
     ClassesModule,
     InsightsModule,
     AiInsightsModule,
+    QrModule,
   ],
-  controllers: [QrController],
+  controllers: [],
   providers: [
-    QrService,
     {
       provide: APP_GUARD,
       useClass: CustomThrottlerGuard,
