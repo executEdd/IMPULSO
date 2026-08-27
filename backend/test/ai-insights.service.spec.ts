@@ -1,8 +1,8 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { ConfigService } from "@nestjs/config";
-import { AiInsightsService } from "./ai-insights.service";
-import { InsightsService } from "../insights/insights.service";
-import { UserRole } from "../common/enums/roles.enum";
+import { AiInsightsService } from "../src/ai-insights/ai-insights.service";
+import { InsightsService } from "../src/insights/insights.service";
+import { UserRole } from "../src/common/enums/roles.enum";
 import { SemaphoreStatus } from "@prisma/client";
 
 const mockGenerateContent = jest.fn();
