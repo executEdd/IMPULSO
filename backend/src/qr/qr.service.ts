@@ -128,12 +128,11 @@ export class QrService {
     
     if (isNaN(studentId)) return { valid: false, message: "ID inválido en el token" };
 
-    const tokenDate = new Date(dateStr);
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayStr = now.toISOString().split("T")[0];
     
-    if (tokenDate.getTime() > todayStart.getTime()) {
-       return { valid: false, message: "El token QR es de una fecha futura" };
+    if (dateStr !== todayStr) {
+      return { valid: false, message: "El token QR ha expirado o no corresponde al día de hoy" };
     }
 
     const secret = this.configService.get<string>("QR_SECRET") || "impulso_secret";
