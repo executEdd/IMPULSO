@@ -22,6 +22,7 @@ import {
 } from "@nestjs/swagger";
 import { AttendanceService } from "./attendance.service";
 import { QrScanDto } from "./dto/qr-scan.dto";
+import { ManualAttendanceDto } from "./dto/manual-attendance.dto";
 import { Roles } from "../common/decorators/roles.decorator";
 import { UserRole } from "../common/enums/roles.enum";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
@@ -51,6 +52,34 @@ export class AttendanceController {
       throw new BadRequestException("Perfil de docente no encontrado");
     }
     return this.attendanceService.scanQr(qrScanDto, teacherProfile.id);
+  }
+
+  @Post("manual-present")
+  @Roles(UserRole.TEACHER, UserRole.ADMIN)
+  @ApiOperation({
+    summary: "Registrar asistencia manualmente con confirmación de contraseña",
+  })
+  @ApiCreatedResponse({ description: "Asistencia manual registrada con éxito." })
+  @ApiBadRequestResponse({
+    description: "Contraseña incorrecta, IDs inválidos o clase incorrecta.",
+  })
+  async markPresentManual(
+    @Body() dto: ManualAttendanceDto,
+    @CurrentUser() user: any,
+  ) {
+    if (!user || !user.id) {
+      throw new BadRequestException("Usuario no autenticado");
+    }
+
+    const profileId =
+      user.role === UserRole.TEACHER ? user.teacherProfile?.id : undefined;
+
+    return this.attendanceService.markPresentManual(
+      dto,
+      user.id,
+      user.role,
+      profileId,
+    );
   }
 
   @Post("mark-absent/:studentId/:classScheduleId")
