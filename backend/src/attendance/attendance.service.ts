@@ -290,7 +290,9 @@ export class AttendanceService {
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid)
-      throw new BadRequestException("Contraseña incorrecta. Confirmación fallida.");
+      throw new BadRequestException(
+        "Contraseña incorrecta. Confirmación fallida.",
+      );
 
     const schedule = await this.prisma.classSchedule.findUnique({
       where: { id: classScheduleId },
@@ -341,7 +343,7 @@ export class AttendanceService {
           classScheduleId: schedule.id,
           status: AttendanceStatus.PRESENT,
           qrToken: null,
-          notes: `Registrado manualmente por ${role.toLowerCase()} a las ${currentTime}`,
+          notes: `Registrado manualmente por ${user.firstName} ${user.lastName} a las ${currentTime}`,
         },
         include: {
           student: {
