@@ -16,12 +16,14 @@ import { QrScanDto } from "./dto/qr-scan.dto";
 import { ManualAttendanceDto } from "./dto/manual-attendance.dto";
 import { UserRole } from "../common/enums/roles.enum";
 import * as bcrypt from "bcryptjs";
+import { QrService } from "../qr/qr.service";
 
 @Injectable()
 export class AttendanceService {
   constructor(
     private prisma: PrismaService,
     private notificationRouter: NotificationRouterService,
+    private qrService: QrService,
   ) {}
 
   private getMexicoCityTimeInfo(date: Date) {
@@ -133,23 +135,34 @@ export class AttendanceService {
   }
 
   async scanQr(qrScanDto: QrScanDto, teacherId: number) {
-    const now = new Date();
-    const { currentTime, currentDay, todayStart, todayEnd } =
-      this.getMexicoCityTimeInfo(now);
+    // Si la app envió scannedAt (sync offline), usamos esa fecha. Si no, usamos la actual.
+    const evaluationDate = qrScanDto.scannedAt ? new Date(qrScanDto.scannedAt) : new Date();
+    
+    // Verificamos que la fecha enviada sea válida
+    if (isNaN(evaluationDate.getTime())) {
+      throw new BadRequestException("La fecha scannedAt es inválida");
+    }
 
-    // 1. Buscar al alumno por su token QR
+    const { currentTime, currentDay, todayStart, todayEnd } =
+      this.getMexicoCityTimeInfo(evaluationDate);
+
+    // 1. Validar el token QR matemáticamente (stateless) para la fecha de escaneo
+    const qrValidation = await this.qrService.validateQrToken(qrScanDto.qrToken, evaluationDate);
+    
+    if (!qrValidation.valid || !qrValidation.studentId) {
+      throw new BadRequestException(qrValidation.message || "Token QR inválido o expirado");
+    }
+
+    // 2. Buscar al alumno validado
     const student = await this.prisma.studentProfile.findUnique({
-      where: { qrToken: qrScanDto.qrToken },
+      where: { id: qrValidation.studentId },
       include: {
         user: { select: { firstName: true, lastName: true } },
         group: true,
         parent: {
           include: {
             user: {
-              select: {
-                email: true,
-                id: true,
-              },
+              select: { email: true, id: true },
             },
           },
         },
@@ -157,14 +170,7 @@ export class AttendanceService {
     });
 
     if (!student) {
-      throw new BadRequestException("Token QR inválido o expirado");
-    }
-
-    // 2. Verificar que el token no haya expirado
-    if (student.qrExpiresAt && now > student.qrExpiresAt) {
-      throw new BadRequestException(
-        "El token QR ha expirado. El alumno debe refrescar su credencial digital.",
-      );
+      throw new BadRequestException("Alumno no encontrado");
     }
 
     // 3. Obtener el bloque de horario
@@ -240,19 +246,14 @@ export class AttendanceService {
           "La asistencia de este alumno ya fue registrada para este bloque de clase hoy",
         );
       }
-      await tx.studentProfile.update({
-        where: { id: student.id },
-        data: {
-          qrToken: null,
-          qrExpiresAt: null,
-        },
-      });
+
 
       return tx.attendance.create({
         data: {
           studentId: student.id,
           classId: schedule.class.id,
           classScheduleId: schedule.id,
+          date: evaluationDate,
           status: AttendanceStatus.PRESENT,
           qrToken: qrScanDto.qrToken,
           notes: `Registrado por QR a las ${currentTime}`,
