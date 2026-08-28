@@ -20,7 +20,19 @@ export class QrService {
 
   private generateToken(studentId: number): string {
     const secret = this.configService.get<string>("QR_SECRET") || "impulso_secret";
-    const dateStr = new Date().toISOString().split("T")[0];
+    
+    // Usar la zona horaria de México para generar el string de la fecha del payload
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Mexico_City",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+    const partsDate = formatter.formatToParts(new Date());
+    const month = partsDate.find((p) => p.type === "month")?.value;
+    const day = partsDate.find((p) => p.type === "day")?.value;
+    const year = partsDate.find((p) => p.type === "year")?.value;
+    const dateStr = `${year}-${month}-${day}`;
     
     const hash = crypto.createHmac("sha256", secret)
       .update(`${studentId}-${dateStr}`)
@@ -113,7 +125,7 @@ export class QrService {
     };
   }
 
-  async validateQrToken(qrToken: string): Promise<{
+  async validateQrToken(qrToken: string, evaluationDate?: Date): Promise<{
     valid: boolean;
     studentId?: number;
     message?: string;
@@ -128,11 +140,22 @@ export class QrService {
     
     if (isNaN(studentId)) return { valid: false, message: "ID inválido en el token" };
 
-    const now = new Date();
-    const todayStr = now.toISOString().split("T")[0];
+    const now = evaluationDate || new Date();
+    // Obtener la fecha en la zona horaria de México (UTC-6)
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Mexico_City",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+    const partsDate = formatter.formatToParts(now);
+    const month = partsDate.find((p) => p.type === "month")?.value;
+    const day = partsDate.find((p) => p.type === "day")?.value;
+    const year = partsDate.find((p) => p.type === "year")?.value;
+    const todayStr = `${year}-${month}-${day}`;
     
     if (dateStr !== todayStr) {
-      return { valid: false, message: "El token QR ha expirado o no corresponde al día de hoy" };
+      return { valid: false, message: "El token QR ha expirado o no corresponde a la fecha de escaneo" };
     }
 
     const secret = this.configService.get<string>("QR_SECRET") || "impulso_secret";

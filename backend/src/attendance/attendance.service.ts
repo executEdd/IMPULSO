@@ -132,12 +132,19 @@ export class AttendanceService {
   }
 
   async scanQr(qrScanDto: QrScanDto, teacherId: number) {
-    const now = new Date();
-    const { currentTime, currentDay, todayStart, todayEnd } =
-      this.getMexicoCityTimeInfo(now);
+    // Si la app envió scannedAt (sync offline), usamos esa fecha. Si no, usamos la actual.
+    const evaluationDate = qrScanDto.scannedAt ? new Date(qrScanDto.scannedAt) : new Date();
+    
+    // Verificamos que la fecha enviada sea válida
+    if (isNaN(evaluationDate.getTime())) {
+      throw new BadRequestException("La fecha scannedAt es inválida");
+    }
 
-    // 1. Validar el token QR matemáticamente (stateless)
-    const qrValidation = await this.qrService.validateQrToken(qrScanDto.qrToken);
+    const { currentTime, currentDay, todayStart, todayEnd } =
+      this.getMexicoCityTimeInfo(evaluationDate);
+
+    // 1. Validar el token QR matemáticamente (stateless) para la fecha de escaneo
+    const qrValidation = await this.qrService.validateQrToken(qrScanDto.qrToken, evaluationDate);
     
     if (!qrValidation.valid || !qrValidation.studentId) {
       throw new BadRequestException(qrValidation.message || "Token QR inválido o expirado");
@@ -243,6 +250,7 @@ export class AttendanceService {
           studentId: student.id,
           classId: schedule.class.id,
           classScheduleId: schedule.id,
+          date: evaluationDate,
           status: AttendanceStatus.PRESENT,
           qrToken: qrScanDto.qrToken,
           notes: `Registrado por QR a las ${currentTime}`,
