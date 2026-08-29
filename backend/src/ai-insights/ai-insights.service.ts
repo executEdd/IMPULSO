@@ -1,6 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { GoogleGenerativeAI, GenerativeModel } from "@google/generative-ai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { InsightsService } from "../insights/insights.service";
 import { UserRole } from "../common/enums/roles.enum";
 import {

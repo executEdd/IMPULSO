@@ -1,4 +1,10 @@
-import { IsString, IsInt, IsNotEmpty, IsOptional, IsDateString } from "class-validator";
+import {
+  IsString,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsDateString,
+} from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
 
 export class QrScanDto {
@@ -19,7 +25,8 @@ export class QrScanDto {
   classScheduleId!: number;
 
   @ApiProperty({
-    description: "Fecha y hora (ISO string) en la que el docente escaneó el código de forma offline. Si no se envía, se toma la hora actual del servidor.",
+    description:
+      "Fecha y hora (ISO string) en la que el docente escaneó el código de forma offline. Si no se envía, se toma la hora actual del servidor.",
     example: "2026-08-27T10:00:00.000Z",
     required: false,
   })

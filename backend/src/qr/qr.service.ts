@@ -19,8 +19,9 @@ export class QrService {
   ) {}
 
   private generateToken(studentId: number): string {
-    const secret = this.configService.get<string>("QR_SECRET") || "impulso_secret";
-    
+    const secret =
+      this.configService.get<string>("QR_SECRET") || "impulso_secret";
+
     // Usar la zona horaria de México para generar el string de la fecha del payload
     const formatter = new Intl.DateTimeFormat("en-US", {
       timeZone: "America/Mexico_City",
@@ -33,11 +34,12 @@ export class QrService {
     const day = partsDate.find((p) => p.type === "day")?.value;
     const year = partsDate.find((p) => p.type === "year")?.value;
     const dateStr = `${year}-${month}-${day}`;
-    
-    const hash = crypto.createHmac("sha256", secret)
+
+    const hash = crypto
+      .createHmac("sha256", secret)
       .update(`${studentId}-${dateStr}`)
       .digest("hex");
-      
+
     return `${studentId}:${dateStr}:${hash}`;
   }
 
@@ -56,7 +58,15 @@ export class QrService {
     const qrToken = this.generateToken(studentId);
 
     const now = new Date();
-    const expiresAt = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const expiresAt = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      23,
+      59,
+      59,
+      999,
+    );
 
     await this.prisma.studentProfile.update({
       where: {
@@ -125,7 +135,10 @@ export class QrService {
     };
   }
 
-  async validateQrToken(qrToken: string, evaluationDate?: Date): Promise<{
+  async validateQrToken(
+    qrToken: string,
+    evaluationDate?: Date,
+  ): Promise<{
     valid: boolean;
     studentId?: number;
     message?: string;
@@ -133,12 +146,14 @@ export class QrService {
     if (!qrToken) return { valid: false, message: "Token QR no proporcionado" };
 
     const parts = qrToken.split(":");
-    if (parts.length !== 3) return { valid: false, message: "Formato de token QR inválido" };
+    if (parts.length !== 3)
+      return { valid: false, message: "Formato de token QR inválido" };
 
     const [studentIdStr, dateStr, signature] = parts;
     const studentId = parseInt(studentIdStr, 10);
-    
-    if (isNaN(studentId)) return { valid: false, message: "ID inválido en el token" };
+
+    if (isNaN(studentId))
+      return { valid: false, message: "ID inválido en el token" };
 
     const now = evaluationDate || new Date();
     // Obtener la fecha en la zona horaria de México (UTC-6)
@@ -153,13 +168,18 @@ export class QrService {
     const day = partsDate.find((p) => p.type === "day")?.value;
     const year = partsDate.find((p) => p.type === "year")?.value;
     const todayStr = `${year}-${month}-${day}`;
-    
+
     if (dateStr !== todayStr) {
-      return { valid: false, message: "El token QR ha expirado o no corresponde a la fecha de escaneo" };
+      return {
+        valid: false,
+        message:
+          "El token QR ha expirado o no corresponde a la fecha de escaneo",
+      };
     }
 
-    const secret = this.configService.get<string>("QR_SECRET") || "impulso_secret";
-    
+    const secret =
+      this.configService.get<string>("QR_SECRET") || "impulso_secret";
+
     const expectedHash = crypto
       .createHmac("sha256", secret)
       .update(`${studentId}-${dateStr}`)

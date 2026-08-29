@@ -18,6 +18,7 @@ import { AiInsightsModule } from "./ai-insights/ai-insights.module";
 import { JwtAuthGuard } from "./auth/guards/jwt-auth.guard";
 import { RolesGuard } from "./common/guards/roles.guard";
 import { QrModule } from "./qr/qr.module";
+import { SemestersModule } from "./semesters/semesters.module";
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { QrModule } from "./qr/qr.module";
     InsightsModule,
     AiInsightsModule,
     QrModule,
+    SemestersModule,
   ],
   controllers: [],
   providers: [

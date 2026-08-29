@@ -62,7 +62,9 @@ export class AttendanceController {
   @ApiOperation({
     summary: "Registrar asistencia manualmente con confirmación de contraseña",
   })
-  @ApiCreatedResponse({ description: "Asistencia manual registrada con éxito." })
+  @ApiCreatedResponse({
+    description: "Asistencia manual registrada con éxito.",
+  })
   @ApiBadRequestResponse({
     description: "Contraseña incorrecta, IDs inválidos o clase incorrecta.",
   })
