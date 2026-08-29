@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+﻿import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../prisma.service";
 import * as QRCode from "qrcode";
@@ -18,22 +18,25 @@ export class QrService {
     private readonly configService: ConfigService,
   ) {}
 
-  private generateToken(studentId: number): string {
-    const secret =
-      this.configService.get<string>("QR_SECRET") || "impulso_secret";
-
-    // Usar la zona horaria de México para generar el string de la fecha del payload
+  private getMexicoCityDateString(date: Date = new Date()): string {
     const formatter = new Intl.DateTimeFormat("en-US", {
       timeZone: "America/Mexico_City",
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
     });
-    const partsDate = formatter.formatToParts(new Date());
+    const partsDate = formatter.formatToParts(date);
     const month = partsDate.find((p) => p.type === "month")?.value;
     const day = partsDate.find((p) => p.type === "day")?.value;
     const year = partsDate.find((p) => p.type === "year")?.value;
-    const dateStr = `${year}-${month}-${day}`;
+    return `${year}-${month}-${day}`;
+  }
+
+  private generateToken(studentId: number): string {
+    const secret =
+      this.configService.get<string>("QR_SECRET") || "impulso_secret";
+
+    const dateStr = this.getMexicoCityDateString();
 
     const hash = crypto
       .createHmac("sha256", secret)
@@ -57,16 +60,10 @@ export class QrService {
   async generateQrForStudent(studentId: number): Promise<StudentQrResponse> {
     const qrToken = this.generateToken(studentId);
 
-    const now = new Date();
-    const expiresAt = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate(),
-      23,
-      59,
-      59,
-      999,
-    );
+    // Obtener la fecha estricta de CDMX y construir el final del día explícitamente en el huso horario -06:00
+    const dateStr = this.getMexicoCityDateString();
+    const expiresAtStr = `${dateStr}T23:59:59.999-06:00`;
+    const expiresAt = new Date(expiresAtStr);
 
     await this.prisma.studentProfile.update({
       where: {
@@ -156,18 +153,7 @@ export class QrService {
       return { valid: false, message: "ID inválido en el token" };
 
     const now = evaluationDate || new Date();
-    // Obtener la fecha en la zona horaria de México (UTC-6)
-    const formatter = new Intl.DateTimeFormat("en-US", {
-      timeZone: "America/Mexico_City",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    });
-    const partsDate = formatter.formatToParts(now);
-    const month = partsDate.find((p) => p.type === "month")?.value;
-    const day = partsDate.find((p) => p.type === "day")?.value;
-    const year = partsDate.find((p) => p.type === "year")?.value;
-    const todayStr = `${year}-${month}-${day}`;
+    const todayStr = this.getMexicoCityDateString(now);
 
     if (dateStr !== todayStr) {
       return {
@@ -192,3 +178,4 @@ export class QrService {
     return { valid: true, studentId };
   }
 }
+
