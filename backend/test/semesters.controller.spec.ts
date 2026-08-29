@@ -17,7 +17,9 @@ describe("SemestersController", () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [SemestersController],
-      providers: [{ provide: SemestersService, useValue: mockSemestersService }],
+      providers: [
+        { provide: SemestersService, useValue: mockSemestersService },
+      ],
     }).compile();
 
     controller = module.get<SemestersController>(SemestersController);
@@ -33,7 +35,12 @@ describe("SemestersController", () => {
   });
 
   it("should create a semester", async () => {
-    const dto = { semesterName: "Test", startDate: "2026-08-01", finishDate: "2026-12-01", schoolCycleId: 1 };
+    const dto = {
+      semesterName: "Test",
+      startDate: "2026-08-01",
+      finishDate: "2026-12-01",
+      schoolCycleId: 1,
+    };
     mockSemestersService.create.mockResolvedValue({ id: 1, ...dto });
 
     const result = await controller.create(dto);
@@ -48,4 +55,3 @@ describe("SemestersController", () => {
     expect(result).toEqual([{ id: 1 }]);
   });
 });
-

@@ -41,7 +41,10 @@ describe("ClassroomsService", () => {
     it("should create a classroom", async () => {
       const createDto = { name: "Aula 101", capacity: 30 };
       mockPrismaService.classroom.findUnique.mockResolvedValue(null);
-      mockPrismaService.classroom.create.mockResolvedValue({ id: 1, ...createDto });
+      mockPrismaService.classroom.create.mockResolvedValue({
+        id: 1,
+        ...createDto,
+      });
 
       const result = await service.create(createDto);
 
@@ -51,9 +54,14 @@ describe("ClassroomsService", () => {
 
     it("should throw ConflictException if classroom name exists", async () => {
       const createDto = { name: "Aula 101" };
-      mockPrismaService.classroom.findUnique.mockResolvedValue({ id: 1, name: "Aula 101" });
+      mockPrismaService.classroom.findUnique.mockResolvedValue({
+        id: 1,
+        name: "Aula 101",
+      });
 
-      await expect(service.create(createDto)).rejects.toThrow(ConflictException);
+      await expect(service.create(createDto)).rejects.toThrow(
+        ConflictException,
+      );
     });
   });
 
@@ -64,7 +72,9 @@ describe("ClassroomsService", () => {
 
       const result = await service.findAll();
 
-      expect(prisma.classroom.findMany).toHaveBeenCalledWith({ orderBy: { name: "asc" } });
+      expect(prisma.classroom.findMany).toHaveBeenCalledWith({
+        orderBy: { name: "asc" },
+      });
       expect(result).toEqual(expectedResult);
     });
   });
@@ -84,4 +94,3 @@ describe("ClassroomsService", () => {
     });
   });
 });
-

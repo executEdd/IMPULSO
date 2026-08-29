@@ -17,7 +17,9 @@ describe("ClassroomsController", () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ClassroomsController],
-      providers: [{ provide: ClassroomsService, useValue: mockClassroomsService }],
+      providers: [
+        { provide: ClassroomsService, useValue: mockClassroomsService },
+      ],
     }).compile();
 
     controller = module.get<ClassroomsController>(ClassroomsController);
@@ -48,4 +50,3 @@ describe("ClassroomsController", () => {
     expect(result).toEqual([{ id: 1 }]);
   });
 });
-

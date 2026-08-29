@@ -471,8 +471,11 @@ describe("AttendanceModule (e2e)", () => {
     const day = partsDate.find((p) => p.type === "day")?.value;
     const year = partsDate.find((p) => p.type === "year")?.value;
     const dateStr = `${year}-${month}-${day}`;
-    
-    const hash = crypto.createHmac("sha256", secret).update(`${studentProfileId}-${dateStr}`).digest("hex");
+
+    const hash = crypto
+      .createHmac("sha256", secret)
+      .update(`${studentProfileId}-${dateStr}`)
+      .digest("hex");
     const expiredToken = `${studentProfileId}:${dateStr}:${hash}`;
 
     const scanRes = await request(app.getHttpServer())
@@ -502,17 +505,28 @@ describe("AttendanceModule (e2e)", () => {
     const day = partsDate.find((p) => p.type === "day")?.value;
     const year = partsDate.find((p) => p.type === "year")?.value;
     const dateStr = `${year}-${month}-${day}`;
-    
-    const hash = crypto.createHmac("sha256", secret).update(`${studentProfileId}-${dateStr}`).digest("hex");
+
+    const hash = crypto
+      .createHmac("sha256", secret)
+      .update(`${studentProfileId}-${dateStr}`)
+      .digest("hex");
     const pastToken = `${studentProfileId}:${dateStr}:${hash}`;
 
     // Need to temporarily update the class schedule to match yesterday's dayOfWeek
     // and time window, so the time constraints pass during evaluation.
-    const dayNames = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
+    const dayNames = [
+      "SUNDAY",
+      "MONDAY",
+      "TUESDAY",
+      "WEDNESDAY",
+      "THURSDAY",
+      "FRIDAY",
+      "SATURDAY",
+    ];
     const yesterdayDayOfWeek = dayNames[yesterday.getDay()];
-    
+
     const { startTime } = getMexicoCityDayAndTime();
-    
+
     // update schedule to yesterday's dayOfWeek
     await prisma.classSchedule.update({
       where: { id: classScheduleId },
@@ -540,9 +554,9 @@ describe("AttendanceModule (e2e)", () => {
     const attendance = await prisma.attendance.findUnique({
       where: { id: scanRes.body.id },
     });
-    
+
     expect(attendance).toBeDefined();
-    
+
     const attFormatter = new Intl.DateTimeFormat("en-US", {
       timeZone: "America/Mexico_City",
       year: "numeric",
@@ -553,11 +567,15 @@ describe("AttendanceModule (e2e)", () => {
     const attMonth = attParts.find((p) => p.type === "month")?.value;
     const attDay = attParts.find((p) => p.type === "day")?.value;
     const attYear = attParts.find((p) => p.type === "year")?.value;
-    
+
     expect(`${attYear}-${attMonth}-${attDay}`).toBe(dateStr);
-    
+
     // revert schedule back to original for subsequent tests
-    const { dayOfWeek, startTime: origStartTime, endTime: origEndTime } = getMexicoCityDayAndTime();
+    const {
+      dayOfWeek,
+      startTime: origStartTime,
+      endTime: origEndTime,
+    } = getMexicoCityDayAndTime();
     await prisma.classSchedule.update({
       where: { id: classScheduleId },
       data: {
@@ -794,7 +812,7 @@ describe("AttendanceModule (e2e)", () => {
         classScheduleId,
         password: "password123", // the hash in beforeAll uses "password123"
       });
-      
+
     // Wait, otherStudentProfileId might not be in the same group. Let's check how otherStudentUser is created.
     // If it fails because "El alumno no pertenece a este grupo", we might get 400.
     // Let's just expect it to not be 401/403 and at least pass the password check.
@@ -804,5 +822,4 @@ describe("AttendanceModule (e2e)", () => {
       expect(res.body.message).not.toContain("Contraseña incorrecta");
     }
   });
-
 });
