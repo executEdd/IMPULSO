@@ -178,4 +178,3 @@ export class QrService {
     return { valid: true, studentId };
   }
 }
-
