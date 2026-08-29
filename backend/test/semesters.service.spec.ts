@@ -46,7 +46,12 @@ describe("SemestersService", () => {
         schoolCycleId: 1,
       };
 
-      const expectedResult = { id: 1, ...createDto, startDate: new Date(createDto.startDate), finishDate: new Date(createDto.finishDate) };
+      const expectedResult = {
+        id: 1,
+        ...createDto,
+        startDate: new Date(createDto.startDate),
+        finishDate: new Date(createDto.finishDate),
+      };
       mockPrismaService.semester.create.mockResolvedValue(expectedResult);
 
       const result = await service.create(createDto);
@@ -104,4 +109,3 @@ describe("SemestersService", () => {
     });
   });
 });
-
