@@ -1,6 +1,6 @@
-﻿import { Test, TestingModule } from "@nestjs/testing";
-import { SemestersService } from "./semesters.service";
-import { PrismaService } from "../prisma.service";
+import { Test, TestingModule } from "@nestjs/testing";
+import { SemestersService } from "../src/semesters/semesters.service";
+import { PrismaService } from "../src/prisma.service";
 import { NotFoundException } from "@nestjs/common";
 
 describe("SemestersService", () => {
