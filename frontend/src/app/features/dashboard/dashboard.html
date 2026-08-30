@@ -132,8 +132,6 @@
               <i class="fa-solid fa-shield-halved"></i> <strong>Análisis de Riesgo:</strong> {{ aiInsight().riskAnalysis || (aiInsight().concerns ? aiInsight().concerns.join(' · ') : '') }}
             </div>
           }
-            </div>
-          }
         } @else {
           <p class="ai-overview"><strong>Diagnóstico:</strong> {{ aiInsight().summary }}</p>
 
