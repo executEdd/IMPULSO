@@ -64,6 +64,10 @@
           @else { <i class="fa-solid fa-user-xmark"></i> }
           Marcar ausente
         </button>
+        <button class="mark-btn-present" [disabled]="!selSchedule() || !selStudent()" (click)="openManualModal()">
+          <i class="fa-solid fa-user-check"></i>
+          Marcar presente (clave)
+        </button>
       </div>
     </div>
   }
@@ -228,6 +232,52 @@
             @else { <i class="fa-solid fa-check"></i> Registrar asistencia }
           </button>
         </div>
+      </div>
+    </div>
+  }
+
+  <!-- Modal Asistencia Manual con Contraseña -->
+  @if (manualModalOpen()) {
+    <div class="modal-backdrop" (click)="closeManualModal()"></div>
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2><i class="fa-solid fa-user-check" style="color: #10B981;"></i> Asistencia Manual con Clave</h2>
+        <button class="modal-close" (click)="closeManualModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        @if (manualError()) {
+          <div class="form-error" style="color:#EF4444; background:#FEE2E2; padding:8px 12px; border-radius:8px; font-size:12.5px; margin-bottom:12px;">
+            <i class="fa-solid fa-circle-exclamation"></i> {{ manualError() }}
+          </div>
+        }
+        <p style="font-size:13px; color:#4B5563; margin-top:0;">
+          Para confirmar la asistencia de este alumno sin código QR, ingresa tu contraseña de docente/admin:
+        </p>
+
+        <div class="form-group" style="display:flex; flex-direction:column; gap:6px;">
+          <label style="font-size:12.5px; font-weight:600; color:#374151;">Contraseña de Confirmación</label>
+          <input
+            type="password"
+            class="form-input"
+            style="padding:9px 12px; border:1px solid #E5E7EB; border-radius:8px; font-size:13.5px;"
+            placeholder="Tu contraseña"
+            [ngModel]="manualPassword()"
+            (ngModelChange)="manualPassword.set($event)"
+            (keydown.enter)="submitManualAttendance()"
+          />
+        </div>
+      </div>
+      <div class="modal-footer" style="padding:14px 22px; background:#FAFAFA; border-top:1px solid #F0F2F5; display:flex; justify-content:flex-end; gap:10px;">
+        <button type="button" class="btn-sec" style="background:#F3F4F6; border:1px solid #E5E7EB; padding:9px 16px; border-radius:8px; cursor:pointer;" (click)="closeManualModal()">Cancelar</button>
+        <button
+          type="button"
+          class="btn-primary"
+          style="background:#10B981; color:#fff; border:none; padding:9px 16px; border-radius:8px; font-weight:600; cursor:pointer;"
+          [disabled]="!manualPassword() || manualLoading()"
+          (click)="submitManualAttendance()">
+          @if (manualLoading()) { <i class="fa-solid fa-spinner fa-spin"></i> Confirmando... }
+          @else { <i class="fa-solid fa-check"></i> Confirmar Asistencia }
+        </button>
       </div>
     </div>
   }
