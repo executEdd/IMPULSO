@@ -100,14 +100,20 @@
 
     @if (aiInsight()) {
       <div class="ai-body-content">
+        @if (aiInsight().source === 'local') {
+          <div class="ai-fallback-banner">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span>Error al intentar resumir con IA, usando resumen generado con los datos del sistema.</span>
+          </div>
+        }
         @if (isAdminOrTeacher) {
-          <p class="ai-overview"><strong>Resumen Ejecutivo:</strong> {{ aiInsight().institutionalOverview }}</p>
+          <p class="ai-overview"><strong>Resumen Ejecutivo:</strong> {{ aiInsight().institutionalOverview || aiInsight().summary }}</p>
 
           <div class="ai-two-col">
             <div class="ai-box">
               <span class="ai-box-title"><i class="fa-solid fa-eye" style="color:#3B82F6"></i> Observaciones Clave</span>
               <ul>
-                @for (obs of aiInsight().keyObservations; track obs) {
+                @for (obs of (aiInsight().keyObservations || aiInsight().highlights || aiInsight().strengths); track obs) {
                   <li>{{ obs }}</li>
                 }
               </ul>
@@ -115,15 +121,17 @@
             <div class="ai-box">
               <span class="ai-box-title"><i class="fa-solid fa-bolt" style="color:#7C1D2E"></i> Acciones Ejecutivas Planteadas</span>
               <ul>
-                @for (act of aiInsight().executiveActions; track act) {
+                @for (act of (aiInsight().executiveActions || aiInsight().recommendations || aiInsight().actionPlan); track act) {
                   <li>{{ act }}</li>
                 }
               </ul>
             </div>
           </div>
-          @if (aiInsight().riskAnalysis) {
+          @if (aiInsight().riskAnalysis || (aiInsight().concerns && aiInsight().concerns.length > 0)) {
             <div class="ai-risk-foot">
-              <i class="fa-solid fa-shield-halved"></i> <strong>Análisis de Riesgo:</strong> {{ aiInsight().riskAnalysis }}
+              <i class="fa-solid fa-shield-halved"></i> <strong>Análisis de Riesgo:</strong> {{ aiInsight().riskAnalysis || (aiInsight().concerns ? aiInsight().concerns.join(' · ') : '') }}
+            </div>
+          }
             </div>
           }
         } @else {

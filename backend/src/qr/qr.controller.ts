@@ -16,9 +16,9 @@ import {
   ApiNotFoundResponse,
 } from "@nestjs/swagger";
 import { QrService } from "./qr.service";
-import { Roles } from "./common/decorators/roles.decorator";
-import { UserRole } from "./common/enums/roles.enum";
-import { CurrentUser } from "./common/decorators/current-user.decorator";
+import { Roles } from "../common/decorators/roles.decorator";
+import { UserRole } from "../common/enums/roles.enum";
+import { CurrentUser } from "../common/decorators/current-user.decorator";
 
 @ApiTags("QR Digital")
 @Controller("qr")

@@ -850,22 +850,33 @@ async function main() {
       }
 
       const gradeOverrides: Record<string, number[]> = {
-        "alumno1@cbtis61.edu.mx": [8.5, 7.8, 9.5, 8.7, 10.0, 9.0],
-        "alumno2@cbtis61.edu.mx": [9.0, 8.5, 9.2, 8.8, 9.7, 9.5],
-        "alumno3@cbtis61.edu.mx": [8.0, 8.3, 9.0, 8.5, 9.5, 8.8],
-        "alumno4@cbtis61.edu.mx": [8.7, 8.0, 9.3, 8.6, 9.8, 9.2],
-        "alumno5@cbtis61.edu.mx": [7.5, 7.0, 8.5, 8.0, 8.8, 8.2],
-        "alumno6@cbtis61.edu.mx": [8.2, 7.9, 8.8, 8.4, 9.3, 8.9],
-        "alumno7@cbtis61.edu.mx": [8.5, 9.0],
-        "alumno8@cbtis61.edu.mx": [8.5, 9.0, 7.8],
-        "alumno9@cbtis61.edu.mx": [8.0, 8.5],
-        "alumno10@cbtis61.edu.mx": [8.7, 9.0],
-        "alumno11@cbtis61.edu.mx": [8.5, 9.0, 7.8],
-        "alumno12@cbtis61.edu.mx": [8.0, 8.5, 8.8],
-        "alumno13@cbtis61.edu.mx": [8.5, 9.0, 7.8],
-        "alumno14@cbtis61.edu.mx": [8.0, 8.5, 8.8],
-        "alumno15@cbtis61.edu.mx": [8.5, 9.0, 7.8],
-        "alumno16@cbtis61.edu.mx": [8.0, 8.5, 8.8],
+        // 3A - Programación (6 materias)
+        "alumno1@cbtis61.edu.mx": [5.2, 5.8, 6.2, 7.5, 9.0, 8.0], // Rojo (2 reprobadas)
+        "alumno2@cbtis61.edu.mx": [9.8, 9.5, 10.0, 9.2, 9.9, 9.6], // Verde (Excelente)
+        "alumno5@cbtis61.edu.mx": [7.2, 6.8, 8.0, 7.5, 8.8, 8.0], // Amarillo (Regular)
+
+        // 3B - Programación (6 materias)
+        "alumno3@cbtis61.edu.mx": [6.4, 7.0, 8.2, 7.8, 8.5, 7.9], // Amarillo (Regular)
+        "alumno4@cbtis61.edu.mx": [9.5, 9.2, 9.8, 9.0, 9.7, 9.4], // Verde (Excelente)
+        "alumno6@cbtis61.edu.mx": [8.5, 8.2, 8.9, 8.4, 9.2, 8.8], // Verde (Bueno)
+
+        // 4B - Contabilidad (2 materias)
+        "alumno7@cbtis61.edu.mx": [9.2, 9.5], // Verde (Excelente)
+        "alumno9@cbtis61.edu.mx": [5.8, 7.2], // Amarillo (1 reprobada)
+        "alumno10@cbtis61.edu.mx": [8.2, 8.6], // Verde (Bueno)
+
+        // 5B - Electrónica (3 materias)
+        "alumno8@cbtis61.edu.mx": [9.2, 8.8, 9.4], // Verde (Excelente)
+        "alumno11@cbtis61.edu.mx": [6.0, 6.8, 7.2], // Amarillo (Regular)
+        "alumno12@cbtis61.edu.mx": [8.4, 8.6, 9.0], // Verde (Bueno)
+
+        // 5C - Electrónica (3 materias)
+        "alumno15@cbtis61.edu.mx": [5.0, 5.5, 6.0], // Rojo (2 reprobadas)
+        "alumno16@cbtis61.edu.mx": [8.8, 9.0, 9.2], // Verde (Excelente)
+
+        // 6B - Mecatrónica (3 materias)
+        "alumno13@cbtis61.edu.mx": [6.8, 7.4, 7.8], // Amarillo (Regular)
+        "alumno14@cbtis61.edu.mx": [9.4, 9.6, 9.8], // Verde (Excelente)
       };
 
       const groupSubjects = new Map<number, number[]>();
@@ -931,7 +942,7 @@ async function main() {
         include: { schedules: true },
       });
 
-      function getRecentDateForDay(dayOfWeek: DayOfWeek): Date {
+      function getRecentDateForDay(dayOfWeek: DayOfWeek, weeksAgo: number = 0): Date {
         const dayMap: Record<DayOfWeek, number> = {
           MONDAY: 1,
           TUESDAY: 2,
@@ -943,7 +954,7 @@ async function main() {
         };
         const targetDay = dayMap[dayOfWeek];
         const today = new Date();
-        const diff = (today.getDay() - targetDay + 7) % 7;
+        const diff = (today.getDay() - targetDay + 7) % 7 + (weeksAgo * 7);
         const date = new Date(today);
         date.setDate(today.getDate() - diff);
         date.setHours(12, 0, 0, 0);
@@ -952,41 +963,96 @@ async function main() {
 
       const studentProfileMap = new Map(allStudents.map((s) => [s.user.email, s]));
 
-      async function seedAbsences(studentEmail: string, cls: typeof mathClass3A, count: number) {
+      async function seedStudentAttendances(
+        studentEmail: string,
+        cls: typeof mathClass3A,
+        statusCounts: { absent?: number; late?: number; justified?: number; present?: number }
+      ) {
         const student = studentProfileMap.get(studentEmail);
         if (!student || !cls) return;
-        const schedules = cls.schedules.slice(0, count);
-        for (const schedule of schedules) {
+
+        let scheduleIdx = 0;
+        const totalSchedules = cls.schedules;
+        if (totalSchedules.length === 0) return;
+
+        const recordAttendance = async (status: AttendanceStatus, notes: string) => {
+          const schedule = totalSchedules[scheduleIdx % totalSchedules.length];
+          const weeksAgo = Math.floor(scheduleIdx / totalSchedules.length);
+          scheduleIdx++;
           await tx.attendance.create({
             data: {
               studentId: student.id,
               classId: cls.id,
               classScheduleId: schedule.id,
-              date: getRecentDateForDay(schedule.dayOfWeek),
-              status: AttendanceStatus.ABSENT,
-              notes: "Falta semilla para pruebas de alerta",
+              date: getRecentDateForDay(schedule.dayOfWeek, weeksAgo),
+              status,
+              notes,
             },
           });
+        };
+
+        for (let i = 0; i < (statusCounts.absent || 0); i++) {
+          await recordAttendance(AttendanceStatus.ABSENT, "Falta injustificada registrada en sistema");
+        }
+        for (let i = 0; i < (statusCounts.late || 0); i++) {
+          await recordAttendance(AttendanceStatus.LATE, "Retardo al ingreso de clase");
+        }
+        for (let i = 0; i < (statusCounts.justified || 0); i++) {
+          await recordAttendance(AttendanceStatus.JUSTIFIED, "Justificante médico presentado");
+        }
+        for (let i = 0; i < (statusCounts.present || 0); i++) {
+          await recordAttendance(AttendanceStatus.PRESENT, "Asistencia registrada por QR");
         }
       }
 
-      await seedAbsences("alumno1@cbtis61.edu.mx", mathClass3A, 3); // activa semáforo rojo
-      await seedAbsences("alumno3@cbtis61.edu.mx", mathClass3B, 2); // cerca del umbral
-      await seedAbsences("alumno9@cbtis61.edu.mx", accountingClass4B, 2); // alerta en 4B
-      await seedAbsences("alumno11@cbtis61.edu.mx", mathClass5B, 2); // alerta en 5B
-      await seedAbsences("alumno15@cbtis61.edu.mx", mathClass5C, 3); // activa semáforo rojo en 5C
-      await seedAbsences("alumno13@cbtis61.edu.mx", mathClass6B, 2); // alerta en 6B
+      // Alumnos Rojo (3 faltas injustificadas)
+      await seedStudentAttendances("alumno1@cbtis61.edu.mx", mathClass3A, { absent: 3, present: 5 });
+      await seedStudentAttendances("alumno15@cbtis61.edu.mx", mathClass5C, { absent: 3, present: 5 });
 
-      // Reflejar el semáforo rojo para los alumnos con 3 faltas
-      const redSemaphoreStudents = [
-        studentProfileMap.get("alumno1@cbtis61.edu.mx"),
-        studentProfileMap.get("alumno15@cbtis61.edu.mx"),
+      // Alumnos Amarillo (1-2 faltas o retardos)
+      await seedStudentAttendances("alumno3@cbtis61.edu.mx", mathClass3B, { absent: 2, late: 1, present: 6 });
+      await seedStudentAttendances("alumno5@cbtis61.edu.mx", mathClass3A, { late: 2, justified: 1, present: 7 });
+      await seedStudentAttendances("alumno9@cbtis61.edu.mx", accountingClass4B, { absent: 2, present: 6 });
+      await seedStudentAttendances("alumno11@cbtis61.edu.mx", mathClass5B, { absent: 1, late: 2, present: 6 });
+      await seedStudentAttendances("alumno13@cbtis61.edu.mx", mathClass6B, { absent: 2, present: 6 });
+
+      // Alumnos Verde (Presentes con buen historial)
+      await seedStudentAttendances("alumno2@cbtis61.edu.mx", mathClass3A, { present: 8 });
+      await seedStudentAttendances("alumno4@cbtis61.edu.mx", mathClass3B, { present: 8 });
+      await seedStudentAttendances("alumno6@cbtis61.edu.mx", mathClass3B, { present: 8 });
+      await seedStudentAttendances("alumno7@cbtis61.edu.mx", accountingClass4B, { present: 8 });
+      await seedStudentAttendances("alumno8@cbtis61.edu.mx", mathClass5B, { present: 8 });
+      await seedStudentAttendances("alumno10@cbtis61.edu.mx", accountingClass4B, { present: 8 });
+      await seedStudentAttendances("alumno12@cbtis61.edu.mx", mathClass5B, { present: 8 });
+      await seedStudentAttendances("alumno14@cbtis61.edu.mx", mathClass6B, { present: 8 });
+      await seedStudentAttendances("alumno16@cbtis61.edu.mx", mathClass5C, { present: 8 });
+
+      // Actualizar semáforos en la base de datos
+      const redStudents = ["alumno1@cbtis61.edu.mx", "alumno15@cbtis61.edu.mx"];
+      const yellowStudents = [
+        "alumno3@cbtis61.edu.mx",
+        "alumno5@cbtis61.edu.mx",
+        "alumno9@cbtis61.edu.mx",
+        "alumno11@cbtis61.edu.mx",
+        "alumno13@cbtis61.edu.mx",
       ];
-      for (const student of redSemaphoreStudents) {
+
+      for (const email of redStudents) {
+        const student = studentProfileMap.get(email);
         if (student) {
           await tx.studentProfile.update({
             where: { id: student.id },
             data: { semaphore: SemaphoreStatus.RED },
+          });
+        }
+      }
+
+      for (const email of yellowStudents) {
+        const student = studentProfileMap.get(email);
+        if (student) {
+          await tx.studentProfile.update({
+            where: { id: student.id },
+            data: { semaphore: SemaphoreStatus.YELLOW },
           });
         }
       }

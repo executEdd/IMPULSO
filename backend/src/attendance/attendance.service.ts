@@ -13,12 +13,17 @@ import {
 import { PrismaService } from "../prisma.service";
 import { NotificationRouterService } from "../notifications/notification-router.service";
 import { QrScanDto } from "./dto/qr-scan.dto";
+import { ManualAttendanceDto } from "./dto/manual-attendance.dto";
+import { UserRole } from "../common/enums/roles.enum";
+import * as bcrypt from "bcryptjs";
+import { QrService } from "../qr/qr.service";
 
 @Injectable()
 export class AttendanceService {
   constructor(
     private prisma: PrismaService,
     private notificationRouter: NotificationRouterService,
+    private qrService: QrService,
   ) {}
 
   private getMexicoCityTimeInfo(date: Date) {
@@ -130,23 +135,41 @@ export class AttendanceService {
   }
 
   async scanQr(qrScanDto: QrScanDto, teacherId: number) {
-    const now = new Date();
-    const { currentTime, currentDay, todayStart, todayEnd } =
-      this.getMexicoCityTimeInfo(now);
+    // Si la app envió scannedAt (sync offline), usamos esa fecha. Si no, usamos la actual.
+    const evaluationDate = qrScanDto.scannedAt
+      ? new Date(qrScanDto.scannedAt)
+      : new Date();
 
-    // 1. Buscar al alumno por su token QR
+    // Verificamos que la fecha enviada sea válida
+    if (isNaN(evaluationDate.getTime())) {
+      throw new BadRequestException("La fecha scannedAt es inválida");
+    }
+
+    const { currentTime, currentDay, todayStart, todayEnd } =
+      this.getMexicoCityTimeInfo(evaluationDate);
+
+    // 1. Validar el token QR matemáticamente (stateless) para la fecha de escaneo
+    const qrValidation = await this.qrService.validateQrToken(
+      qrScanDto.qrToken,
+      evaluationDate,
+    );
+
+    if (!qrValidation.valid || !qrValidation.studentId) {
+      throw new BadRequestException(
+        qrValidation.message || "Token QR inválido o expirado",
+      );
+    }
+
+    // 2. Buscar al alumno validado
     const student = await this.prisma.studentProfile.findUnique({
-      where: { qrToken: qrScanDto.qrToken },
+      where: { id: qrValidation.studentId },
       include: {
         user: { select: { firstName: true, lastName: true } },
         group: true,
         parent: {
           include: {
             user: {
-              select: {
-                email: true,
-                id: true,
-              },
+              select: { email: true, id: true },
             },
           },
         },
@@ -154,14 +177,7 @@ export class AttendanceService {
     });
 
     if (!student) {
-      throw new BadRequestException("Token QR inválido o expirado");
-    }
-
-    // 2. Verificar que el token no haya expirado
-    if (student.qrExpiresAt && now > student.qrExpiresAt) {
-      throw new BadRequestException(
-        "El token QR ha expirado. El alumno debe refrescar su credencial digital.",
-      );
+      throw new BadRequestException("Alumno no encontrado");
     }
 
     // 3. Obtener el bloque de horario
@@ -237,19 +253,13 @@ export class AttendanceService {
           "La asistencia de este alumno ya fue registrada para este bloque de clase hoy",
         );
       }
-      await tx.studentProfile.update({
-        where: { id: student.id },
-        data: {
-          qrToken: null,
-          qrExpiresAt: null,
-        },
-      });
 
       return tx.attendance.create({
         data: {
           studentId: student.id,
           classId: schedule.class.id,
           classScheduleId: schedule.id,
+          date: evaluationDate,
           status: AttendanceStatus.PRESENT,
           qrToken: qrScanDto.qrToken,
           notes: `Registrado por QR a las ${currentTime}`,
@@ -266,6 +276,87 @@ export class AttendanceService {
               subject: true,
             },
           },
+        },
+      });
+    });
+  }
+
+  async markPresentManual(
+    dto: ManualAttendanceDto,
+    userId: number,
+    role: UserRole,
+    teacherProfileId?: number,
+  ) {
+    const { studentId, classScheduleId, password } = dto;
+    const now = new Date();
+    const { currentTime, currentDay, todayStart, todayEnd } =
+      this.getMexicoCityTimeInfo(now);
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new BadRequestException("Usuario no encontrado");
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid)
+      throw new BadRequestException(
+        "Contraseña incorrecta. Confirmación fallida.",
+      );
+
+    const schedule = await this.prisma.classSchedule.findUnique({
+      where: { id: classScheduleId },
+      include: { class: { include: { group: true, subject: true } } },
+    });
+
+    if (!schedule)
+      throw new NotFoundException("Horario de clase no encontrado");
+    if (schedule.dayOfWeek !== currentDay)
+      throw new BadRequestException("Día no coincide con el horario");
+
+    if (
+      role === UserRole.TEACHER &&
+      schedule.class.teacherId !== teacherProfileId
+    ) {
+      throw new ForbiddenException(
+        "No autorizado para modificar la asistencia de esta clase",
+      );
+    }
+
+    const student = await this.prisma.studentProfile.findUnique({
+      where: { id: studentId },
+    });
+
+    if (!student) throw new NotFoundException("Alumno no encontrado");
+    if (student.groupId !== schedule.class.groupId)
+      throw new BadRequestException("El alumno no pertenece a este grupo");
+
+    return await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.attendance.findFirst({
+        where: {
+          studentId,
+          classScheduleId,
+          date: { gte: todayStart, lt: todayEnd },
+        },
+      });
+
+      if (existing) {
+        throw new BadRequestException(
+          "Ya existe un registro de asistencia para este alumno en este bloque hoy",
+        );
+      }
+
+      return tx.attendance.create({
+        data: {
+          studentId,
+          classId: schedule.class.id,
+          classScheduleId: schedule.id,
+          status: AttendanceStatus.PRESENT,
+          qrToken: null,
+          notes: `Registrado manualmente por ${user.firstName} ${user.lastName} a las ${currentTime}`,
+        },
+        include: {
+          student: {
+            include: { user: { select: { firstName: true, lastName: true } } },
+          },
+          classes: { include: { subject: true } },
         },
       });
     });

@@ -118,6 +118,7 @@ async function bootstrap() {
       .addTag("Calificaciones")
       .addTag("Notificaciones")
       .addTag("QR Digital")
+      .addTag("Push Notifications")
       .build();
 
     const document = SwaggerModule.createDocument(app, config);
