@@ -79,6 +79,18 @@ export const routes: Routes = [
         path: 'tutores',
         canActivate: [roleGuard('ADMIN')],
         loadComponent: () => import('./features/parents/parents').then(m => m.ParentsComponent)
+      },
+      {
+        // Aulas / Salones: solo ADMIN
+        path: 'aulas',
+        canActivate: [roleGuard('ADMIN')],
+        loadComponent: () => import('./features/classrooms/classrooms').then(m => m.ClassroomsComponent)
+      },
+      {
+        // Semestres: solo ADMIN
+        path: 'semestres',
+        canActivate: [roleGuard('ADMIN')],
+        loadComponent: () => import('./features/semesters/semesters').then(m => m.SemestersComponent)
       }
     ]
   },

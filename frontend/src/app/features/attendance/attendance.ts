@@ -31,6 +31,12 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   selStudent  = signal<number | null>(null);
   marking     = signal(false);
 
+  // Registro Manual por Contraseña
+  manualModalOpen = signal(false);
+  manualPassword  = signal('');
+  manualLoading   = signal(false);
+  manualError     = signal('');
+
   // ── QR Smart-Check ──
   scanOpen     = signal(false);
   scanSchedule = signal<number | null>(null);
@@ -135,6 +141,48 @@ export class AttendanceComponent implements OnInit, OnDestroy {
         this.marking.set(false);
         const m = err?.error?.message;
         this.showToast(Array.isArray(m) ? m.join('. ') : (typeof m === 'string' ? m : 'No se pudo registrar la falta'), false);
+      }
+    });
+  }
+
+  // ── Asistencia Manual con Contraseña ──
+  openManualModal() {
+    this.manualModalOpen.set(true);
+    this.manualPassword.set('');
+    this.manualError.set('');
+  }
+
+  closeManualModal() {
+    this.manualModalOpen.set(false);
+  }
+
+  submitManualAttendance() {
+    const studentId = this.selStudent();
+    const classScheduleId = this.selSchedule();
+    const password = this.manualPassword();
+
+    if (!studentId || !classScheduleId || !password || this.manualLoading()) return;
+
+    this.manualLoading.set(true);
+    this.manualError.set('');
+
+    this.http.post(`${API}/attendance/manual-present`, {
+      studentId: Number(studentId),
+      classScheduleId: Number(classScheduleId),
+      password
+    }).subscribe({
+      next: () => {
+        this.manualLoading.set(false);
+        this.manualModalOpen.set(false);
+        this.manualPassword.set('');
+        this.showToast('Asistencia manual (Presente) registrada exitosamente', true);
+        this.loading.set(true);
+        this.fetchRecords();
+      },
+      error: (err) => {
+        this.manualLoading.set(false);
+        const m = err?.error?.message;
+        this.manualError.set(Array.isArray(m) ? m.join('. ') : (typeof m === 'string' ? m : 'Contraseña incorrecta o error al registrar'));
       }
     });
   }
