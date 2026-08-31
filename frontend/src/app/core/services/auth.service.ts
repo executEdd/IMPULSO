@@ -1,37 +1,31 @@
-import { Injectable, inject, signal, computed } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Router } from '@angular/router';
-import { tap } from 'rxjs/operators';
-import { AuthResponse, LoginPayload, User } from '../models/user.model';
+﻿import { Injectable, inject, signal, computed } from "@angular/core";
+import { HttpClient } from "@angular/common/http";
+import { Router } from "@angular/router";
+import { tap } from "rxjs/operators";
+import { AuthResponse, LoginPayload, User } from "../models/user.model";
 
-import { API } from '../config/api.config';
-const TOKEN_KEY = 'impulso_token';
-const USER_KEY  = 'impulso_user';
+import { API } from "../config/api.config";
+const USER_KEY  = "impulso_user";
 
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: "root" })
 export class AuthService {
   private http   = inject(HttpClient);
   private router = inject(Router);
 
-  private _token = signal<string | null>(localStorage.getItem(TOKEN_KEY));
   private _user  = signal<User | null>(this._loadUser());
 
-  readonly token    = this._token.asReadonly();
   readonly user     = this._user.asReadonly();
-  readonly isLoggedIn = computed(() => !!this._token());
+  readonly isLoggedIn = computed(() => !!this._user());
   readonly fullName   = computed(() => {
     const u = this._user();
-    return u ? `${u.firstName} ${u.lastName}` : '';
+    return u ? `${u.firstName} ${u.lastName}` : "";
   });
 
   constructor() {
-    if (this._token()) {
-      this.fetchProfile();
-    }
+    this.fetchProfile();
   }
 
   fetchProfile() {
-    if (!this._token()) return;
     this.http.get<User>(`${API}/auth/profile`).subscribe({
       next: fullUser => {
         if (fullUser && fullUser.id) {
@@ -39,16 +33,16 @@ export class AuthService {
           this._user.set(fullUser);
         }
       },
-      error: () => {}
+      error: () => {
+        this.clearLocalSession();
+      }
     });
   }
 
   login(payload: LoginPayload) {
     return this.http.post<AuthResponse>(`${API}/auth/login`, payload).pipe(
       tap(res => {
-        localStorage.setItem(TOKEN_KEY, res.accessToken);
         localStorage.setItem(USER_KEY, JSON.stringify(res.user));
-        this._token.set(res.accessToken);
         this._user.set(res.user);
         this.fetchProfile();
       })
@@ -56,11 +50,17 @@ export class AuthService {
   }
 
   logout() {
-    localStorage.removeItem(TOKEN_KEY);
+    this.http.post(`${API}/auth/logout`, {}).subscribe({
+      next: () => this.clearLocalSession(),
+      error: () => this.clearLocalSession()
+    });
+  }
+
+  private clearLocalSession() {
     localStorage.removeItem(USER_KEY);
-    this._token.set(null);
+    localStorage.removeItem("impulso_token"); // Para limpiar tokens de versiones anteriores
     this._user.set(null);
-    this.router.navigate(['/login']);
+    this.router.navigate(["/login"]);
   }
 
   private _loadUser(): User | null {
@@ -72,3 +72,4 @@ export class AuthService {
     }
   }
 }
+
