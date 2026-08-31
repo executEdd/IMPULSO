@@ -42,7 +42,7 @@ export class AuthController {
     res.cookie(ACCESS_TOKEN_COOKIE, accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       maxAge: ONE_DAY_MS,
     });
 
@@ -54,7 +54,11 @@ export class AuthController {
   @ApiOperation({ summary: "Cerrar sesión" })
   @ApiOkResponse({ description: "Sesión cerrada exitosamente." })
   async logout(@Res({ passthrough: true }) res: Response) {
-    res.clearCookie(ACCESS_TOKEN_COOKIE);
+    res.clearCookie(ACCESS_TOKEN_COOKIE, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    });
     return { message: "Sesión cerrada exitosamente" };
   }
 
