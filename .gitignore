@@ -162,5 +162,6 @@ AGENTS.md
 
 firebase/
 firebase/*.json
+.vscode/
 
 .clirules

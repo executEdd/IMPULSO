@@ -199,6 +199,39 @@
           }
         </div>
 
+        <!-- Diagnóstico IA -->
+        <div class="drawer-section" style="margin-top: 20px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+            <h3 style="margin:0;"><i class="fa-solid fa-wand-magic-sparkles" style="color:#7C1D2E"></i> Análisis con IA</h3>
+            <button type="button" class="ai-gen-sub-btn" (click)="fetchStudentAiInsight()" [disabled]="studentAiLoading()" title="Generar análisis profundo con Gemini AI">
+              <i class="fa-solid fa-arrows-rotate" [class.fa-spin]="studentAiLoading()"></i> Generar con IA
+            </button>
+          </div>
+          @if (studentAiInsight(); as ai) {
+            @if (ai.source === 'local') {
+              <div style="background:#FFFBEB; border:1px solid #FCD34D; border-radius:8px; padding:8px 10px; font-size:11.5px; color:#92400E; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                <i class="fa-solid fa-triangle-exclamation" style="color:#D97706; font-size:13px; flex-shrink:0;"></i>
+                <span>Error al intentar resumir con IA, usando resumen generado con los datos del sistema.</span>
+              </div>
+            }
+            <div style="background:#FDF0F1; border:1px solid rgba(124,29,46,0.2); border-radius:10px; padding:12px; font-size:12.5px; color:#1A1A2E;">
+              <p style="margin:0 0 6px 0;"><strong>Diagnóstico:</strong> {{ ai.summary }}</p>
+              @if (ai.strengths && ai.strengths.length > 0) {
+                <div style="color:#10B981; font-weight:600; margin-top:4px;">
+                  <i class="fa-solid fa-circle-check"></i> {{ ai.strengths[0] }}
+                </div>
+              }
+              @if (ai.areasOfImprovement && ai.areasOfImprovement.length > 0) {
+                <div style="color:#F59E0B; font-weight:600; margin-top:4px;">
+                  <i class="fa-solid fa-lightbulb"></i> {{ ai.areasOfImprovement[0] }}
+                </div>
+              }
+            </div>
+          } @else {
+            <p class="drawer-empty">Presiona "Generar con IA" para obtener un análisis automático.</p>
+          }
+        </div>
+
         <!-- Tutor Responsable -->
         <div class="drawer-section" style="margin-top: 20px;">
           <h3><i class="fa-solid fa-users"></i> Tutor Responsable</h3>

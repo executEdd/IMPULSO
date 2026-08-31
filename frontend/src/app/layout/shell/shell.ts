@@ -144,11 +144,13 @@ export class ShellComponent implements OnInit {
       {
         label: 'Administración',
         items: [
-          { label: 'Docentes', faIcon: 'fa-chalkboard-user', route: '/docentes' },
-          { label: 'Tutores',  faIcon: 'fa-users',           route: '/tutores'  },
-          { label: 'Grupos',   faIcon: 'fa-users-line',      route: '/grupos'   },
-          { label: 'Materias', faIcon: 'fa-book',            route: '/materias' },
-          { label: 'Clases',   faIcon: 'fa-school',          route: '/clases'   },
+          { label: 'Docentes',  faIcon: 'fa-chalkboard-user', route: '/docentes'  },
+          { label: 'Tutores',   faIcon: 'fa-users',           route: '/tutores'   },
+          { label: 'Grupos',    faIcon: 'fa-users-line',      route: '/grupos'    },
+          { label: 'Materias',  faIcon: 'fa-book',            route: '/materias'  },
+          { label: 'Clases',    faIcon: 'fa-school',          route: '/clases'    },
+          { label: 'Aulas',     faIcon: 'fa-door-open',       route: '/aulas'     },
+          { label: 'Semestres', faIcon: 'fa-calendar-days',   route: '/semestres' },
         ]
       },
       {

@@ -1,7 +1,4 @@
-import {
-  ExecutionContext,
-  Injectable,
-} from "@nestjs/common";
+import { ExecutionContext, Injectable } from "@nestjs/common";
 import { ThrottlerGuard, ThrottlerLimitDetail } from "@nestjs/throttler";
 
 @Injectable()
@@ -10,7 +7,7 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
     context: ExecutionContext,
     throttlerLimitDetail: ThrottlerLimitDetail,
   ): Promise<void> {
-    const { res } = this.getRequestResponse(context);
+    const res = context.switchToHttp().getResponse();
 
     const retryAfterSeconds = throttlerLimitDetail.isBlocked
       ? throttlerLimitDetail.timeToBlockExpire

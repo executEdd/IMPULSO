@@ -27,7 +27,12 @@ async function bootstrap() {
   // Health-check endpoint con CORS permisivo para monitoreo externo (UptimeRobot, etc.)
   const prisma = app.get(PrismaService);
   app.use((req: Request, res: Response, next: NextFunction) => {
-    const healthPaths = ["/auth/health", "/api/auth/health", "/health", "/api/health"];
+    const healthPaths = [
+      "/auth/health",
+      "/api/auth/health",
+      "/health",
+      "/api/health",
+    ];
     if (!healthPaths.includes(req.path)) {
       return next();
     }
@@ -64,9 +69,11 @@ async function bootstrap() {
   });
 
   app.enableCors({
-    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-      const isVercelDeployment =
-        !!origin && origin.endsWith(".vercel.app");
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
+      const isVercelDeployment = !!origin && origin.endsWith(".vercel.app");
 
       if (
         (!origin && !isProduction) ||
@@ -111,6 +118,7 @@ async function bootstrap() {
       .addTag("Calificaciones")
       .addTag("Notificaciones")
       .addTag("QR Digital")
+      .addTag("Push Notifications")
       .build();
 
     const document = SwaggerModule.createDocument(app, config);

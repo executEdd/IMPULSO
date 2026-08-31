@@ -7,6 +7,287 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id                      Int                      @id @default(autoincrement())
+  email                   String                   @unique
+  password                String
+  firstName               String
+  lastName                String
+  role                    UserRole
+  isActive                Boolean                  @default(true)
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  adminProfile            AdminProfile?
+  gradeLogs               GradeLog[]
+  notificationPreferences NotificationPreference[]
+  notifications           Notification[]           @relation("NotificationSender")
+  parentProfile           ParentProfile?
+  pushSubscriptions       PushSubscription[]
+  studentProfile          StudentProfile?
+  teacherProfile          TeacherProfile?
+
+  @@map("users")
+}
+
+model AdminProfile {
+  id       Int     @id @default(autoincrement())
+  userId   Int     @unique
+  position String
+  phone    String?
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("admin_profiles")
+}
+
+model TeacherProfile {
+  id         Int       @id @default(autoincrement())
+  userId     Int       @unique
+  employeeId String    @unique
+  specialty  String?
+  phone      String?
+  class      Class[]
+  subjects   Subject[]
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("teacher_profiles")
+}
+
+model StudentProfile {
+  id           Int             @id @default(autoincrement())
+  userId       Int             @unique
+  enrollmentId String          @unique
+  groupId      Int
+  parentId     Int
+  phone        String?
+  qrToken      String?         @unique
+  qrExpiresAt  DateTime?
+  semaphore    SemaphoreStatus @default(GREEN)
+  alerts       Alert[]
+  attendances  Attendance[]
+  grades       Grade[]
+  group        Group           @relation(fields: [groupId], references: [id])
+  parent       ParentProfile   @relation(fields: [parentId], references: [id])
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("student_profiles")
+}
+
+model ParentProfile {
+  id       Int              @id @default(autoincrement())
+  userId   Int              @unique
+  phone    String
+  email    String?
+  address  String?
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  children StudentProfile[]
+
+  @@map("parent_profiles")
+}
+
+model Group {
+  id         Int              @id @default(autoincrement())
+  name       String           @unique
+  gradeLevel Int
+  career     String
+  class      Class[]
+  students   StudentProfile[]
+
+  @@map("groups")
+}
+
+model Subject {
+  id          Int             @id @default(autoincrement())
+  name        String
+  code        String          @unique
+  description String?
+  credits     Int             @default(1)
+  teacherId   Int?
+  class       Class[]
+  grades      Grade[]
+  teacher     TeacherProfile? @relation(fields: [teacherId], references: [id])
+
+  @@map("subjects")
+}
+
+model SchoolCycle {
+  id         Int        @id @default(autoincrement())
+  cycleName  String
+  startDate  DateTime
+  finishDate DateTime
+  Semesters  Semester[]
+
+  @@map("school_cycle")
+}
+
+model Semester {
+  id            Int         @id @default(autoincrement())
+  semesterName  String
+  startDate     DateTime
+  finishDate    DateTime
+  schoolCycleId Int
+  classes       Class[]
+  cycle         SchoolCycle @relation(fields: [schoolCycleId], references: [id])
+
+  @@map("semesters")
+}
+
+model Attendance {
+  id              Int              @id @default(autoincrement())
+  studentId       Int
+  classId         Int
+  classScheduleId Int
+  date            DateTime         @default(now())
+  status          AttendanceStatus
+  qrToken         String?
+  notes           String?
+  createdAt       DateTime         @default(now())
+  classes         Class            @relation(fields: [classId], references: [id])
+  classSchedule   ClassSchedule    @relation(fields: [classScheduleId], references: [id])
+  student         StudentProfile   @relation(fields: [studentId], references: [id])
+
+  @@unique([studentId, classScheduleId, date])
+  @@map("attendances")
+}
+
+model Grade {
+  id         Int            @id @default(autoincrement())
+  studentId  Int
+  subjectId  Int
+  partial1   Float?
+  partial2   Float?
+  partial3   Float?
+  finalGrade Float?
+  status     GradeStatus    @default(REGULAR)
+  period     String
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  logs       GradeLog[]
+  student    StudentProfile @relation(fields: [studentId], references: [id])
+  subject    Subject        @relation(fields: [subjectId], references: [id])
+
+  @@unique([studentId, subjectId, period])
+  @@map("grades")
+}
+
+model GradeLog {
+  id        Int      @id @default(autoincrement())
+  gradeId   Int
+  userId    Int
+  field     String
+  oldValue  String?
+  newValue  String?
+  action    String
+  timestamp DateTime @default(now())
+  grade     Grade    @relation(fields: [gradeId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("grade_logs")
+}
+
+model Alert {
+  id            Int            @id @default(autoincrement())
+  studentId     Int
+  type          AlertType
+  priority      AlertPriority
+  message       String
+  isRead        Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  student       StudentProfile @relation(fields: [studentId], references: [id])
+  notifications Notification[]
+
+  @@map("alerts")
+}
+
+model Notification {
+  id            Int                @id @default(autoincrement())
+  alertId       Int
+  senderId      Int
+  recipientType String
+  recipientId   Int
+  channel       String
+  content       String
+  sentAt        DateTime?
+  createdAt     DateTime           @default(now())
+  metadata      Json?
+  status        NotificationStatus @default(PENDING)
+  alert         Alert              @relation(fields: [alertId], references: [id])
+  sender        User               @relation("NotificationSender", fields: [senderId], references: [id])
+
+  @@index([recipientId, status])
+  @@index([recipientId, recipientType, createdAt])
+  @@map("notifications")
+}
+
+model PushSubscription {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  token     String
+  platform  String
+  userAgent String?
+  createdAt DateTime @default(now())
+  auth      String?
+  p256dh    String?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, token])
+  @@map("push_subscriptions")
+}
+
+model NotificationPreference {
+  id      Int     @id @default(autoincrement())
+  userId  Int
+  channel String
+  enabled Boolean @default(true)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, channel])
+  @@map("notification_preferences")
+}
+
+model Class {
+  id          Int             @id @default(autoincrement())
+  subjectId   Int
+  groupId     Int
+  teacherId   Int
+  semesterId  Int
+  classroomId Int?
+  attendances Attendance[]
+  classroom   Classroom?      @relation(fields: [classroomId], references: [id])
+  group       Group           @relation(fields: [groupId], references: [id])
+  semester    Semester        @relation(fields: [semesterId], references: [id])
+  subject     Subject         @relation(fields: [subjectId], references: [id])
+  teacher     TeacherProfile  @relation(fields: [teacherId], references: [id])
+  schedules   ClassSchedule[]
+
+  @@unique([subjectId, groupId, semesterId])
+  @@map("classes")
+}
+
+model Classroom {
+  id          Int             @id @default(autoincrement())
+  name        String          @unique
+  capacity    Int?
+  description String?
+  classes     Class[]
+  schedule    ClassSchedule[]
+
+  @@map("classrooms")
+}
+
+model ClassSchedule {
+  id          Int          @id @default(autoincrement())
+  classId     Int
+  classroomId Int?
+  dayOfWeek   DayOfWeek
+  startTime   String
+  endTime     String
+  attendances Attendance[]
+  class       Class        @relation(fields: [classId], references: [id])
+  classroom   Classroom?   @relation(fields: [classroomId], references: [id])
+
+  @@map("classes_schedules")
+}
+
 enum UserRole {
   ADMIN
   TEACHER
@@ -63,304 +344,4 @@ enum DayOfWeek {
   FRIDAY
   SATURDAY
   SUNDAY
-}
-
-model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  firstName String
-  lastName  String
-  role      UserRole
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  adminProfile            AdminProfile?
-  teacherProfile          TeacherProfile?
-  studentProfile          StudentProfile?
-  parentProfile           ParentProfile?
-  gradeLogs               GradeLog[]
-  notifications           Notification[]         @relation("NotificationSender")
-  pushSubscriptions       PushSubscription[]
-  notificationPreferences NotificationPreference[]
-
-  @@map("users")
-}
-
-model AdminProfile {
-  id       Int     @id @default(autoincrement())
-  userId   Int     @unique
-  position String
-  phone    String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("admin_profiles")
-}
-
-model TeacherProfile {
-  id         Int     @id @default(autoincrement())
-  userId     Int     @unique
-  employeeId String  @unique
-  specialty  String?
-  phone      String?
-
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subjects Subject[]
-  class    Class[]
-
-  @@map("teacher_profiles")
-}
-
-model StudentProfile {
-  id           Int             @id @default(autoincrement())
-  userId       Int             @unique
-  enrollmentId String          @unique
-  groupId      Int
-  parentId     Int
-  phone        String?
-  qrToken      String?         @unique
-  qrExpiresAt  DateTime?
-  semaphore    SemaphoreStatus @default(GREEN)
-
-  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  group       Group         @relation(fields: [groupId], references: [id])
-  parent      ParentProfile @relation(fields: [parentId], references: [id])
-  attendances Attendance[]
-  grades      Grade[]
-  alerts      Alert[]
-
-  @@map("student_profiles")
-}
-
-model ParentProfile {
-  id      Int     @id @default(autoincrement())
-  userId  Int     @unique
-  phone   String
-  email   String?
-  address String?
-
-  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  children StudentProfile[]
-
-  @@map("parent_profiles")
-}
-
-model Group {
-  id          Int     @id @default(autoincrement())
-  name        String  @unique
-  gradeLevel  Int
-  career      String
-
-  class    Class[]
-  students StudentProfile[]
-
-  @@map("groups")
-}
-
-model Subject {
-  id          Int     @id @default(autoincrement())
-  name        String
-  code        String  @unique
-  description String?
-  credits     Int     @default(1)
-
-  teacherId Int?
-  teacher   TeacherProfile? @relation(fields: [teacherId], references: [id])
-  grades    Grade[]
-  class     Class[]
-
-  @@map("subjects")
-}
-
-model SchoolCycle {
-  id         Int      @id @default(autoincrement())
-  cycleName  String
-  startDate  DateTime
-  finishDate DateTime
-
-  Semesters Semester[]
-
-  @@map("school_cycle")
-}
-
-model Semester {
-  id           Int      @id @default(autoincrement())
-  semesterName String
-  startDate    DateTime
-  finishDate   DateTime
-
-  schoolCycleId Int
-  cycle         SchoolCycle @relation(fields: [schoolCycleId], references: [id])
-  classes       Class[]
-
-  @@map("semesters")
-}
-
-model Attendance {
-  id              Int              @id @default(autoincrement())
-  studentId       Int
-  classId         Int
-  classScheduleId Int
-  date            DateTime         @default(now())
-  status          AttendanceStatus
-  qrToken         String?
-  notes           String?
-  createdAt       DateTime         @default(now())
-
-  student       StudentProfile @relation(fields: [studentId], references: [id])
-  classes       Class          @relation(fields: [classId], references: [id])
-  classSchedule ClassSchedule  @relation(fields: [classScheduleId], references: [id])
-
-  @@unique([studentId, classScheduleId, date])
-  @@map("attendances")
-}
-
-model Grade {
-  id         Int         @id @default(autoincrement())
-  studentId  Int
-  subjectId  Int
-  partial1   Float?
-  partial2   Float?
-  partial3   Float?
-  finalGrade Float?
-  status     GradeStatus @default(REGULAR)
-  period     String // e.g., "2024-2025"
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-
-  student StudentProfile @relation(fields: [studentId], references: [id])
-  subject Subject        @relation(fields: [subjectId], references: [id])
-  logs    GradeLog[]
-
-  @@unique([studentId, subjectId, period])
-  @@map("grades")
-}
-
-model GradeLog {
-  id        Int      @id @default(autoincrement())
-  gradeId   Int
-  userId    Int
-  field     String // e.g., "partial1", "partial2", "finalGrade"
-  oldValue  String?
-  newValue  String?
-  action    String // "CREATE" or "UPDATE"
-  timestamp DateTime @default(now())
-
-  grade Grade @relation(fields: [gradeId], references: [id])
-  user  User  @relation(fields: [userId], references: [id])
-
-  @@map("grade_logs")
-}
-
-model Alert {
-  id        Int           @id @default(autoincrement())
-  studentId Int
-  type      AlertType
-  priority  AlertPriority
-  message   String
-  isRead    Boolean       @default(false)
-  createdAt DateTime      @default(now())
-
-  student       StudentProfile @relation(fields: [studentId], references: [id])
-  notifications Notification[]
-
-  @@map("alerts")
-}
-
-model Notification {
-  id            Int                @id @default(autoincrement())
-  alertId       Int
-  senderId      Int
-  recipientType String // "STUDENT", "PARENT", "TEACHER", "ADMIN"
-  recipientId   Int
-  channel       String // "EMAIL", "SMS", "WHATSAPP", "PUSH", "IN_APP"
-  status        NotificationStatus @default(PENDING)
-  content       String
-  metadata      Json? // { simulated?: true; reason?: string; retryable?: boolean }
-  sentAt        DateTime?
-  createdAt     DateTime           @default(now())
-
-  alert  Alert @relation(fields: [alertId], references: [id])
-  sender User  @relation("NotificationSender", fields: [senderId], references: [id])
-
-  @@index([recipientId, status])
-  @@index([recipientId, recipientType, createdAt])
-  @@map("notifications")
-}
-
-model PushSubscription {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  token     String // FCM token or Web Push endpoint
-  p256dh    String? // Web Push public key (only for WEB_PUSH)
-  auth      String? // Web Push auth secret (only for WEB_PUSH)
-  platform  String // "WEB_PUSH" | "FCM_ANDROID" | "FCM_IOS"
-  userAgent String?
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, token])
-  @@map("push_subscriptions")
-}
-
-model NotificationPreference {
-  id      Int     @id @default(autoincrement())
-  userId  Int
-  channel String // "EMAIL" | "SMS" | "WHATSAPP" | "PUSH" | "IN_APP"
-  enabled Boolean @default(true)
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, channel])
-  @@map("notification_preferences")
-}
-
-model Class {
-  id          Int             @id @default(autoincrement())
-  subjectId   Int
-  groupId     Int
-  teacherId   Int
-  semesterId  Int
-  classroomId Int?
-  schedules   ClassSchedule[]
-  //Referencias a las FK
-  subject     Subject         @relation(fields: [subjectId], references: [id])
-  classroom   Classroom?      @relation(fields: [classroomId], references: [id])
-  group       Group           @relation(fields: [groupId], references: [id])
-  teacher     TeacherProfile  @relation(fields: [teacherId], references: [id])
-  semester    Semester        @relation(fields: [semesterId], references: [id])
-  attendances Attendance[]
-
-  @@unique([subjectId, groupId, semesterId])
-  @@map("classes")
-}
-
-model Classroom {
-  id          Int             @id @default(autoincrement())
-  name        String          @unique
-  capacity    Int?
-  description String?
-  classes     Class[]
-  schedule    ClassSchedule[]
-
-  @@map("classrooms")
-}
-
-model ClassSchedule {
-  id          Int        @id @default(autoincrement())
-  classId     Int
-  classroomId Int?
-  dayOfWeek   DayOfWeek
-  startTime   String
-  endTime     String
-  //Referencias
-  class       Class        @relation(fields: [classId], references: [id])
-  classroom   Classroom?   @relation(fields: [classroomId], references: [id])
-  attendances Attendance[]
-
-  @@map("classes_schedules")
 }

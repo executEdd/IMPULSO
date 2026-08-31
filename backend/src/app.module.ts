@@ -13,10 +13,13 @@ import { NotificationsModule } from "./notifications/notifications.module";
 import { SubjectsModule } from "./subjects/subjects.module";
 import { GroupsModule } from "./groups/groups.module";
 import { ClassesModule } from "./classes/classes.module";
+import { InsightsModule } from "./insights/insights.module";
+import { AiInsightsModule } from "./ai-insights/ai-insights.module";
 import { JwtAuthGuard } from "./auth/guards/jwt-auth.guard";
 import { RolesGuard } from "./common/guards/roles.guard";
-import { QrService } from "./qr.service";
-import { QrController } from "./qr.controller";
+import { QrModule } from "./qr/qr.module";
+import { SemestersModule } from "./semesters/semesters.module";
+import { ClassroomsModule } from "./classrooms/classrooms.module";
 
 @Module({
   imports: [
@@ -41,10 +44,14 @@ import { QrController } from "./qr.controller";
     SubjectsModule,
     GroupsModule,
     ClassesModule,
+    InsightsModule,
+    AiInsightsModule,
+    QrModule,
+    SemestersModule,
+    ClassroomsModule,
   ],
-  controllers: [QrController],
+  controllers: [],
   providers: [
-    QrService,
     {
       provide: APP_GUARD,
       useClass: CustomThrottlerGuard,

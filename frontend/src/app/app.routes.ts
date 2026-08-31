@@ -30,9 +30,9 @@ export const routes: Routes = [
         loadComponent: () => import('./features/my-qr/my-qr').then(m => m.MyQrComponent)
       },
       {
-        // Asistencia: ADMIN, TEACHER y STUDENT (no padre)
+        // Asistencia: ADMIN, TEACHER, STUDENT, PARENT
         path: 'asistencia',
-        canActivate: [roleGuard('ADMIN', 'TEACHER', 'STUDENT')],
+        canActivate: [roleGuard('ADMIN', 'TEACHER', 'STUDENT', 'PARENT')],
         loadComponent: () => import('./features/attendance/attendance').then(m => m.AttendanceComponent)
       },
       {
@@ -79,6 +79,18 @@ export const routes: Routes = [
         path: 'tutores',
         canActivate: [roleGuard('ADMIN')],
         loadComponent: () => import('./features/parents/parents').then(m => m.ParentsComponent)
+      },
+      {
+        // Aulas / Salones: solo ADMIN
+        path: 'aulas',
+        canActivate: [roleGuard('ADMIN')],
+        loadComponent: () => import('./features/classrooms/classrooms').then(m => m.ClassroomsComponent)
+      },
+      {
+        // Semestres: solo ADMIN
+        path: 'semestres',
+        canActivate: [roleGuard('ADMIN')],
+        loadComponent: () => import('./features/semesters/semesters').then(m => m.SemestersComponent)
       }
     ]
   },

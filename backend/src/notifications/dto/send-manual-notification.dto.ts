@@ -1,4 +1,10 @@
-import { IsInt, IsString, IsNotEmpty, IsEnum, IsOptional } from "class-validator";
+import {
+  IsInt,
+  IsString,
+  IsNotEmpty,
+  IsEnum,
+  IsOptional,
+} from "class-validator";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 export class SendManualNotificationDto {

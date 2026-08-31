@@ -20,6 +20,7 @@ import { CreateClassDto } from "./dto/create-class.dto";
 import { UpdateClassDto } from "./dto/update-class.dto";
 import { Roles } from "../common/decorators/roles.decorator";
 import { UserRole } from "../common/enums/roles.enum";
+import { CurrentUser } from "../common/decorators/current-user.decorator";
 
 @ApiTags("Clases")
 @Controller("classes")
@@ -40,15 +41,16 @@ export class ClassesController {
   @ApiQuery({ name: "teacherId", required: false, type: Number })
   @ApiQuery({ name: "semesterId", required: false, type: Number })
   findAll(
+    @CurrentUser() user: any,
     @Query("groupId") groupId?: string,
     @Query("teacherId") teacherId?: string,
     @Query("semesterId") semesterId?: string,
   ) {
-    return this.classesService.findAll(
-      groupId ? parseInt(groupId, 10) : undefined,
-      teacherId ? parseInt(teacherId, 10) : undefined,
-      semesterId ? parseInt(semesterId, 10) : undefined,
-    );
+    return this.classesService.findAll(user, {
+      groupId: groupId ? parseInt(groupId, 10) : undefined,
+      teacherId: teacherId ? parseInt(teacherId, 10) : undefined,
+      semesterId: semesterId ? parseInt(semesterId, 10) : undefined,
+    });
   }
 
   @Get(":id")

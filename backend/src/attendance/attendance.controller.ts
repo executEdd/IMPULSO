@@ -22,9 +22,12 @@ import {
 } from "@nestjs/swagger";
 import { AttendanceService } from "./attendance.service";
 import { QrScanDto } from "./dto/qr-scan.dto";
+import { ManualAttendanceDto } from "./dto/manual-attendance.dto";
 import { Roles } from "../common/decorators/roles.decorator";
 import { UserRole } from "../common/enums/roles.enum";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
+
+import { Throttle } from "@nestjs/throttler";
 
 @ApiTags("Asistencias")
 @Controller("attendance")
@@ -51,6 +54,37 @@ export class AttendanceController {
       throw new BadRequestException("Perfil de docente no encontrado");
     }
     return this.attendanceService.scanQr(qrScanDto, teacherProfile.id);
+  }
+
+  @Post("manual-present")
+  @Throttle({ default: { limit: 7, ttl: 300000, blockDuration: 300000 } })
+  @Roles(UserRole.TEACHER, UserRole.ADMIN)
+  @ApiOperation({
+    summary: "Registrar asistencia manualmente con confirmación de contraseña",
+  })
+  @ApiCreatedResponse({
+    description: "Asistencia manual registrada con éxito.",
+  })
+  @ApiBadRequestResponse({
+    description: "Contraseña incorrecta, IDs inválidos o clase incorrecta.",
+  })
+  async markPresentManual(
+    @Body() dto: ManualAttendanceDto,
+    @CurrentUser() user: any,
+  ) {
+    if (!user || !user.id) {
+      throw new BadRequestException("Usuario no autenticado");
+    }
+
+    const profileId =
+      user.role === UserRole.TEACHER ? user.teacherProfile?.id : undefined;
+
+    return this.attendanceService.markPresentManual(
+      dto,
+      user.id,
+      user.role,
+      profileId,
+    );
   }
 
   @Post("mark-absent/:studentId/:classScheduleId")
@@ -150,7 +184,8 @@ export class AttendanceController {
   @Get("semaphore/summary")
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @ApiOperation({
-    summary: "Obtener resumen general y desglose por grupo de semáforos de riesgo",
+    summary:
+      "Obtener resumen general y desglose por grupo de semáforos de riesgo",
   })
   @ApiOkResponse({
     description: "Métricas globales y desglose por grupo de alumnos en riesgo.",

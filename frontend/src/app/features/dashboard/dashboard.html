@@ -72,6 +72,92 @@
     </div>
   }
 
+  <!-- ── AI INSIGHTS CARD (GEMINI POWERED) ── -->
+  <div class="dash-card ai-insights-card">
+    <div class="card-header">
+      <div class="ai-header-title">
+        <div class="ai-sparkle-badge">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <span>Análisis con Inteligencia Artificial (Gemini)</span>
+        </div>
+        <h3 class="card-title" style="margin-top: 6px;">
+          @if (isAdminOrTeacher) {
+            Diagnóstico Institucional Automático
+          } @else {
+            Recomendaciones Académicas Personalizadas
+          }
+        </h3>
+        <p class="card-sub">Generado mediante Gemini AI a partir de asistencias, calificaciones y semáforo escolar</p>
+      </div>
+      <button type="button" class="ai-gen-btn" (click)="fetchAiInsight()" [disabled]="aiLoading()">
+        @if (aiLoading()) {
+          <i class="fa-solid fa-spinner fa-spin"></i> Generando diagnóstico...
+        } @else {
+          <i class="fa-solid fa-brain"></i> {{ aiInsight() ? 'Regenerar con IA' : 'Generar Análisis IA' }}
+        }
+      </button>
+    </div>
+
+    @if (aiInsight()) {
+      <div class="ai-body-content">
+        @if (aiInsight().source === 'local') {
+          <div class="ai-fallback-banner">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span>Error al intentar resumir con IA, usando resumen generado con los datos del sistema.</span>
+          </div>
+        }
+        @if (isAdminOrTeacher) {
+          <p class="ai-overview"><strong>Resumen Ejecutivo:</strong> {{ aiInsight().institutionalOverview || aiInsight().summary }}</p>
+
+          <div class="ai-two-col">
+            <div class="ai-box">
+              <span class="ai-box-title"><i class="fa-solid fa-eye" style="color:#3B82F6"></i> Observaciones Clave</span>
+              <ul>
+                @for (obs of (aiInsight().keyObservations || aiInsight().highlights || aiInsight().strengths); track obs) {
+                  <li>{{ obs }}</li>
+                }
+              </ul>
+            </div>
+            <div class="ai-box">
+              <span class="ai-box-title"><i class="fa-solid fa-bolt" style="color:#7C1D2E"></i> Acciones Ejecutivas Planteadas</span>
+              <ul>
+                @for (act of (aiInsight().executiveActions || aiInsight().recommendations || aiInsight().actionPlan); track act) {
+                  <li>{{ act }}</li>
+                }
+              </ul>
+            </div>
+          </div>
+          @if (aiInsight().riskAnalysis || (aiInsight().concerns && aiInsight().concerns.length > 0)) {
+            <div class="ai-risk-foot">
+              <i class="fa-solid fa-shield-halved"></i> <strong>Análisis de Riesgo:</strong> {{ aiInsight().riskAnalysis || (aiInsight().concerns ? aiInsight().concerns.join(' · ') : '') }}
+            </div>
+          }
+        } @else {
+          <p class="ai-overview"><strong>Diagnóstico:</strong> {{ aiInsight().summary }}</p>
+
+          <div class="ai-two-col">
+            <div class="ai-box">
+              <span class="ai-box-title"><i class="fa-solid fa-circle-check" style="color:#10B981"></i> Fortalezas Académicas</span>
+              <ul>
+                @for (s of aiInsight().strengths; track s) {
+                  <li>{{ s }}</li>
+                }
+              </ul>
+            </div>
+            <div class="ai-box">
+              <span class="ai-box-title"><i class="fa-solid fa-lightbulb" style="color:#F59E0B"></i> Áreas de Oportunidad y Plan de Acción</span>
+              <ul>
+                @for (imp of (aiInsight().actionPlan || aiInsight().areasOfImprovement); track imp) {
+                  <li>{{ imp }}</li>
+                }
+              </ul>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
   <!-- ═════════════════════════════════════════════════
        VISTA 1: ADMINISTRADOR (VISIÓN COMPLETA PLANTEL)
        ═════════════════════════════════════════════════ -->

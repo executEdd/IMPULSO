@@ -1,0 +1,170 @@
+<div class="page-container">
+
+  <!-- ── HEADER ── -->
+  <header class="page-header">
+    <div>
+      <h1 class="page-title"><i class="fa-solid fa-door-open" style="color: #7C1D2E;"></i> Aulas y Salones</h1>
+      <p class="page-sub">Gestión de infraestructura, salones de clase y capacidad instalada del plantel</p>
+    </div>
+    @if (isAdmin) {
+      <button class="btn-primary" (click)="openCreate()">
+        <i class="fa-solid fa-plus"></i> Registrar Salón
+      </button>
+    }
+  </header>
+
+  <!-- ── TOAST ── -->
+  @if (toastMsg()) {
+    <div class="toast" [class.toast-error]="!toastOk()">
+      <i class="fa-solid" [class.fa-circle-check]="toastOk()" [class.fa-triangle-exclamation]="!toastOk()"></i>
+      {{ toastMsg() }}
+    </div>
+  }
+
+  <!-- ── STATS CARDS ── -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon" style="background: rgba(124, 29, 46, 0.1); color: #7C1D2E;">
+        <i class="fa-solid fa-door-closed"></i>
+      </div>
+      <div>
+        <span class="stat-val">{{ all().length }}</span>
+        <span class="stat-lbl">Total de Aulas</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: #10B981;">
+        <i class="fa-solid fa-users"></i>
+      </div>
+      <div>
+        <span class="stat-val">{{ totalCapacity() }}</span>
+        <span class="stat-lbl">Capacidad Total Alumnos</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── BARRA DE BÚSQUEDA ── -->
+  <div class="table-card">
+    <div class="table-toolbar">
+      <div class="search-wrap">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Buscar por nombre o descripción..."
+          [value]="search()"
+          (input)="search.set($any($event.target).value)"
+        />
+      </div>
+    </div>
+
+    <!-- ── TABLA ── -->
+    @if (loading()) {
+      <div class="loading-wrap">
+        <div class="spinner"></div>
+        <span>Cargando salones...</span>
+      </div>
+    } @else if (filtered().length === 0) {
+      <div class="empty-state">
+        <i class="fa-solid fa-door-open empty-icon"></i>
+        <p>No se encontraron salones registrados</p>
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Nombre / Aula</th>
+              <th>Capacidad</th>
+              <th>Descripción</th>
+              @if (isAdmin) {
+                <th style="text-align: right;">Acciones</th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of filtered(); track c.id) {
+              <tr class="trow">
+                <td>
+                  <strong class="item-title">{{ c.name }}</strong>
+                </td>
+                <td>
+                  <span class="chip chip-purple">
+                    <i class="fa-solid fa-user-group"></i> {{ c.capacity || 30 }} alumnos
+                  </span>
+                </td>
+                <td>
+                  <span class="desc-text">{{ c.description || 'Sin descripción' }}</span>
+                </td>
+                @if (isAdmin) {
+                  <td style="text-align: right;">
+                    <div class="action-btns">
+                      <button class="action-btn edit-btn" (click)="openEdit(c)" title="Editar">
+                        <i class="fa-solid fa-pen"></i>
+                      </button>
+                      <button class="action-btn delete-btn" (click)="remove(c)" [disabled]="deleting() === c.id" title="Eliminar">
+                        @if (deleting() === c.id) {
+                          <i class="fa-solid fa-spinner fa-spin"></i>
+                        } @else {
+                          <i class="fa-solid fa-trash-can"></i>
+                        }
+                      </button>
+                    </div>
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+
+  <!-- ── MODAL NUEVO / EDITAR ── -->
+  @if (modalOpen()) {
+    <div class="modal-backdrop" (click)="closeModal()"></div>
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>{{ editing() ? 'Editar Salón' : 'Registrar Nuevo Salón' }}</h2>
+        <button class="modal-close" (click)="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="save()">
+        <div class="modal-body">
+          @if (formError()) {
+            <div class="form-error">
+              <i class="fa-solid fa-circle-exclamation"></i> {{ formError() }}
+            </div>
+          }
+
+          <div class="form-group">
+            <label>Nombre o Identificador de Aula <span class="req">*</span></label>
+            <input type="text" formControlName="name" class="form-input" placeholder="Ej. Aula A-101, Lab de Cómputo 1" />
+          </div>
+
+          <div class="form-group">
+            <label>Capacidad de Alumnos</label>
+            <input type="number" formControlName="capacity" class="form-input" placeholder="Ej. 35" min="1" />
+          </div>
+
+          <div class="form-group">
+            <label>Descripción / Observaciones</label>
+            <textarea formControlName="description" class="form-input" rows="3" placeholder="Ej. Aula equipada con proyector y clima"></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-sec" (click)="closeModal()">Cancelar</button>
+          <button type="submit" class="btn-primary" [disabled]="form.invalid || saving()">
+            @if (saving()) {
+              <i class="fa-solid fa-spinner fa-spin"></i> Guardando...
+            } @else {
+              {{ editing() ? 'Actualizar' : 'Guardar' }}
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+  }
+
+</div>

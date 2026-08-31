@@ -33,10 +33,6 @@ import { NotificationPreferenceService } from "./preferences/notification-prefer
     PushController,
     NotificationPreferenceController,
   ],
-  exports: [
-    NotificationsService,
-    NotificationRouterService,
-    PushService,
-  ],
+  exports: [NotificationsService, NotificationRouterService, PushService],
 })
 export class NotificationsModule {}

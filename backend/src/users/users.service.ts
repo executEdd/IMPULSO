@@ -260,6 +260,118 @@ export class UsersService {
     });
   }
 
+  async findTeachers() {
+    return this.prisma.user.findMany({
+      where: { role: UserRole.TEACHER, isActive: true },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        teacherProfile: true,
+      },
+      orderBy: { lastName: "asc" },
+    });
+  }
+
+  async findStudents(currentUser: { id: number; role: UserRole }) {
+    const studentSelect = {
+      id: true,
+      email: true,
+      firstName: true,
+      lastName: true,
+      role: true,
+      isActive: true,
+      createdAt: true,
+      studentProfile: {
+        include: {
+          group: true,
+          parent: {
+            include: {
+              user: {
+                select: { firstName: true, lastName: true, email: true },
+              },
+            },
+          },
+        },
+      },
+    };
+
+    switch (currentUser.role) {
+      case UserRole.ADMIN:
+        return this.prisma.user.findMany({
+          where: { role: UserRole.STUDENT, isActive: true },
+          select: studentSelect,
+          orderBy: { lastName: "asc" },
+        });
+
+      case UserRole.STUDENT:
+        return this.prisma.user.findMany({
+          where: { id: currentUser.id, role: UserRole.STUDENT },
+          select: studentSelect,
+          orderBy: { lastName: "asc" },
+        });
+
+      case UserRole.PARENT: {
+        const parent = await this.prisma.parentProfile.findUnique({
+          where: { userId: currentUser.id },
+        });
+
+        if (!parent) {
+          return [];
+        }
+
+        return this.prisma.user.findMany({
+          where: {
+            role: UserRole.STUDENT,
+            isActive: true,
+            studentProfile: { parentId: parent.id },
+          },
+          select: studentSelect,
+          orderBy: { lastName: "asc" },
+        });
+      }
+
+      case UserRole.TEACHER: {
+        const teacher = await this.prisma.teacherProfile.findUnique({
+          where: { userId: currentUser.id },
+        });
+
+        if (!teacher) {
+          return [];
+        }
+
+        const classes = await this.prisma.class.findMany({
+          where: { teacherId: teacher.id },
+          select: { groupId: true },
+          distinct: ["groupId"],
+        });
+
+        const groupIds = classes.map((c) => c.groupId);
+
+        if (groupIds.length === 0) {
+          return [];
+        }
+
+        return this.prisma.user.findMany({
+          where: {
+            role: UserRole.STUDENT,
+            isActive: true,
+            studentProfile: { groupId: { in: groupIds } },
+          },
+          select: studentSelect,
+          orderBy: { lastName: "asc" },
+        });
+      }
+
+      default:
+        return [];
+    }
+  }
+
   async exportStudentsCsv() {
     const students = await this.prisma.user.findMany({
       where: { role: UserRole.STUDENT, isActive: true },

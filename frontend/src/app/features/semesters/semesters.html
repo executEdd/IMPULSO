@@ -1,0 +1,168 @@
+<div class="page-container">
+
+  <!-- ── HEADER ── -->
+  <header class="page-header">
+    <div>
+      <h1 class="page-title"><i class="fa-solid fa-calendar-range" style="color: #7C1D2E;"></i> Semestres Escolares</h1>
+      <p class="page-sub">Administración de periodos lectivos, fechas de inicio/fin y ciclos académicos</p>
+    </div>
+    @if (isAdmin) {
+      <button class="btn-primary" (click)="openCreate()">
+        <i class="fa-solid fa-plus"></i> Registrar Semestre
+      </button>
+    }
+  </header>
+
+  <!-- ── TOAST ── -->
+  @if (toastMsg()) {
+    <div class="toast" [class.toast-error]="!toastOk()">
+      <i class="fa-solid" [class.fa-circle-check]="toastOk()" [class.fa-triangle-exclamation]="!toastOk()"></i>
+      {{ toastMsg() }}
+    </div>
+  }
+
+  <!-- ── STATS CARDS ── -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon" style="background: rgba(124, 29, 46, 0.1); color: #7C1D2E;">
+        <i class="fa-solid fa-calendar-days"></i>
+      </div>
+      <div>
+        <span class="stat-val">{{ all().length }}</span>
+        <span class="stat-lbl">Total de Semestres</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── BARRA DE BÚSQUEDA ── -->
+  <div class="table-card">
+    <div class="table-toolbar">
+      <div class="search-wrap">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Buscar semestre..."
+          [value]="search()"
+          (input)="search.set($any($event.target).value)"
+        />
+      </div>
+    </div>
+
+    <!-- ── TABLA ── -->
+    @if (loading()) {
+      <div class="loading-wrap">
+        <div class="spinner"></div>
+        <span>Cargando semestres...</span>
+      </div>
+    } @else if (filtered().length === 0) {
+      <div class="empty-state">
+        <i class="fa-solid fa-calendar-xmark empty-icon"></i>
+        <p>No se encontraron semestres registrados</p>
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Periodo / Semestre</th>
+              <th>Fecha Inicio</th>
+              <th>Fecha Término</th>
+              <th>Estado</th>
+              @if (isAdmin) {
+                <th style="text-align: right;">Acciones</th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (s of filtered(); track s.id) {
+              <tr class="trow">
+                <td>
+                  <strong class="item-title">{{ s.semesterName }}</strong>
+                </td>
+                <td>
+                  <span><i class="fa-regular fa-calendar-check" style="color:#10B981"></i> {{ s.startDate | date:'dd/MM/yyyy' }}</span>
+                </td>
+                <td>
+                  <span><i class="fa-regular fa-calendar-xmark" style="color:#EF4444"></i> {{ s.finishDate | date:'dd/MM/yyyy' }}</span>
+                </td>
+                <td>
+                  @let badge = getStatusBadge(s);
+                  <span class="chip {{ badge.class }}">
+                    {{ badge.label }}
+                  </span>
+                </td>
+                @if (isAdmin) {
+                  <td style="text-align: right;">
+                    <div class="action-btns">
+                      <button class="action-btn edit-btn" (click)="openEdit(s)" title="Editar">
+                        <i class="fa-solid fa-pen"></i>
+                      </button>
+                      <button class="action-btn delete-btn" (click)="remove(s)" [disabled]="deleting() === s.id" title="Eliminar">
+                        @if (deleting() === s.id) {
+                          <i class="fa-solid fa-spinner fa-spin"></i>
+                        } @else {
+                          <i class="fa-solid fa-trash-can"></i>
+                        }
+                      </button>
+                    </div>
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+
+  <!-- ── MODAL NUEVO / EDITAR ── -->
+  @if (modalOpen()) {
+    <div class="modal-backdrop" (click)="closeModal()"></div>
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>{{ editing() ? 'Editar Semestre' : 'Registrar Nuevo Semestre' }}</h2>
+        <button class="modal-close" (click)="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="save()">
+        <div class="modal-body">
+          @if (formError()) {
+            <div class="form-error">
+              <i class="fa-solid fa-circle-exclamation"></i> {{ formError() }}
+            </div>
+          }
+
+          <div class="form-group">
+            <label>Nombre del Semestre / Periodo <span class="req">*</span></label>
+            <input type="text" formControlName="semesterName" class="form-input" placeholder="Ej. Agosto 2026 - Enero 2027" />
+          </div>
+
+          <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+            <div class="form-group">
+              <label>Fecha de Inicio <span class="req">*</span></label>
+              <input type="date" formControlName="startDate" class="form-input" />
+            </div>
+
+            <div class="form-group">
+              <label>Fecha de Término <span class="req">*</span></label>
+              <input type="date" formControlName="finishDate" class="form-input" />
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-sec" (click)="closeModal()">Cancelar</button>
+          <button type="submit" class="btn-primary" [disabled]="form.invalid || saving()">
+            @if (saving()) {
+              <i class="fa-solid fa-spinner fa-spin"></i> Guardando...
+            } @else {
+              {{ editing() ? 'Actualizar' : 'Guardar' }}
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+  }
+
+</div>

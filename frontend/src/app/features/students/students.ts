@@ -84,6 +84,22 @@ export class StudentsComponent implements OnInit {
   }
 
   // ── Perfil ──
+  studentAiInsight = signal<any | null>(null);
+  studentAiLoading = signal(false);
+
+  fetchStudentAiInsight() {
+    const s = this.selected();
+    if (!s || this.studentAiLoading()) return;
+    this.studentAiLoading.set(true);
+    this.http.post<any>(`${API}/ai-insights/students/${s.id}`, {}).subscribe({
+      next: (res) => {
+        this.studentAiInsight.set(res);
+        this.studentAiLoading.set(false);
+      },
+      error: () => this.studentAiLoading.set(false)
+    });
+  }
+
   openProfile(s: any) {
     this.selected.set(s);
     this.drawerLoading.set(true);
@@ -91,6 +107,7 @@ export class StudentsComponent implements OnInit {
     this.history.set([]);
     this.studentGrades.set([]);
     this.parentInfo.set(null);
+    this.studentAiInsight.set(null);
 
     forkJoin({
       stats:      this.http.get<any>(`${API}/attendance/stats/student/${s.id}`).pipe(catchError(() => of(null))),
@@ -98,12 +115,22 @@ export class StudentsComponent implements OnInit {
       grades:     this.http.get<any[]>(`${API}/grades/student/${s.id}`).pipe(catchError(() => of([]))),
       parentInfo: this.http.get<any>(`${API}/users/students/${s.id}/parent-info`).pipe(catchError(() => of(null))),
       parents:    this.http.get<any[]>(`${API}/users/parents`).pipe(catchError(() => of([]))),
-    }).subscribe(({ stats, history, grades, parentInfo, parents }) => {
+      insights:   this.http.get<any>(`${API}/insights/students/${s.id}`).pipe(catchError(() => of(null))),
+    }).subscribe(({ stats, history, grades, parentInfo, parents, insights }) => {
       this.stats.set(stats);
       this.history.set((history ?? []).slice(0, 10));
       this.studentGrades.set(grades ?? []);
       this.parentInfo.set(parentInfo);
       this.parentsList.set(parents ?? []);
+      if (insights) {
+        this.studentAiInsight.set({
+          summary: insights.recommendations?.[0] ?? 'Rendimiento académico regular.',
+          strengths: insights.topSubject ? [`Desempeño destacado en ${insights.topSubject}`] : [],
+          areasOfImprovement: insights.weakestSubject ? [`Atención prioritaria en ${insights.weakestSubject}`] : [],
+          actionPlan: insights.riskFactors ?? [],
+          source: 'local'
+        });
+      }
       this.drawerLoading.set(false);
     });
   }
