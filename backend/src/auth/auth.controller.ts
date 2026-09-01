@@ -1,4 +1,4 @@
-﻿import { Controller, Post, Body, Get, Res } from "@nestjs/common";
+import { Controller, Post, Body, Get, Res } from "@nestjs/common";
 import { Response } from "express";
 import { SkipThrottle, Throttle } from "@nestjs/throttler";
 import {
@@ -19,7 +19,7 @@ import { Public } from "../common/decorators/public.decorator";
 const ACCESS_TOKEN_COOKIE = "access_token";
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
-@ApiTags("AutenticaciÃ³n")
+@ApiTags("Autenticación")
 @Controller("auth")
 export class AuthController {
   constructor(private authService: AuthService) {}
@@ -27,12 +27,12 @@ export class AuthController {
   @Public()
   @Throttle({ default: { limit: 5, ttl: 300000, blockDuration: 300000 } })
   @Post("login")
-  @ApiOperation({ summary: "Iniciar sesiÃ³n" })
+  @ApiOperation({ summary: "Iniciar sesión" })
   @ApiCreatedResponse({
     description:
-      "Inicio de sesiÃ³n exitoso. El JWT se establece como cookie httpOnly.",
+      "Inicio de sesión exitoso. El JWT se establece como cookie httpOnly.",
   })
-  @ApiUnauthorizedResponse({ description: "Credenciales invÃ¡lidas." })
+  @ApiUnauthorizedResponse({ description: "Credenciales inválidas." })
   async login(
     @Body() loginDto: LoginDto,
     @Res({ passthrough: true }) res: Response,
@@ -53,15 +53,15 @@ export class AuthController {
 
   @Post("logout")
   @ApiBearerAuth()
-  @ApiOperation({ summary: "Cerrar sesiÃ³n" })
-  @ApiOkResponse({ description: "SesiÃ³n cerrada exitosamente." })
+  @ApiOperation({ summary: "Cerrar sesión" })
+  @ApiOkResponse({ description: "Sesión cerrada exitosamente." })
   async logout(@Res({ passthrough: true }) res: Response) {
     res.clearCookie(ACCESS_TOKEN_COOKIE, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     });
-    return { message: "SesiÃ³n cerrada exitosamente" };
+    return { message: "Sesión cerrada exitosamente" };
   }
 
   @Public()
@@ -70,7 +70,7 @@ export class AuthController {
   @ApiOperation({ summary: "Registrar nuevo usuario" })
   @ApiCreatedResponse({ description: "Usuario registrado exitosamente." })
   @ApiConflictResponse({
-    description: "El correo electrÃ³nico ya estÃ¡ registrado.",
+    description: "El correo electrónico ya está registrado.",
   })
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
@@ -81,10 +81,10 @@ export class AuthController {
   @ApiOperation({ summary: "Obtener perfil del usuario autenticado" })
   @ApiOkResponse({
     description:
-      "Perfil completo del usuario autenticado (incluye informaciÃ³n de roles, grupo y tutor si aplica).",
+      "Perfil completo del usuario autenticado (incluye información de roles, grupo y tutor si aplica).",
   })
   @ApiUnauthorizedResponse({
-    description: "Token invÃ¡lido o usuario no encontrado.",
+    description: "Token inválido o usuario no encontrado.",
   })
   async getProfile(@CurrentUser("id") userId: number) {
     return this.authService.getProfile(userId);
