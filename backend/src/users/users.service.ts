@@ -233,6 +233,72 @@ export class UsersService {
     });
   }
 
+  async updateProfile(userId: number, dto: any) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+    if (!user) {
+      throw new NotFoundException("Usuario no encontrado");
+    }
+
+    if (dto.email && dto.email !== user.email) {
+      const existing = await this.prisma.user.findUnique({
+        where: { email: dto.email },
+      });
+      if (existing) {
+        throw new ConflictException("El correo electrónico ya está en uso");
+      }
+    }
+
+    const userData: any = {};
+    if (dto.firstName) userData.firstName = dto.firstName;
+    if (dto.lastName) userData.lastName = dto.lastName;
+    if (dto.email) userData.email = dto.email;
+    if (dto.password) {
+      userData.password = await bcrypt.hash(dto.password, 12);
+    }
+
+    // Actualizar campos de User
+    if (Object.keys(userData).length > 0) {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: userData,
+      });
+    }
+
+    // Actualizar teléfono en el perfil correspondiente si viene en el DTO
+    if (dto.phone !== undefined) {
+      switch (user.role) {
+        case UserRole.ADMIN:
+          await this.prisma.adminProfile.update({
+            where: { userId },
+            data: { phone: dto.phone },
+          });
+          break;
+        case UserRole.TEACHER:
+          await this.prisma.teacherProfile.update({
+            where: { userId },
+            data: { phone: dto.phone },
+          });
+          break;
+        case UserRole.STUDENT:
+          await this.prisma.studentProfile.update({
+            where: { userId },
+            data: { phone: dto.phone },
+          });
+          break;
+        case UserRole.PARENT:
+          await this.prisma.parentProfile.update({
+            where: { userId },
+            data: { phone: dto.phone },
+          });
+          break;
+      }
+    }
+
+    return { message: "Perfil actualizado exitosamente" };
+  }
+
   async remove(id: number) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) {

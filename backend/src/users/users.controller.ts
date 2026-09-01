@@ -24,6 +24,7 @@ import {
 import { UsersService } from "./users.service";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
+import { UpdateProfileDto } from "./dto/update-profile.dto";
 import { Roles } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { UserRole } from "../common/enums/roles.enum";
@@ -111,6 +112,18 @@ export class UsersController {
     @Param("parentId", ParseIntPipe) parentId: number,
   ) {
     return this.usersService.assignParentToStudent(studentId, parentId);
+  }
+
+  @Put("profile")
+  @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT, UserRole.PARENT)
+  @ApiOperation({ summary: "Actualizar el perfil del usuario autenticado" })
+  @ApiOkResponse({ description: "Perfil actualizado exitosamente." })
+  @ApiBadRequestResponse({ description: "Error de validación." })
+  async updateProfile(
+    @CurrentUser("id") userId: number,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ) {
+    return this.usersService.updateProfile(userId, updateProfileDto);
   }
 
   @Get(":id")
