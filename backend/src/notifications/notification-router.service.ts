@@ -20,13 +20,14 @@ export interface AlertRecipient {
 }
 
 export interface DispatchAlertInput {
-  alert: {
+  alert?: {
     id: number;
     studentId: number;
     type: string;
     priority: string;
     message: string;
   };
+  globalMessage?: string;
   recipients: AlertRecipient[];
   senderId: number;
   title?: string;
@@ -67,16 +68,17 @@ export class NotificationRouterService {
         }
 
         for (const transport of transports) {
+          const content = input.alert?.message || input.globalMessage || "";
           const notification = await this.prisma.notification.create({
             data: {
-              alertId: input.alert.id,
+              alertId: input.alert?.id || null,
               senderId: input.senderId,
               recipientType,
               recipientId: recipient.userId,
               channel:
                 transport.channel === "PUSH" ? channel : transport.channel,
               status: NotificationStatus.PENDING,
-              content: input.alert.message,
+              content,
             },
           });
 
@@ -86,13 +88,15 @@ export class NotificationRouterService {
             email: recipient.email,
             phone: recipient.phone,
             title,
-            body: input.alert.message,
-            data: {
-              alertId: input.alert.id,
-              studentId: input.alert.studentId,
-              type: input.alert.type,
-              priority: input.alert.priority,
-            },
+            body: content,
+            data: input.alert
+              ? {
+                  alertId: input.alert.id,
+                  studentId: input.alert.studentId,
+                  type: input.alert.type,
+                  priority: input.alert.priority,
+                }
+              : {},
           };
 
           // Fire-and-forget to avoid blocking the HTTP request.
