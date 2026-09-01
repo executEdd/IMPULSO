@@ -24,6 +24,7 @@ async function main() {
   try {
     await prisma.$transaction(async (tx) => {
       // Limpieza en orden por dependencias de llaves foráneas
+      await tx.attendanceLog.deleteMany();
       await tx.gradeLog.deleteMany();
       await tx.notification.deleteMany();
       await tx.alert.deleteMany();
@@ -55,6 +56,7 @@ async function main() {
       await tx.$executeRawUnsafe('ALTER SEQUENCE IF EXISTS school_cycle_id_seq RESTART WITH 1;');
       await tx.$executeRawUnsafe('ALTER SEQUENCE IF EXISTS semesters_id_seq RESTART WITH 1;');
       await tx.$executeRawUnsafe('ALTER SEQUENCE IF EXISTS attendances_id_seq RESTART WITH 1;');
+      await tx.$executeRawUnsafe('ALTER SEQUENCE IF EXISTS attendance_logs_id_seq RESTART WITH 1;');
       await tx.$executeRawUnsafe('ALTER SEQUENCE IF EXISTS grades_id_seq RESTART WITH 1;');
       await tx.$executeRawUnsafe('ALTER SEQUENCE IF EXISTS grade_logs_id_seq RESTART WITH 1;');
       await tx.$executeRawUnsafe('ALTER SEQUENCE IF EXISTS alerts_id_seq RESTART WITH 1;');

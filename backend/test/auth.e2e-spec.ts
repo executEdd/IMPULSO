@@ -5,6 +5,9 @@ import { AppModule } from "../src/app.module";
 import { HttpExceptionFilter } from "../src/common/filters/http-exception.filter";
 import { PrismaService } from "../src/prisma.service";
 import { UserRole } from "../src/common/enums/roles.enum";
+import { APP_GUARD } from "@nestjs/core";
+import { ThrottlerGuard } from "@nestjs/throttler";
+import { CustomThrottlerGuard } from "../src/common/guards/custom-throttler.guard";
 
 describe("AuthModule (e2e)", () => {
   let app: INestApplication;
@@ -16,7 +19,14 @@ describe("AuthModule (e2e)", () => {
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideGuard(CustomThrottlerGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(ThrottlerGuard)
+      .useValue({ canActivate: () => true })
+      .overrideProvider(APP_GUARD)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(
