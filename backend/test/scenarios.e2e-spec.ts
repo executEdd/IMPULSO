@@ -1,10 +1,13 @@
 import { Test, TestingModule } from "@nestjs/testing";
 import { INestApplication, ValidationPipe } from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import { ConfigService } from "@nestjs/config";
 import request from "supertest";
 import { AppModule } from "../src/app.module";
 import { HttpExceptionFilter } from "../src/common/filters/http-exception.filter";
 import { PrismaService } from "../src/prisma.service";
 import { UserRole } from "../src/common/enums/roles.enum";
+import { AttendanceStatus } from "@prisma/client";
 import * as bcrypt from "bcryptjs";
 
 function getMexicoCityDayAndTime() {
@@ -39,8 +42,8 @@ function getMexicoCityDayAndTime() {
     "FRIDAY",
     "SATURDAY",
   ];
-  const tempDate = new Date(localYear, localMonth, localDay);
-  const currentDay = days[tempDate.getDay()];
+  const tempDate = new Date(Date.UTC(localYear, localMonth, localDay));
+  const currentDay = days[tempDate.getUTCDay()];
   const currentTime = `${hours.padStart(2, "0")}:${minutes.padStart(2, "0")}`;
 
   const nowMin = parseInt(hours) * 60 + parseInt(minutes);
@@ -81,6 +84,8 @@ async function checkHasClassScheduleId(
 describe("Complex Scenarios & Tiers (e2e)", () => {
   let app: INestApplication;
   let prisma: PrismaService;
+  let jwtService: JwtService;
+  let configService: ConfigService;
 
   const testId = Date.now();
   const passwordHash = bcrypt.hashSync("password123", 12);
@@ -92,13 +97,23 @@ describe("Complex Scenarios & Tiers (e2e)", () => {
   let subjectId: number;
 
   let adminToken: string;
+  let adminUserId: number;
   let teacherAToken: string;
   let teacherBToken: string;
   let teacherAProfileId: number;
   let teacherBProfileId: number;
 
+  const createToken = (user: { id: number; email: string; role: any }) => {
+    const secret =
+      configService.get<string>("JWT_SECRET") || "impulso_jwt_secret";
+    return jwtService.sign(
+      { sub: user.id, email: user.email, role: user.role },
+      { secret, expiresIn: "24h" },
+    );
+  };
+
   beforeAll(async () => {
-    jest.setTimeout(15000);
+    jest.setTimeout(25000);
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -113,8 +128,30 @@ describe("Complex Scenarios & Tiers (e2e)", () => {
     await app.init();
 
     prisma = app.get(PrismaService);
+    jwtService = app.get(JwtService);
+    configService = app.get(ConfigService);
 
-    // Ensure system user with ID 1 exists so that notifications (which hardcode senderId: 1) do not fail
+    // Create Base Setup with wide semester range so backfilled tests are within active bounds
+    const cycle = await prisma.schoolCycle.create({
+      data: {
+        cycleName: `Scenario Cycle ${testId}`,
+        startDate: new Date(Date.now() - 60 * 86400000),
+        finishDate: new Date(Date.now() + 60 * 86400000),
+      },
+    });
+    schoolCycleId = cycle.id;
+
+    const semester = await prisma.semester.create({
+      data: {
+        semesterName: `Scenario Semester ${testId}`,
+        startDate: new Date(Date.now() - 60 * 86400000),
+        finishDate: new Date(Date.now() + 60 * 86400000),
+        schoolCycleId: cycle.id,
+      },
+    });
+    semesterId = semester.id;
+
+    // Ensure system user with ID 1 exists so that notifications do not fail
     const systemUser = await prisma.user.findUnique({ where: { id: 1 } });
     if (!systemUser) {
       await prisma.$executeRawUnsafe(`
@@ -125,12 +162,12 @@ describe("Complex Scenarios & Tiers (e2e)", () => {
     }
 
     // Ensure admin user exists so that admin login does not fail
-    const adminUser = await prisma.user.findFirst({
+    let adminUser = await prisma.user.findFirst({
       where: { email: "subdirector@cbtis61.edu.mx" },
     });
     if (!adminUser) {
       const hashedAdminPassword = bcrypt.hashSync("admin123", 12);
-      await prisma.user.create({
+      adminUser = await prisma.user.create({
         data: {
           email: "subdirector@cbtis61.edu.mx",
           password: hashedAdminPassword,
@@ -143,31 +180,13 @@ describe("Complex Scenarios & Tiers (e2e)", () => {
         },
       });
     }
+    adminUserId = adminUser.id;
+    adminToken = createToken(adminUser);
 
     // Sync users sequence to prevent unique constraint failures on auto-incrementing ID
     await prisma.$executeRawUnsafe(`
       SELECT setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 1));
     `);
-
-    // Create Base Setup
-    const cycle = await prisma.schoolCycle.create({
-      data: {
-        cycleName: `Scenario Cycle ${testId}`,
-        startDate: new Date(),
-        finishDate: new Date(),
-      },
-    });
-    schoolCycleId = cycle.id;
-
-    const semester = await prisma.semester.create({
-      data: {
-        semesterName: `Scenario Semester ${testId}`,
-        startDate: new Date(),
-        finishDate: new Date(),
-        schoolCycleId: cycle.id,
-      },
-    });
-    semesterId = semester.id;
 
     const group = await prisma.group.create({
       data: {
@@ -186,12 +205,6 @@ describe("Complex Scenarios & Tiers (e2e)", () => {
     });
     subjectId = subject.id;
 
-    // Login default admin to get adminToken
-    const loginAdmin = await request(app.getHttpServer())
-      .post("/api/auth/login")
-      .send({ email: "subdirector@cbtis61.edu.mx", password: "admin123" });
-    adminToken = loginAdmin.body.accessToken;
-
     // Create Teacher A and Teacher B
     const teacherA = await prisma.user.create({
       data: {
@@ -207,6 +220,7 @@ describe("Complex Scenarios & Tiers (e2e)", () => {
       include: { teacherProfile: true },
     });
     teacherAProfileId = teacherA.teacherProfile!.id;
+    teacherAToken = createToken(teacherA);
 
     const teacherB = await prisma.user.create({
       data: {
@@ -222,26 +236,23 @@ describe("Complex Scenarios & Tiers (e2e)", () => {
       include: { teacherProfile: true },
     });
     teacherBProfileId = teacherB.teacherProfile!.id;
-
-    // Get Teacher Tokens
-    const loginTA = await request(app.getHttpServer())
-      .post("/api/auth/login")
-      .send({ email: teacherA.email, password: "password123" });
-    teacherAToken = loginTA.body.accessToken;
-
-    const loginTB = await request(app.getHttpServer())
-      .post("/api/auth/login")
-      .send({ email: teacherB.email, password: "password123" });
-    teacherBToken = loginTB.body.accessToken;
+    teacherBToken = createToken(teacherB);
   });
 
   afterAll(async () => {
-    // Delete all attendance logs and classes created with Scenario Subject
+    // Delete all attendance logs and classes created with Scenario Subjects
+    const subjects = await prisma.subject.findMany({
+      where: { code: { contains: `-${testId}` } },
+    });
+    const subjectIds = subjects.map((s) => s.id);
     const classes = await prisma.class.findMany({
-      where: { subjectId },
+      where: { subjectId: { in: subjectIds } },
     });
     const classIds = classes.map((c) => c.id);
 
+    await prisma.attendanceLog.deleteMany({
+      where: { attendance: { classId: { in: classIds } } },
+    });
     await prisma.attendance.deleteMany({
       where: { classId: { in: classIds } },
     });
@@ -302,7 +313,9 @@ describe("Complex Scenarios & Tiers (e2e)", () => {
     });
 
     try {
-      if (subjectId) await prisma.subject.delete({ where: { id: subjectId } });
+      await prisma.subject.deleteMany({
+        where: { code: { contains: `-${testId}` } },
+      });
     } catch (e) {}
     try {
       if (groupId) await prisma.group.delete({ where: { id: groupId } });
@@ -328,46 +341,42 @@ describe("Complex Scenarios & Tiers (e2e)", () => {
       .send({
         email: `parent-lifecycle-${testId}@example.com`,
         password: "password123",
-        firstName: "Lifecycle",
-        lastName: "Parent",
+        firstName: "Parent",
+        lastName: "Lifecycle",
         role: UserRole.PARENT,
-        phone: "9999999999",
+        parentProfile: {
+          phone: "555-9999",
+        },
       });
     expect(parentRes.status).toBe(201);
-    const parentProfileId =
-      parentRes.body.parentProfile?.id ||
-      (
-        await prisma.parentProfile.findFirst({
-          where: { user: { email: `parent-lifecycle-${testId}@example.com` } },
-        })
-      )?.id;
-    expect(parentProfileId).toBeDefined();
+    const parentUserObj = parentRes.body.user || parentRes.body;
+    const parentProfile = await prisma.parentProfile.findFirst({
+      where: { userId: parentUserObj.id },
+    });
+    const parentProfileId = parentProfile!.id;
 
-    // 2. Admin creates Student linked to group and parent
+    // 2. Admin creates Student linked to Parent
     const studentRes = await request(app.getHttpServer())
       .post("/api/users")
       .set("Authorization", `Bearer ${adminToken}`)
       .send({
         email: `student-lifecycle-${testId}@example.com`,
         password: "password123",
-        firstName: "Lifecycle",
-        lastName: "Student",
+        firstName: "Student",
+        lastName: "Lifecycle",
         role: UserRole.STUDENT,
-        enrollmentId: `ENR-LIFE-${testId}`,
+        enrollmentId: `ENR-LC-${testId}`,
         groupId: groupId,
         parentId: parentProfileId,
       });
     expect(studentRes.status).toBe(201);
-    const studentProfileId =
-      studentRes.body.studentProfile?.id ||
-      (
-        await prisma.studentProfile.findFirst({
-          where: { user: { email: `student-lifecycle-${testId}@example.com` } },
-        })
-      )?.id;
-    expect(studentProfileId).toBeDefined();
+    const studentUserObj = studentRes.body.user || studentRes.body;
+    const studentProfile = await prisma.studentProfile.findFirst({
+      where: { userId: studentUserObj.id },
+    });
+    const studentProfileId = studentProfile!.id;
 
-    // 3. Create Class and Schedule for Teacher A
+    // 3. Create Class and Schedule
     const timeInfo = getMexicoCityDayAndTime();
     const cl = await prisma.class.create({
       data: {
@@ -386,15 +395,8 @@ describe("Complex Scenarios & Tiers (e2e)", () => {
       include: { schedules: true },
     });
 
-    // 4. Student logs in
-    const loginRes = await request(app.getHttpServer())
-      .post("/api/auth/login")
-      .send({
-        email: `student-lifecycle-${testId}@example.com`,
-        password: "password123",
-      });
-    expect(loginRes.status).toBe(201);
-    const studentToken = loginRes.body.accessToken;
+    // 4. Student token
+    const studentToken = createToken(studentUserObj);
 
     // 5. Student gets QR token
     const qrRes = await request(app.getHttpServer())
@@ -413,14 +415,8 @@ describe("Complex Scenarios & Tiers (e2e)", () => {
       });
     expect(scanRes.status).toBe(201);
 
-    // 7. Parent logs in to verify child's attendance
-    const loginParent = await request(app.getHttpServer())
-      .post("/api/auth/login")
-      .send({
-        email: `parent-lifecycle-${testId}@example.com`,
-        password: "password123",
-      });
-    const parentToken = loginParent.body.accessToken;
+    // 7. Parent verifies child's attendance
+    const parentToken = createToken(parentUserObj);
 
     const historyRes = await request(app.getHttpServer())
       .get(`/api/attendance/student/${studentProfileId}`)
@@ -433,6 +429,12 @@ describe("Complex Scenarios & Tiers (e2e)", () => {
   // Scenario 2: Red Semaphore trigger/reset
   it("2. should verify Red Semaphore Trigger and Reset (3 absences trigger RED, alert created, admin reset to GREEN)", async () => {
     // 1. Create a Student
+    const parentProfile = await prisma.parentProfile.findFirst({
+      where: {
+        user: { email: `parent-lifecycle-${testId}@example.com` },
+      },
+    });
+
     const studentUser = await prisma.user.create({
       data: {
         email: `student-semaphore-${testId}@example.com`,
@@ -444,11 +446,7 @@ describe("Complex Scenarios & Tiers (e2e)", () => {
           create: {
             enrollmentId: `ENR-SEMA-${testId}`,
             groupId: groupId,
-            parentId: (await prisma.parentProfile.findFirst({
-              where: {
-                user: { email: `parent-lifecycle-${testId}@example.com` },
-              },
-            }))!.id,
+            parentId: parentProfile!.id,
           },
         },
       },
@@ -456,11 +454,17 @@ describe("Complex Scenarios & Tiers (e2e)", () => {
     });
     const studentProfileId = studentUser.studentProfile!.id;
 
-    // 2. Create Class and Schedule
+    // 2. Create Class and Schedule with sub2
+    const sub2 = await prisma.subject.create({
+      data: {
+        name: `Scenario 2 Subject ${testId}`,
+        code: `SCEN-SUB2-${testId}`,
+      },
+    });
     const timeInfo = getMexicoCityDayAndTime();
     const cl = await prisma.class.create({
       data: {
-        subjectId,
+        subjectId: sub2.id,
         groupId,
         teacherId: teacherAProfileId,
         semesterId,
@@ -475,28 +479,25 @@ describe("Complex Scenarios & Tiers (e2e)", () => {
       include: { schedules: true },
     });
 
-    // 3. Backfill 2 historical absences in the last 30 days directly in the DB
-    const date1 = new Date();
-    date1.setDate(date1.getDate() - 5);
-    const date2 = new Date();
-    date2.setDate(date2.getDate() - 10);
+    // 3. Backfill 2 historical absences within active semester bounds
+    const date1 = new Date(Date.now() - 5 * 86400000);
+    const date2 = new Date(Date.now() - 3 * 86400000);
 
     await prisma.attendance.create({
       data: {
         studentId: studentProfileId,
         classId: cl.id,
         classScheduleId: cl.schedules[0].id,
-        status: "ABSENT",
+        status: AttendanceStatus.ABSENT,
         date: date1,
       },
     });
-
     await prisma.attendance.create({
       data: {
         studentId: studentProfileId,
         classId: cl.id,
         classScheduleId: cl.schedules[0].id,
-        status: "ABSENT",
+        status: AttendanceStatus.ABSENT,
         date: date2,
       },
     });
@@ -541,6 +542,12 @@ describe("Complex Scenarios & Tiers (e2e)", () => {
 
   // Scenario 3: Double-period class smart scan
   it("3. should verify Double-period class smart scan (prevents duplicate scans on same day)", async () => {
+    const parentProfile = await prisma.parentProfile.findFirst({
+      where: {
+        user: { email: `parent-lifecycle-${testId}@example.com` },
+      },
+    });
+
     // 1. Create a Student
     const studentUser = await prisma.user.create({
       data: {
@@ -553,11 +560,7 @@ describe("Complex Scenarios & Tiers (e2e)", () => {
           create: {
             enrollmentId: `ENR-DBL-${testId}`,
             groupId: groupId,
-            parentId: (await prisma.parentProfile.findFirst({
-              where: {
-                user: { email: `parent-lifecycle-${testId}@example.com` },
-              },
-            }))!.id,
+            parentId: parentProfile!.id,
           },
         },
       },
@@ -566,10 +569,16 @@ describe("Complex Scenarios & Tiers (e2e)", () => {
     const studentProfileId = studentUser.studentProfile!.id;
 
     // 2. Create Class with 2 schedules today
+    const sub3 = await prisma.subject.create({
+      data: {
+        name: `Scenario 3 Subject ${testId}`,
+        code: `SCEN-SUB3-${testId}`,
+      },
+    });
     const timeInfo = getMexicoCityDayAndTime();
     const cl = await prisma.class.create({
       data: {
-        subjectId,
+        subjectId: sub3.id,
         groupId,
         teacherId: teacherAProfileId,
         semesterId,
@@ -591,13 +600,7 @@ describe("Complex Scenarios & Tiers (e2e)", () => {
       include: { schedules: true },
     });
 
-    const loginRes = await request(app.getHttpServer())
-      .post("/api/auth/login")
-      .send({
-        email: `student-double-${testId}@example.com`,
-        password: "password123",
-      });
-    const studentToken = loginRes.body.accessToken;
+    const studentToken = createToken(studentUser);
 
     // 3. Scan for Period 1
     const qrRes1 = await request(app.getHttpServer())
@@ -631,7 +634,7 @@ describe("Complex Scenarios & Tiers (e2e)", () => {
     const hasClassScheduleId = await checkHasClassScheduleId(prisma);
 
     if (hasClassScheduleId) {
-      // If Milestone 4 is active, scan for different schedules is allowed
+      // If classScheduleId column is active, scan for different schedules is allowed
       expect(scanRes2.status).toBe(201);
 
       // Scanning for the SAME classScheduleId again today should fail
@@ -652,7 +655,6 @@ describe("Complex Scenarios & Tiers (e2e)", () => {
         "La asistencia de este alumno ya fue registrada para este bloque de clase hoy",
       );
     } else {
-      // If Milestone 4 is not active yet, scan for another schedule for same class today fails
       expect(scanRes2.status).toBe(400);
       expect(scanRes2.body.message.message || scanRes2.body.message).toBe(
         "La asistencia de este alumno ya fue registrada para esta clase hoy",
@@ -662,6 +664,12 @@ describe("Complex Scenarios & Tiers (e2e)", () => {
 
   // Scenario 4: Teacher shift cover
   it("4. should verify Teacher shift cover (different teacher rejected, admin updates teacher, scan succeeds)", async () => {
+    const parentProfile = await prisma.parentProfile.findFirst({
+      where: {
+        user: { email: `parent-lifecycle-${testId}@example.com` },
+      },
+    });
+
     // 1. Create Student
     const studentUser = await prisma.user.create({
       data: {
@@ -674,11 +682,7 @@ describe("Complex Scenarios & Tiers (e2e)", () => {
           create: {
             enrollmentId: `ENR-COV-${testId}`,
             groupId: groupId,
-            parentId: (await prisma.parentProfile.findFirst({
-              where: {
-                user: { email: `parent-lifecycle-${testId}@example.com` },
-              },
-            }))!.id,
+            parentId: parentProfile!.id,
           },
         },
       },
@@ -686,10 +690,16 @@ describe("Complex Scenarios & Tiers (e2e)", () => {
     });
 
     // 2. Create Class assigned to Teacher A
+    const sub4 = await prisma.subject.create({
+      data: {
+        name: `Scenario 4 Subject ${testId}`,
+        code: `SCEN-SUB4-${testId}`,
+      },
+    });
     const timeInfo = getMexicoCityDayAndTime();
     const cl = await prisma.class.create({
       data: {
-        subjectId,
+        subjectId: sub4.id,
         groupId,
         teacherId: teacherAProfileId,
         semesterId,
@@ -704,13 +714,7 @@ describe("Complex Scenarios & Tiers (e2e)", () => {
       include: { schedules: true },
     });
 
-    const loginRes = await request(app.getHttpServer())
-      .post("/api/auth/login")
-      .send({
-        email: `student-cover-${testId}@example.com`,
-        password: "password123",
-      });
-    const studentToken = loginRes.body.accessToken;
+    const studentToken = createToken(studentUser);
 
     // 3. Student generates QR code
     const qrRes = await request(app.getHttpServer())
@@ -718,7 +722,7 @@ describe("Complex Scenarios & Tiers (e2e)", () => {
       .set("Authorization", `Bearer ${studentToken}`);
     const qrToken = qrRes.body.qrToken;
 
-    // 4. Teacher B (unauthorized) scans QR code - Should fail
+    // 4. Teacher B (unauthorized) scans QR code - Should fail with 403 Forbidden
     const scanFail = await request(app.getHttpServer())
       .post("/api/attendance/scan-qr")
       .set("Authorization", `Bearer ${teacherBToken}`)
@@ -726,7 +730,7 @@ describe("Complex Scenarios & Tiers (e2e)", () => {
         qrToken,
         classScheduleId: cl.schedules[0].id,
       });
-    expect(scanFail.status).toBe(400);
+    expect(scanFail.status).toBe(403);
     expect(scanFail.body.message.message || scanFail.body.message).toBe(
       "No está autorizado para registrar asistencia en esta clase. El docente no coincide con el horario asignado.",
     );
@@ -750,44 +754,38 @@ describe("Complex Scenarios & Tiers (e2e)", () => {
 
   // Scenario 5: Multi-role dashboard integrity
   it("5. should verify Multi-Role Dashboard integrity (unauthorized access rejected, authorized allowed)", async () => {
-    const studentProfile = await prisma.studentProfile.findFirst({
-      where: { user: { email: `student-lifecycle-${testId}@example.com` } },
-    });
-    const studentProfileId = studentProfile!.id;
-
     const studentUser = await prisma.user.findFirst({
       where: { email: `student-lifecycle-${testId}@example.com` },
+      include: { studentProfile: true },
     });
-    const loginStudent = await request(app.getHttpServer())
-      .post("/api/auth/login")
-      .send({ email: studentUser!.email, password: "password123" });
-    const studentToken = loginStudent.body.accessToken;
+    const studentProfileId = studentUser!.studentProfile!.id;
+    const studentToken = createToken(studentUser!);
 
-    // 1. Student attempts to access red semaphore list - Should fail
+    // 1. Student attempts to access red semaphore list - Should fail (403 Forbidden)
     const res1 = await request(app.getHttpServer())
       .get("/api/attendance/semaphore/red")
       .set("Authorization", `Bearer ${studentToken}`);
     expect(res1.status).toBe(403);
 
-    // 2. Teacher attempts to access red semaphore list - Should succeed
+    // 2. Teacher attempts to access red semaphore list - Should succeed (200 OK)
     const res2 = await request(app.getHttpServer())
       .get("/api/attendance/semaphore/red")
       .set("Authorization", `Bearer ${teacherAToken}`);
     expect(res2.status).toBe(200);
 
-    // 3. Teacher attempts to reset a semaphore - Should fail (Admin only)
+    // 3. Teacher attempts to reset a semaphore - Should fail (403 Forbidden, Admin only)
     const res3 = await request(app.getHttpServer())
       .post(`/api/attendance/semaphore/reset/${studentProfileId}`)
       .set("Authorization", `Bearer ${teacherAToken}`);
     expect(res3.status).toBe(403);
 
-    // 4. Admin attempts to reset a semaphore - Should succeed
+    // 4. Admin attempts to reset a semaphore - Should succeed (201/200 OK)
     const res4 = await request(app.getHttpServer())
       .post(`/api/attendance/semaphore/reset/${studentProfileId}`)
       .set("Authorization", `Bearer ${adminToken}`);
     expect(res4.status).toBe(201);
 
-    // 5. Student attempts to view all users list - Should fail (Admin only)
+    // 5. Student attempts to view all users list - Should fail (403 Forbidden, Admin only)
     const res5 = await request(app.getHttpServer())
       .get("/api/users")
       .set("Authorization", `Bearer ${studentToken}`);

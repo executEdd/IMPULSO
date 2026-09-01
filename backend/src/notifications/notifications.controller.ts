@@ -60,7 +60,9 @@ export class NotificationsController {
 
   @Post("global")
   @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: "Enviar un aviso global a toda la escuela o roles específicos" })
+  @ApiOperation({
+    summary: "Enviar un aviso global a toda la escuela o roles específicos",
+  })
   @ApiCreatedResponse({ description: "Aviso global enviado exitosamente." })
   @ApiBadRequestResponse({ description: "Error de validación." })
   async sendGlobal(

@@ -1,0 +1,39 @@
+--- a/backend/prisma/schema.prisma
++++ b/backend/prisma/schema.prisma
+@@ -20,6 +20,7 @@
+   adminProfile            AdminProfile?
++  attendanceLogs          AttendanceLog[]
+   gradeLogs               GradeLog[]
+   notificationPreferences NotificationPreference[]
+   notifications           Notification[]           @relation("NotificationSender")
+@@ -144,6 +145,7 @@
+   qrToken         String?
+   notes           String?
+   createdAt       DateTime         @default(now())
++  logs            AttendanceLog[]
+   classes         Class            @relation(fields: [classId], references: [id])
+   classSchedule   ClassSchedule    @relation(fields: [classScheduleId], references: [id])
+   student         StudentProfile   @relation(fields: [studentId], references: [id])
+@@ -151,6 +153,20 @@
+   @@unique([studentId, classScheduleId, date])
+   @@map("attendances")
+ }
++
++model AttendanceLog {
++  id             Int              @id @default(autoincrement())
++  attendanceId   Int
++  userId         Int
++  previousStatus AttendanceStatus
++  newStatus      AttendanceStatus
++  reason         String
++  timestamp      DateTime         @default(now())
++  attendance     Attendance       @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
++  user           User             @relation(fields: [userId], references: [id])
++
++  @@index([attendanceId])
++  @@index([userId])
++  @@map("attendance_logs")
++}
+ 
+ model Grade {
+   id         Int            @id @default(autoincrement())

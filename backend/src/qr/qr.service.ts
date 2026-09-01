@@ -82,7 +82,7 @@ export class QrService {
     const totalMinutes = Math.floor(Math.max(0, ms) / 60000);
     const h = Math.floor(totalMinutes / 60);
     const m = totalMinutes % 60;
-    const expiresInFormatted = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+    const expiresInFormatted = `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
 
     return {
       qrToken,
@@ -136,7 +136,7 @@ export class QrService {
     const totalMinutes = Math.floor(Math.max(0, ms) / 60000);
     const h = Math.floor(totalMinutes / 60);
     const m = totalMinutes % 60;
-    const expiresInFormatted = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+    const expiresInFormatted = `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
 
     return {
       qrToken: student.qrToken,
