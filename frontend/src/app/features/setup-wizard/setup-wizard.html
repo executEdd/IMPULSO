@@ -1,4 +1,4 @@
-﻿<div class="page-wrap">
+<div class="page-wrap">
   <header class="page-hd">
     <div>
       <h1>Asistente de Configuración</h1>
@@ -265,7 +265,7 @@
               <select formControlName="teacherId" class="field-input" [class.has-error]="classForm.get('teacherId')?.invalid && classForm.get('teacherId')?.touched">
                 <option [ngValue]="null">-- Seleccionar Docente --</option>
                 @for (t of teachers(); track t.id) {
-                  <option [ngValue]="t.id">{{ t.user.firstName }} {{ t.user.lastName }}</option>
+                  <option [ngValue]="t.teacherProfile?.id">{{ t.firstName }} {{ t.lastName }}</option>
                 }
               </select>
               @if (classForm.get('teacherId')?.invalid && classForm.get('teacherId')?.touched) {
@@ -299,7 +299,7 @@
               <label class="field-label">Ciclo (Solo Referencia) *</label>
               <select formControlName="schoolCycleId" class="field-input" [class.has-error]="classForm.get('schoolCycleId')?.invalid && classForm.get('schoolCycleId')?.touched">
                 <option [ngValue]="null">-- Seleccionar Ciclo --</option>
-                @for (c of cycles(); track c.id) { <option [ngValue]="c.id">{{ c.name }}</option> }
+                @for (c of cycles(); track c.id) { <option [ngValue]="c.id">{{ c.cycleName || c.name }}</option> }
               </select>
               @if (classForm.get('schoolCycleId')?.invalid && classForm.get('schoolCycleId')?.touched) {
                 <small class="error-msg" style="color: #c5221f; font-size: 12px; margin-top: 2px;">Requerido.</small>
