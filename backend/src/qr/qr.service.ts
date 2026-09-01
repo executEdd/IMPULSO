@@ -132,7 +132,7 @@ export class QrService {
 
     const qrImage = await this.generateQrImage(student.qrToken);
 
-    const ms = student.qrExpiresAt.getTime() - new Date().getTime();
+    const ms = student.qrExpiresAt!.getTime() - new Date().getTime();
     const totalMinutes = Math.floor(Math.max(0, ms) / 60000);
     const h = Math.floor(totalMinutes / 60);
     const m = totalMinutes % 60;
