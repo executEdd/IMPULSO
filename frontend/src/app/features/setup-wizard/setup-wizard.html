@@ -55,20 +55,29 @@
           <div class="form-grid">
             <div class="field-group">
               <label class="field-label">Nombre del Ciclo *</label>
-              <input class="field-input" type="text" formControlName="name" placeholder="Ej. 2026B">
+              <input class="field-input" [class.has-error]="cycleForm.get('name')?.invalid && cycleForm.get('name')?.touched" type="text" formControlName="name" placeholder="Ej. 2026B">
+              @if (cycleForm.get('name')?.invalid && cycleForm.get('name')?.touched) {
+                <small class="error-msg" style="color: #c5221f; font-size: 12px; margin-top: 2px;">Este campo es requerido.</small>
+              }
             </div>
             <div class="field-group">
               <label class="field-label">Fecha de Inicio *</label>
-              <input class="field-input" type="date" formControlName="startDate">
+              <input class="field-input" [class.has-error]="cycleForm.get('startDate')?.invalid && cycleForm.get('startDate')?.touched" type="date" formControlName="startDate">
+              @if (cycleForm.get('startDate')?.invalid && cycleForm.get('startDate')?.touched) {
+                <small class="error-msg" style="color: #c5221f; font-size: 12px; margin-top: 2px;">Requerido.</small>
+              }
             </div>
             <div class="field-group">
               <label class="field-label">Fecha de Fin *</label>
-              <input class="field-input" type="date" formControlName="endDate">
+              <input class="field-input" [class.has-error]="cycleForm.get('endDate')?.invalid && cycleForm.get('endDate')?.touched" type="date" formControlName="endDate">
+              @if (cycleForm.get('endDate')?.invalid && cycleForm.get('endDate')?.touched) {
+                <small class="error-msg" style="color: #c5221f; font-size: 12px; margin-top: 2px;">Requerido.</small>
+              }
             </div>
           </div>
           
           <div class="wizard-actions">
-            <button type="button" class="btn-cancel" (click)="skipStep()">Omitir (Usar existente)</button>
+            <button type="button" class="ghost-btn" (click)="skipStep()">Omitir (Usar existente)</button>
             <button type="submit" class="primary-btn" [disabled]="cycleForm.invalid || loading()">
               @if(loading()) { <span class="spinner-sm"></span> } @else { Crear y Continuar <i class="fa-solid fa-arrow-right"></i> }
             </button>
@@ -87,21 +96,30 @@
           <div class="form-grid">
             <div class="field-group">
               <label class="field-label">Nombre del Semestre *</label>
-              <input class="field-input" type="text" formControlName="semesterName" placeholder="Ej. Primer Semestre">
+              <input class="field-input" [class.has-error]="semesterForm.get('semesterName')?.invalid && semesterForm.get('semesterName')?.touched" type="text" formControlName="semesterName" placeholder="Ej. Primer Semestre">
+              @if (semesterForm.get('semesterName')?.invalid && semesterForm.get('semesterName')?.touched) {
+                <small class="error-msg" style="color: #c5221f; font-size: 12px; margin-top: 2px;">Requerido.</small>
+              }
             </div>
             <div class="field-group">
               <label class="field-label">Fecha de Inicio *</label>
-              <input class="field-input" type="date" formControlName="startDate">
+              <input class="field-input" [class.has-error]="semesterForm.get('startDate')?.invalid && semesterForm.get('startDate')?.touched" type="date" formControlName="startDate">
+              @if (semesterForm.get('startDate')?.invalid && semesterForm.get('startDate')?.touched) {
+                <small class="error-msg" style="color: #c5221f; font-size: 12px; margin-top: 2px;">Requerido.</small>
+              }
             </div>
             <div class="field-group">
               <label class="field-label">Fecha de Fin *</label>
-              <input class="field-input" type="date" formControlName="endDate">
+              <input class="field-input" [class.has-error]="semesterForm.get('finishDate')?.invalid && semesterForm.get('finishDate')?.touched" type="date" formControlName="finishDate">
+              @if (semesterForm.get('finishDate')?.invalid && semesterForm.get('finishDate')?.touched) {
+                <small class="error-msg" style="color: #c5221f; font-size: 12px; margin-top: 2px;">Requerido.</small>
+              }
             </div>
           </div>
           
           <div class="wizard-actions">
-            <button type="button" class="btn-cancel" (click)="prevStep()"><i class="fa-solid fa-arrow-left"></i> Atrás</button>
-            <button type="button" class="btn-cancel" (click)="skipStep()">Omitir</button>
+            <button type="button" class="ghost-btn" (click)="prevStep()"><i class="fa-solid fa-arrow-left"></i> Atrás</button>
+            <button type="button" class="ghost-btn" (click)="skipStep()">Omitir</button>
             <button type="submit" class="primary-btn" [disabled]="semesterForm.invalid || loading()">
               @if(loading()) { <span class="spinner-sm"></span> } @else { Crear y Continuar <i class="fa-solid fa-arrow-right"></i> }
             </button>
@@ -120,11 +138,17 @@
           <div class="form-grid">
             <div class="field-group">
               <label class="field-label">Nombre/Número del Aula *</label>
-              <input class="field-input" type="text" formControlName="name" placeholder="Ej. A-12">
+              <input class="field-input" [class.has-error]="classroomForm.get('name')?.invalid && classroomForm.get('name')?.touched" type="text" formControlName="name" placeholder="Ej. A-12">
+              @if (classroomForm.get('name')?.invalid && classroomForm.get('name')?.touched) {
+                <small class="error-msg" style="color: #c5221f; font-size: 12px; margin-top: 2px;">Requerido.</small>
+              }
             </div>
             <div class="field-group">
               <label class="field-label">Capacidad *</label>
-              <input class="field-input" type="number" formControlName="capacity">
+              <input class="field-input" [class.has-error]="classroomForm.get('capacity')?.invalid && classroomForm.get('capacity')?.touched" type="number" formControlName="capacity">
+              @if (classroomForm.get('capacity')?.invalid && classroomForm.get('capacity')?.touched) {
+                <small class="error-msg" style="color: #c5221f; font-size: 12px; margin-top: 2px;">Capacidad inválida.</small>
+              }
             </div>
             <div class="field-group fw">
               <label class="field-label">Descripción (Opcional)</label>
@@ -133,8 +157,8 @@
           </div>
           
           <div class="wizard-actions">
-            <button type="button" class="btn-cancel" (click)="prevStep()"><i class="fa-solid fa-arrow-left"></i> Atrás</button>
-            <button type="button" class="btn-cancel" (click)="skipStep()">Omitir</button>
+            <button type="button" class="ghost-btn" (click)="prevStep()"><i class="fa-solid fa-arrow-left"></i> Atrás</button>
+            <button type="button" class="ghost-btn" (click)="skipStep()">Omitir</button>
             <button type="submit" class="primary-btn" [disabled]="classroomForm.invalid || loading()">
               @if(loading()) { <span class="spinner-sm"></span> } @else { Crear y Continuar <i class="fa-solid fa-arrow-right"></i> }
             </button>
@@ -153,21 +177,30 @@
           <div class="form-grid">
             <div class="field-group">
               <label class="field-label">Nombre del Grupo *</label>
-              <input class="field-input" type="text" formControlName="name" placeholder="Ej. 1A">
+              <input class="field-input" [class.has-error]="groupForm.get('name')?.invalid && groupForm.get('name')?.touched" type="text" formControlName="name" placeholder="Ej. 1A">
+              @if (groupForm.get('name')?.invalid && groupForm.get('name')?.touched) {
+                <small class="error-msg" style="color: #c5221f; font-size: 12px; margin-top: 2px;">Requerido.</small>
+              }
             </div>
             <div class="field-group">
               <label class="field-label">Grado Escolar *</label>
-              <input class="field-input" type="number" formControlName="gradeLevel">
+              <input class="field-input" [class.has-error]="groupForm.get('gradeLevel')?.invalid && groupForm.get('gradeLevel')?.touched" type="number" formControlName="gradeLevel">
+              @if (groupForm.get('gradeLevel')?.invalid && groupForm.get('gradeLevel')?.touched) {
+                <small class="error-msg" style="color: #c5221f; font-size: 12px; margin-top: 2px;">Grado inválido.</small>
+              }
             </div>
             <div class="field-group">
               <label class="field-label">Carrera / Especialidad *</label>
-              <input class="field-input" type="text" formControlName="career" placeholder="Ej. Programación">
+              <input class="field-input" [class.has-error]="groupForm.get('career')?.invalid && groupForm.get('career')?.touched" type="text" formControlName="career" placeholder="Ej. Programación">
+              @if (groupForm.get('career')?.invalid && groupForm.get('career')?.touched) {
+                <small class="error-msg" style="color: #c5221f; font-size: 12px; margin-top: 2px;">Requerido.</small>
+              }
             </div>
           </div>
           
           <div class="wizard-actions">
-            <button type="button" class="btn-cancel" (click)="prevStep()"><i class="fa-solid fa-arrow-left"></i> Atrás</button>
-            <button type="button" class="btn-cancel" (click)="skipStep()">Omitir</button>
+            <button type="button" class="ghost-btn" (click)="prevStep()"><i class="fa-solid fa-arrow-left"></i> Atrás</button>
+            <button type="button" class="ghost-btn" (click)="skipStep()">Omitir</button>
             <button type="submit" class="primary-btn" [disabled]="groupForm.invalid || loading()">
               @if(loading()) { <span class="spinner-sm"></span> } @else { Crear y Continuar <i class="fa-solid fa-arrow-right"></i> }
             </button>
@@ -186,21 +219,30 @@
           <div class="form-grid">
             <div class="field-group">
               <label class="field-label">Nombre de la Materia *</label>
-              <input class="field-input" type="text" formControlName="name" placeholder="Ej. Matemáticas I">
+              <input class="field-input" [class.has-error]="subjectForm.get('name')?.invalid && subjectForm.get('name')?.touched" type="text" formControlName="name" placeholder="Ej. Matemáticas I">
+              @if (subjectForm.get('name')?.invalid && subjectForm.get('name')?.touched) {
+                <small class="error-msg" style="color: #c5221f; font-size: 12px; margin-top: 2px;">Requerido.</small>
+              }
             </div>
             <div class="field-group">
               <label class="field-label">Código Único *</label>
-              <input class="field-input" type="text" formControlName="code" placeholder="Ej. MAT-101">
+              <input class="field-input" [class.has-error]="subjectForm.get('code')?.invalid && subjectForm.get('code')?.touched" type="text" formControlName="code" placeholder="Ej. MAT-101">
+              @if (subjectForm.get('code')?.invalid && subjectForm.get('code')?.touched) {
+                <small class="error-msg" style="color: #c5221f; font-size: 12px; margin-top: 2px;">Requerido.</small>
+              }
             </div>
             <div class="field-group">
               <label class="field-label">Créditos *</label>
-              <input class="field-input" type="number" formControlName="credits">
+              <input class="field-input" [class.has-error]="subjectForm.get('credits')?.invalid && subjectForm.get('credits')?.touched" type="number" formControlName="credits">
+              @if (subjectForm.get('credits')?.invalid && subjectForm.get('credits')?.touched) {
+                <small class="error-msg" style="color: #c5221f; font-size: 12px; margin-top: 2px;">Requerido.</small>
+              }
             </div>
           </div>
           
           <div class="wizard-actions">
-            <button type="button" class="btn-cancel" (click)="prevStep()"><i class="fa-solid fa-arrow-left"></i> Atrás</button>
-            <button type="button" class="btn-cancel" (click)="skipStep(); prepareFinalStep()">Omitir</button>
+            <button type="button" class="ghost-btn" (click)="prevStep()"><i class="fa-solid fa-arrow-left"></i> Atrás</button>
+            <button type="button" class="ghost-btn" (click)="skipStep(); prepareFinalStep()">Omitir</button>
             <button type="submit" class="primary-btn" [disabled]="subjectForm.invalid || loading()">
               @if(loading()) { <span class="spinner-sm"></span> } @else { Crear y Continuar <i class="fa-solid fa-arrow-right"></i> }
             </button>
@@ -220,58 +262,76 @@
             
             <div class="field-group">
               <label class="field-label">Docente *</label>
-              <select formControlName="teacherId" class="field-input">
+              <select formControlName="teacherId" class="field-input" [class.has-error]="classForm.get('teacherId')?.invalid && classForm.get('teacherId')?.touched">
                 <option [ngValue]="null">-- Seleccionar Docente --</option>
                 @for (t of teachers(); track t.id) {
                   <option [ngValue]="t.id">{{ t.user.firstName }} {{ t.user.lastName }}</option>
                 }
               </select>
+              @if (classForm.get('teacherId')?.invalid && classForm.get('teacherId')?.touched) {
+                <small class="error-msg" style="color: #c5221f; font-size: 12px; margin-top: 2px;">Requerido.</small>
+              }
             </div>
 
             <div class="field-group">
               <label class="field-label">Materia *</label>
-              <select formControlName="subjectId" class="field-input">
+              <select formControlName="subjectId" class="field-input" [class.has-error]="classForm.get('subjectId')?.invalid && classForm.get('subjectId')?.touched">
                 <option [ngValue]="null">-- Seleccionar Materia --</option>
                 @for (s of subjects(); track s.id) { <option [ngValue]="s.id">{{ s.name }}</option> }
               </select>
+              @if (classForm.get('subjectId')?.invalid && classForm.get('subjectId')?.touched) {
+                <small class="error-msg" style="color: #c5221f; font-size: 12px; margin-top: 2px;">Requerido.</small>
+              }
             </div>
 
             <div class="field-group">
               <label class="field-label">Grupo *</label>
-              <select formControlName="groupId" class="field-input">
+              <select formControlName="groupId" class="field-input" [class.has-error]="classForm.get('groupId')?.invalid && classForm.get('groupId')?.touched">
                 <option [ngValue]="null">-- Seleccionar Grupo --</option>
                 @for (g of groups(); track g.id) { <option [ngValue]="g.id">{{ g.name }}</option> }
               </select>
+              @if (classForm.get('groupId')?.invalid && classForm.get('groupId')?.touched) {
+                <small class="error-msg" style="color: #c5221f; font-size: 12px; margin-top: 2px;">Requerido.</small>
+              }
             </div>
 
             <div class="field-group">
               <label class="field-label">Ciclo (Solo Referencia) *</label>
-              <select formControlName="schoolCycleId" class="field-input">
+              <select formControlName="schoolCycleId" class="field-input" [class.has-error]="classForm.get('schoolCycleId')?.invalid && classForm.get('schoolCycleId')?.touched">
                 <option [ngValue]="null">-- Seleccionar Ciclo --</option>
                 @for (c of cycles(); track c.id) { <option [ngValue]="c.id">{{ c.name }}</option> }
               </select>
+              @if (classForm.get('schoolCycleId')?.invalid && classForm.get('schoolCycleId')?.touched) {
+                <small class="error-msg" style="color: #c5221f; font-size: 12px; margin-top: 2px;">Requerido.</small>
+              }
             </div>
 
             <div class="field-group">
               <label class="field-label">Semestre *</label>
-              <select formControlName="semesterId" class="field-input">
+              <select formControlName="semesterId" class="field-input" [class.has-error]="classForm.get('semesterId')?.invalid && classForm.get('semesterId')?.touched">
                 <option [ngValue]="null">-- Seleccionar Semestre --</option>
                 @for (s of semesters(); track s.id) { <option [ngValue]="s.id">{{ s.semesterName }}</option> }
               </select>
+              @if (classForm.get('semesterId')?.invalid && classForm.get('semesterId')?.touched) {
+                <small class="error-msg" style="color: #c5221f; font-size: 12px; margin-top: 2px;">Requerido.</small>
+              }
             </div>
 
             <div class="field-group">
               <label class="field-label">Aula *</label>
-              <select formControlName="classroomId" class="field-input">
+              <select formControlName="classroomId" class="field-input" [class.has-error]="classForm.get('classroomId')?.invalid && classForm.get('classroomId')?.touched">
                 <option [ngValue]="null">-- Seleccionar Aula --</option>
                 @for (a of classrooms(); track a.id) { <option [ngValue]="a.id">{{ a.name }}</option> }
               </select>
+              @if (classForm.get('classroomId')?.invalid && classForm.get('classroomId')?.touched) {
+                <small class="error-msg" style="color: #c5221f; font-size: 12px; margin-top: 2px;">Requerido.</small>
+              }
             </div>
 
           </div>
           
           <div class="wizard-actions">
-            <button type="button" class="btn-cancel" (click)="prevStep()"><i class="fa-solid fa-arrow-left"></i> Atrás</button>
+            <button type="button" class="ghost-btn" (click)="prevStep()"><i class="fa-solid fa-arrow-left"></i> Atrás</button>
             <button type="submit" class="primary-btn" [disabled]="classForm.invalid || loading()">
               @if(loading()) { <span class="spinner-sm"></span> } @else { <i class="fa-solid fa-check"></i> Finalizar y Crear Clase }
             </button>
