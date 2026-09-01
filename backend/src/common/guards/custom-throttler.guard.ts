@@ -3,6 +3,13 @@ import { ThrottlerGuard, ThrottlerLimitDetail } from "@nestjs/throttler";
 
 @Injectable()
 export class CustomThrottlerGuard extends ThrottlerGuard {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    if (process.env.NODE_ENV === "test") {
+      return true;
+    }
+    return super.canActivate(context);
+  }
+
   protected async getTracker(req: Record<string, any>): Promise<string> {
     if (req.user && req.user.id) {
       return `user-${req.user.id}`;

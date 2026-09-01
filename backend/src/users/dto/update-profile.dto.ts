@@ -28,4 +28,3 @@ export class UpdateProfileDto {
   @IsString()
   phone?: string;
 }
-

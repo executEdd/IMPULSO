@@ -89,7 +89,10 @@ export class NotificationsService {
     return notification;
   }
 
-  async sendGlobalNotification(adminId: number, dto: CreateGlobalNotificationDto) {
+  async sendGlobalNotification(
+    adminId: number,
+    dto: CreateGlobalNotificationDto,
+  ) {
     const whereClause: any = { isActive: true };
     if (dto.targetRoles && dto.targetRoles.length > 0) {
       whereClause.role = { in: dto.targetRoles };
@@ -106,14 +109,20 @@ export class NotificationsService {
     });
 
     if (users.length === 0) {
-      return { message: "No se encontraron usuarios para el aviso global", count: 0 };
+      return {
+        message: "No se encontraron usuarios para el aviso global",
+        count: 0,
+      };
     }
 
     const recipients = users.map((user) => {
       let phone: string | undefined;
-      if (user.role === UserRole.ADMIN) phone = user.adminProfile?.phone || undefined;
-      else if (user.role === UserRole.TEACHER) phone = user.teacherProfile?.phone || undefined;
-      else if (user.role === UserRole.STUDENT) phone = user.studentProfile?.phone || undefined;
+      if (user.role === UserRole.ADMIN)
+        phone = user.adminProfile?.phone || undefined;
+      else if (user.role === UserRole.TEACHER)
+        phone = user.teacherProfile?.phone || undefined;
+      else if (user.role === UserRole.STUDENT)
+        phone = user.studentProfile?.phone || undefined;
       else if (user.role === UserRole.PARENT) phone = user.parentProfile?.phone;
 
       return {
@@ -125,16 +134,21 @@ export class NotificationsService {
     });
 
     // Fire-and-forget router dispatch
-    this.notificationRouter.dispatch({
-      globalMessage: dto.content,
-      recipients,
-      senderId: adminId,
-      title: "Aviso Global - CBTIS 61",
-    }).catch(err => {
-      console.error("Error dispatching global notification", err);
-    });
+    this.notificationRouter
+      .dispatch({
+        globalMessage: dto.content,
+        recipients,
+        senderId: adminId,
+        title: "Aviso Global - CBTIS 61",
+      })
+      .catch((err) => {
+        console.error("Error dispatching global notification", err);
+      });
 
-    return { message: "Aviso global enviado y procesándose", count: users.length };
+    return {
+      message: "Aviso global enviado y procesándose",
+      count: users.length,
+    };
   }
 
   async markAsRead(id: number) {

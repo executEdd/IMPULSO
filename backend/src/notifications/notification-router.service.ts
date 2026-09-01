@@ -1,4 +1,4 @@
-import { NotificationStatus } from "@prisma/client";
+import { NotificationStatus, Prisma } from "@prisma/client";
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma.service";
 import { EmailTransport } from "./transports/email.transport";
@@ -55,11 +55,18 @@ export class NotificationRouterService {
     ]);
   }
 
-  async dispatch(input: DispatchAlertInput): Promise<void> {
+  async dispatch(
+    input: DispatchAlertInput,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    const client = tx || this.prisma;
     const title = input.title || "Notificación CBTIS 61";
 
     for (const recipient of input.recipients) {
-      const recipientType = await this.inferRecipientType(recipient.userId);
+      const recipientType = await this.inferRecipientType(
+        recipient.userId,
+        client,
+      );
 
       for (const channel of recipient.channels) {
         const transports = this.transports.get(channel);
@@ -69,7 +76,7 @@ export class NotificationRouterService {
 
         for (const transport of transports) {
           const content = input.alert?.message || input.globalMessage || "";
-          const notification = await this.prisma.notification.create({
+          const notification = await client.notification.create({
             data: {
               alertId: input.alert?.id || null,
               senderId: input.senderId,
@@ -111,8 +118,11 @@ export class NotificationRouterService {
     }
   }
 
-  private async inferRecipientType(userId: number): Promise<string> {
-    const user = await this.prisma.user.findUnique({
+  private async inferRecipientType(
+    userId: number,
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
+  ): Promise<string> {
+    const user = await client.user.findUnique({
       where: { id: userId },
       select: { role: true },
     });
