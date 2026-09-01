@@ -99,6 +99,12 @@ export const routes: Routes = [
         loadComponent: () => import('./features/school-cycles/school-cycles').then(m => m.SchoolCyclesComponent)
       },
       {
+        // Asistente de Configuración: solo ADMIN
+        path: 'wizard',
+        canActivate: [roleGuard('ADMIN')],
+        loadComponent: () => import('./features/setup-wizard/setup-wizard').then(m => m.SetupWizardComponent)
+      },
+      {
         // Perfil de Usuario: todos
         path: 'mi-perfil',
         loadComponent: () => import('./features/profile/profile').then(m => m.ProfileComponent)
