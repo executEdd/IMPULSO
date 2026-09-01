@@ -1,4 +1,4 @@
-﻿import { Injectable } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../prisma.service";
 import * as QRCode from "qrcode";
@@ -9,6 +9,7 @@ export interface StudentQrResponse {
   qrImage: string | null;
   expiresAt: Date | null;
   isValid: boolean;
+  expiresInFormatted?: string;
 }
 
 @Injectable()
@@ -77,11 +78,18 @@ export class QrService {
 
     const qrImage = await this.generateQrImage(qrToken);
 
+    const ms = expiresAt.getTime() - new Date().getTime();
+    const totalMinutes = Math.floor(Math.max(0, ms) / 60000);
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    const expiresInFormatted = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+
     return {
       qrToken,
       qrImage,
       expiresAt,
       isValid: true,
+      expiresInFormatted,
     };
   }
 
@@ -124,11 +132,18 @@ export class QrService {
 
     const qrImage = await this.generateQrImage(student.qrToken);
 
+    const ms = student.qrExpiresAt.getTime() - new Date().getTime();
+    const totalMinutes = Math.floor(Math.max(0, ms) / 60000);
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    const expiresInFormatted = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+
     return {
       qrToken: student.qrToken,
       qrImage,
       expiresAt: student.qrExpiresAt,
       isValid: true,
+      expiresInFormatted,
     };
   }
 
