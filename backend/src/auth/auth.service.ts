@@ -46,11 +46,11 @@ export class AuthService {
     }
 
     const payload = { sub: user.id, email: user.email, role: user.role };
-    
+
     // Si rememberMe es true, el JWT dura 15 días. Si no, usa JWT_EXPIRATION o 24h por defecto.
     const expiresIn = loginDto.rememberMe
       ? "15d"
-      : (this.configService.get<string>("JWT_EXPIRATION") || "24h");
+      : this.configService.get<string>("JWT_EXPIRATION") || "24h";
 
     const accessToken = this.jwtService.sign(payload, {
       secret: this.configService.get<string>("JWT_SECRET"),
