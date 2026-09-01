@@ -91,6 +91,17 @@ export const routes: Routes = [
         path: 'semestres',
         canActivate: [roleGuard('ADMIN')],
         loadComponent: () => import('./features/semesters/semesters').then(m => m.SemestersComponent)
+      },
+      {
+        // Ciclos Escolares: solo ADMIN
+        path: 'ciclos-escolares',
+        canActivate: [roleGuard('ADMIN')],
+        loadComponent: () => import('./features/school-cycles/school-cycles').then(m => m.SchoolCyclesComponent)
+      },
+      {
+        // Perfil de Usuario: todos
+        path: 'mi-perfil',
+        loadComponent: () => import('./features/profile/profile').then(m => m.ProfileComponent)
       }
     ]
   },

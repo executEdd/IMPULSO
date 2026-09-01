@@ -36,7 +36,7 @@ export class NotificationsComponent implements OnInit {
   loading       = signal(true);
   sending       = signal(false);
   records       = signal<any[]>([]);
-  activeTab     = signal<'history' | 'send' | 'preferences'>('history');
+  activeTab     = signal<'history' | 'send' | 'global' | 'preferences'>('history');
 
   // Preferencias de notificación
   prefsLoading  = signal(false);
@@ -52,6 +52,12 @@ export class NotificationsComponent implements OnInit {
     recipientId:   [null as number | null, Validators.required],
     channel:       ['IN_APP', Validators.required],
     content:       ['', [Validators.required, Validators.minLength(5)]]
+  });
+
+  globalForm = this.fb.group({
+    channel:       ['IN_APP'],
+    content:       ['', [Validators.required, Validators.minLength(5)]],
+    targets:       [[] as string[]] // Optional roles
   });
 
   channelsList = [
@@ -168,6 +174,31 @@ export class NotificationsComponent implements OnInit {
       },
       error: () => {
         this.showToast('Error al enviar la notificación', false);
+        this.sending.set(false);
+      }
+    });
+  }
+
+  sendGlobal() {
+    if (this.globalForm.invalid || this.sending()) return;
+    this.sending.set(true);
+    
+    const v = this.globalForm.value;
+    const payload = {
+      content: v.content,
+      channel: v.channel,
+      targetRoles: v.targets && v.targets.length > 0 ? v.targets : undefined
+    };
+
+    this.http.post(`${API}/notifications/global`, payload).subscribe({
+      next: (res: any) => {
+        this.showToast(`Aviso global enviado a ${res.count} usuarios`, true);
+        this.globalForm.reset({ channel: 'IN_APP', targets: [] });
+        this.sending.set(false);
+        this.fetchHistory();
+      },
+      error: () => {
+        this.showToast('Error al enviar el aviso global', false);
         this.sending.set(false);
       }
     });
