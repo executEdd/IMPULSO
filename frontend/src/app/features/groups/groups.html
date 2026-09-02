@@ -101,7 +101,7 @@
         </button>
       </div>
 
-      <form [formGroup]="form" (ngSubmit)="save()" class="modal-form">
+      <form [formGroup]="form" class="modal-form">
         <div class="field-group">
           <label class="field-label">Nombre del grupo</label>
           <input class="field-input" formControlName="name" placeholder="Ej: 3A, 5B-Programación">
@@ -112,7 +112,7 @@
             <label class="field-label">Grado (semestre)</label>
             <select class="field-input" formControlName="gradeLevel">
               @for (n of grades; track n) {
-                <option [ngValue]="n">{{ n }}° semestre</option>
+                <option [ngValue]="n">{{ n }}º semestre</option>
               }
             </select>
           </div>
@@ -131,7 +131,13 @@
 
         <div class="modal-actions">
           <button type="button" class="ghost-btn" (click)="closeModal()">Cancelar</button>
-          <button type="submit" class="primary-btn" [disabled]="form.invalid || saving()">
+          @if (!editing()) {
+            <button type="button" class="primary-btn" [disabled]="form.invalid || saving()" (click)="save(true)">
+              @if (saving()) { <span class="btn-spinner-sm"></span> }
+              @else { Guardar y añadir otro }
+            </button>
+          }
+          <button type="button" class="primary-btn" [disabled]="form.invalid || saving()" (click)="save(false)">
             @if (saving()) { <span class="btn-spinner-sm"></span> Guardando... }
             @else { Guardar }
           </button>

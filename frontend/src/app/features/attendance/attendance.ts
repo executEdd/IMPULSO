@@ -1,7 +1,11 @@
-import { Component, inject, signal, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { AuthService } from '../../core/services/auth.service';
 import { API } from '../../core/config/api.config';
 
@@ -13,7 +17,7 @@ const DAY_LABELS: Record<string, string> = {
 @Component({
   selector: 'app-attendance',
   standalone: true,
-  imports: [DatePipe, FormsModule],
+  imports: [DatePipe, FormsModule, MatDatepickerModule, MatNativeDateModule, MatFormFieldModule, MatInputModule],
   templateUrl: './attendance.html',
   styleUrl: './attendance.css'
 })
@@ -29,8 +33,19 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   students    = signal<any[]>([]);
   selSchedule = signal<number | null>(null);
   selStudent  = signal<number | null>(null);
-  marking     = signal(false);
+  // Fecha seleccionada para filtrar asistencia
+  selectedDate = signal<Date | null>(null);
+  filteredRecords = computed(() => {
+    const date = this.selectedDate();
+    if (!date) return this.records();
+    const selected = new Date(date);
+    return this.records().filter(r => {
+      const rec = new Date(r.date);
+      return rec.toDateString() === selected.toDateString();
+    });
+  });
 
+  marking = signal(false);
   // Registro Manual por Contraseña
   manualModalOpen = signal(false);
   manualPassword  = signal('');

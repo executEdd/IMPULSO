@@ -1,256 +1,279 @@
-<div class="page-wrap">
-
-  <header class="page-hd">
+<div class="fade-in" style="padding: 32px; max-width: 1400px; margin: 0 auto; min-height: 100vh;">
+  <!-- Header -->
+  <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 32px; flex-wrap: wrap; gap: 16px;">
     <div>
-      <h1>{{ pageTitle }}</h1>
-      <p>{{ pageSubtitle }}</p>
+      <h1 style="font-size: 32px; font-weight: 800; color: #1A1A2E; margin: 0 0 8px 0; letter-spacing: -0.5px;">{{ pageTitle }}</h1>
+      <p style="color: #6B7280; margin: 0; font-size: 15px;">{{ pageSubtitle }}</p>
     </div>
-    <div class="hd-meta">
-      <span class="count-badge">
-        <i class="fa-solid fa-star-half-stroke"></i>
-        {{ filtered().length }} registros
-      </span>
-      @if (canEdit) {
-        <button class="secondary-btn" (click)="exportCsv()" title="Exportar reporte a CSV">
-          <i class="fa-solid fa-file-csv"></i>
-          Exportar CSV
-        </button>
+    
+    <div style="display: flex; gap: 12px; align-items: center;">
+      <!-- Buscador (Solo lista global) -->
+      @if (activeTab() === 'list') {
+        <div class="search-box" style="position: relative; width: 280px;">
+          <i class="fa-solid fa-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #9CA3AF;"></i>
+          <input type="text" placeholder="Buscar alumno o materia..."
+                 [ngModel]="search()" (ngModelChange)="search.set($event)"
+                 style="width: 100%; padding: 10px 14px 10px 36px; border-radius: 10px; border: 1.5px solid #E5E7EB; background: #fff; font-size: 14px; outline: none; transition: 0.2s; box-sizing: border-box;"
+                 onfocus="this.style.borderColor='#7C1D2E'; this.style.boxShadow='0 0 0 4px rgba(124, 29, 46, 0.1)';"
+                 onblur="this.style.borderColor='#E5E7EB'; this.style.boxShadow='none';">
+        </div>
       }
-      @if (canEdit) {
-        <button class="primary-btn" (click)="openCreate()">
-          <i class="fa-solid fa-plus"></i>
-          Capturar calificación
-        </button>
-      }
-    </div>
-  </header>
 
-  <!-- Tabs (auditoría solo admin) -->
-  @if (isAdmin) {
-    <div class="tabs-row">
-      <button class="tab-btn" [class.active]="activeTab() === 'grades'" (click)="activeTab.set('grades')">
-        <i class="fa-solid fa-table-list"></i>
-        Calificaciones
+      @if (isAdmin || isTeacher) {
+        <button class="btn-primary" (click)="exportCsv()" style="background: #fff; color: #374151; border: 1.5px solid #E5E7EB;">
+          <i class="fa-solid fa-download"></i> Exportar
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Tabs Navigation (Solo Admin/Teacher) -->
+  @if (canEdit) {
+    <div style="display: flex; gap: 24px; border-bottom: 2px solid #E5E7EB; margin-bottom: 24px;">
+      <button (click)="activeTab.set('grid')" [class.active]="activeTab() === 'grid'"
+              style="background: none; border: none; padding: 0 0 12px 0; font-size: 15px; font-weight: 600; color: #6B7280; cursor: pointer; position: relative;"
+              [style.color]="activeTab() === 'grid' ? '#7C1D2E' : '#6B7280'">
+        <i class="fa-solid fa-table-cells" style="margin-right: 6px;"></i> Captura en Sábana
+        @if (activeTab() === 'grid') { <div style="position: absolute; bottom: -2px; left: 0; right: 0; height: 2px; background: #7C1D2E; border-radius: 2px 2px 0 0;"></div> }
       </button>
-      <button class="tab-btn" [class.active]="activeTab() === 'logs'" (click)="showLogs()">
-        <i class="fa-solid fa-clock-rotate-left"></i>
-        Auditoría de cambios
+
+      <button (click)="activeTab.set('list')" [class.active]="activeTab() === 'list'"
+              style="background: none; border: none; padding: 0 0 12px 0; font-size: 15px; font-weight: 600; color: #6B7280; cursor: pointer; position: relative;"
+              [style.color]="activeTab() === 'list' ? '#7C1D2E' : '#6B7280'">
+        <i class="fa-solid fa-list" style="margin-right: 6px;"></i> Lista Global
+        @if (activeTab() === 'list') { <div style="position: absolute; bottom: -2px; left: 0; right: 0; height: 2px; background: #7C1D2E; border-radius: 2px 2px 0 0;"></div> }
       </button>
+
+      @if (isAdmin) {
+        <button (click)="showLogs()" [class.active]="activeTab() === 'logs'"
+                style="background: none; border: none; padding: 0 0 12px 0; font-size: 15px; font-weight: 600; color: #6B7280; cursor: pointer; position: relative;"
+                [style.color]="activeTab() === 'logs' ? '#7C1D2E' : '#6B7280'">
+          <i class="fa-solid fa-clock-rotate-left" style="margin-right: 6px;"></i> Auditoría
+          @if (activeTab() === 'logs') { <div style="position: absolute; bottom: -2px; left: 0; right: 0; height: 2px; background: #7C1D2E; border-radius: 2px 2px 0 0;"></div> }
+        </button>
+      }
     </div>
   }
 
-  @if (activeTab() === 'grades') {
+  <!-- TAB: SÁBANA (Grid) -->
+  @if (activeTab() === 'grid') {
+    <div class="card" style="background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.03);">
+      
+      <!-- Controles de Filtro -->
+      <div style="display: flex; gap: 16px; align-items: flex-end; margin-bottom: 24px; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 180px;">
+          <label style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px;">Grupo</label>
+          <select [ngModel]="gridGroup()" (ngModelChange)="gridGroup.set(+ $event); loadGrid()"
+                  style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #D1D5DB; background: #F9FAFB;">
+            <option [ngValue]="null">Selecciona un grupo...</option>
+            @for (g of groups(); track g.id) { <option [value]="g.id">{{ g.name }}</option> }
+          </select>
+        </div>
+        <div style="flex: 1; min-width: 180px;">
+          <label style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px;">Materia</label>
+          <select [ngModel]="gridSubject()" (ngModelChange)="gridSubject.set(+ $event); loadGrid()"
+                  style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #D1D5DB; background: #F9FAFB;">
+            <option [ngValue]="null">Selecciona una materia...</option>
+            @for (s of subjects(); track s.id) { <option [value]="s.id">{{ s.name }}</option> }
+          </select>
+        </div>
+        <div style="flex: 1; min-width: 180px;">
+          <label style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px;">Periodo</label>
+          <select [ngModel]="gridPeriod()" (ngModelChange)="gridPeriod.set($event); loadGrid()"
+                  style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #D1D5DB; background: #F9FAFB;">
+            <option value="2025-2026A">Agosto - Diciembre 2025</option>
+            <option value="2025-2026B">Febrero - Julio 2026</option>
+          </select>
+        </div>
+        <div>
+          <button class="btn-primary" [disabled]="!gridGroup() || !gridSubject() || saving()" (click)="saveGrid()">
+            @if(saving()){ <i class="fa-solid fa-spinner fa-spin"></i> Guardando... }
+            @else { <i class="fa-solid fa-save"></i> Guardar Calificaciones }
+          </button>
+        </div>
+      </div>
 
-    <!-- Toolbar -->
-    <div class="toolbar-row">
-      <div class="search-wrap">
-        <i class="fa-solid fa-magnifying-glass search-icon"></i>
-        <input
-          class="search-input"
-          type="text"
-          placeholder="Buscar por alumno o materia..."
-          (input)="search.set($any($event.target).value)">
-      </div>
-      <div class="grade-legend">
-        <span class="chip chip-green">≥ 9 Excelente</span>
-        <span class="chip chip-yellow">7–8 Regular</span>
-        <span class="chip chip-red">< 7 Irregular</span>
-      </div>
+      <!-- Sábana Data Grid -->
+      @if (gridGroup() && gridSubject()) {
+        <div style="overflow-x: auto; border: 1px solid #F3F4F6; border-radius: 12px;">
+          <table class="grid-table" style="width: 100%; border-collapse: collapse; min-width: 800px; text-align: left;">
+            <thead style="background: #F9FAFB; border-bottom: 1px solid #E5E7EB;">
+              <tr>
+                <th style="padding: 16px; font-size: 12px; color: #6B7280; font-weight: 700;">ALUMNO</th>
+                <th style="padding: 16px; font-size: 12px; color: #6B7280; font-weight: 700; width: 120px; text-align: center;">PARCIAL 1</th>
+                <th style="padding: 16px; font-size: 12px; color: #6B7280; font-weight: 700; width: 120px; text-align: center;">PARCIAL 2</th>
+                <th style="padding: 16px; font-size: 12px; color: #6B7280; font-weight: 700; width: 120px; text-align: center;">PARCIAL 3</th>
+                <th style="padding: 16px; font-size: 12px; color: #6B7280; font-weight: 700; width: 100px; text-align: center;">FINAL</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of gridData(); track row.studentId; let i = $index) {
+                <tr style="border-bottom: 1px solid #F3F4F6;">
+                  <td style="padding: 12px 16px; font-size: 14px; font-weight: 600; color: #111827;">
+                    {{ i + 1 }}. {{ row.name }}
+                  </td>
+                  <td style="padding: 12px 16px; text-align: center;">
+                    <input type="number" step="0.1" min="0" max="10" [(ngModel)]="row.partial1" class="grid-input" />
+                  </td>
+                  <td style="padding: 12px 16px; text-align: center;">
+                    <input type="number" step="0.1" min="0" max="10" [(ngModel)]="row.partial2" class="grid-input" />
+                  </td>
+                  <td style="padding: 12px 16px; text-align: center;">
+                    <input type="number" step="0.1" min="0" max="10" [(ngModel)]="row.partial3" class="grid-input" />
+                  </td>
+                  <td style="padding: 12px 16px; text-align: center;">
+                    <span class="chip" [ngClass]="gradeChip(row.finalGrade)">{{ row.finalGrade ?? '-' }}</span>
+                  </td>
+                </tr>
+              }
+              @if (gridData().length === 0) {
+                <tr><td colspan="5" style="padding: 32px; text-align: center; color: #9CA3AF;">No hay alumnos en este grupo.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <div style="padding: 48px; text-align: center; color: #9CA3AF; border: 2px dashed #E5E7EB; border-radius: 12px;">
+          <i class="fa-solid fa-table-list" style="font-size: 32px; margin-bottom: 12px;"></i>
+          <p style="margin: 0;">Selecciona Grupo y Materia para cargar la sábana de captura.</p>
+        </div>
+      }
     </div>
+  }
 
-    <!-- Tabla -->
+  <!-- TAB: LISTA GLOBAL -->
+  @if (activeTab() === 'list') {
     @if (loading()) {
-      <div class="table-card">
-        <div class="loading-box"><div class="spinner"></div></div>
+      <div style="display: flex; justify-content: center; padding: 48px;">
+        <div class="spinner" style="width: 32px; height: 32px; border: 3px solid #F3F4F6; border-top-color: #7C1D2E; border-radius: 50%; animation: spin 1s linear infinite;"></div>
       </div>
     } @else {
-      <div class="table-card">
-        @if (filtered().length === 0) {
-          <div class="empty-state">
-            <i class="fa-solid fa-star"></i>
-            <span>Sin calificaciones registradas</span>
-          </div>
-        } @else {
-          <table class="data-table">
-            <thead>
+      <div class="card" style="background: #fff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); overflow: hidden;">
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; min-width: 700px;">
+            <thead style="background: #F9FAFB; border-bottom: 1px solid #E5E7EB;">
               <tr>
-                <th>Alumno</th>
-                <th>Materia</th>
-                <th>P1</th>
-                <th>P2</th>
-                <th>P3</th>
-                <th>Final</th>
-                <th>Estado</th>
-                @if (canEdit) { <th style="width:48px"></th> }
+                <th style="padding: 16px; text-align: left; font-size: 12px; color: #6B7280;">MATERIA</th>
+                @if (canEdit) { <th style="padding: 16px; text-align: left; font-size: 12px; color: #6B7280;">ALUMNO</th> }
+                <th style="padding: 16px; text-align: center; font-size: 12px; color: #6B7280;">P1</th>
+                <th style="padding: 16px; text-align: center; font-size: 12px; color: #6B7280;">P2</th>
+                <th style="padding: 16px; text-align: center; font-size: 12px; color: #6B7280;">P3</th>
+                <th style="padding: 16px; text-align: center; font-size: 12px; color: #6B7280;">FINAL</th>
+                <th style="padding: 16px; text-align: center; font-size: 12px; color: #6B7280;">ESTADO</th>
               </tr>
             </thead>
             <tbody>
               @for (g of filtered(); track g.id) {
-                <tr class="trow">
-                  <td>
-                    <div class="student-cell">
-                      <div class="ava ava-sm">{{ initials(g) }}</div>
-                      <span class="s-name">{{ g.student?.user?.firstName }} {{ g.student?.user?.lastName }}</span>
-                    </div>
+                <tr style="border-bottom: 1px solid #F3F4F6;">
+                  <td style="padding: 16px;">
+                    <div style="font-weight: 600; color: #111827;">{{ g.subject?.name }}</div>
+                    <div style="font-size: 12px; color: #6B7280;">{{ g.period }}</div>
                   </td>
-                  <td>
-                    <span class="subject-name">{{ g.subject?.name }}</span>
-                    <span class="subject-code">{{ g.subject?.code }}</span>
-                  </td>
-                  <td><span class="grade-pill chip {{ gradeChip(g.partial1) }}">{{ g.partial1 ?? '—' }}</span></td>
-                  <td><span class="grade-pill chip {{ gradeChip(g.partial2) }}">{{ g.partial2 ?? '—' }}</span></td>
-                  <td><span class="grade-pill chip {{ gradeChip(g.partial3) }}">{{ g.partial3 ?? '—' }}</span></td>
-                  <td><span class="grade-final chip {{ gradeChip(g.finalGrade) }}">{{ g.finalGrade ?? '—' }}</span></td>
-                  <td><span class="chip {{ statusClass(g.status) }}">{{ statusLabel(g.status) }}</span></td>
                   @if (canEdit) {
-                    <td>
-                      <button class="icon-btn" title="Editar parciales" (click)="openEdit(g)">
-                        <i class="fa-solid fa-pen"></i>
-                      </button>
+                    <td style="padding: 16px;">
+                      <div style="display: flex; align-items: center; gap: 12px;">
+                        <div class="avatar-sm" style="width: 32px; height: 32px; background: #F3F4F6; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #4B5563;">
+                          {{ initials(g) }}
+                        </div>
+                        <div>
+                          <div style="font-weight: 600; color: #111827; font-size: 14px;">{{ g.student?.user?.firstName }} {{ g.student?.user?.lastName }}</div>
+                          <div style="font-size: 12px; color: #6B7280;">Grupo: {{ g.student?.group?.name }}</div>
+                        </div>
+                      </div>
                     </td>
                   }
+                  <td style="padding: 16px; text-align: center; font-weight: 500;">{{ g.partial1 ?? '-' }}</td>
+                  <td style="padding: 16px; text-align: center; font-weight: 500;">{{ g.partial2 ?? '-' }}</td>
+                  <td style="padding: 16px; text-align: center; font-weight: 500;">{{ g.partial3 ?? '-' }}</td>
+                  <td style="padding: 16px; text-align: center;">
+                    <span class="chip" [ngClass]="gradeChip(g.finalGrade)">{{ g.finalGrade ?? '-' }}</span>
+                  </td>
+                  <td style="padding: 16px; text-align: center;">
+                    <span class="chip" [ngClass]="statusClass(g.status)">{{ statusLabel(g.status) }}</span>
+                  </td>
                 </tr>
+              }
+              @if (filtered().length === 0) {
+                <tr><td [attr.colspan]="canEdit ? 7 : 6" style="padding: 48px; text-align: center; color: #9CA3AF;">No hay calificaciones registradas.</td></tr>
               }
             </tbody>
           </table>
-        }
+        </div>
       </div>
     }
+  }
 
-  } @else {
-
-    <!-- Auditoría -->
-    @if (logsLoading()) {
-      <div class="table-card">
-        <div class="loading-box"><div class="spinner"></div></div>
-      </div>
-    } @else {
-      <div class="table-card">
-        @if (logs().length === 0) {
-          <div class="empty-state">
-            <i class="fa-solid fa-clock-rotate-left"></i>
-            <span>Sin cambios registrados</span>
-          </div>
-        } @else {
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Fecha</th>
-                <th>Usuario</th>
-                <th>Calificación</th>
-                <th>Cambio</th>
+  <!-- TAB: AUDITORÍA (Solo Admin) -->
+  @if (activeTab() === 'logs' && isAdmin) {
+    <div class="card" style="background: #fff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); overflow: hidden;">
+      @if (logsLoading()) {
+        <div style="display: flex; justify-content: center; padding: 48px;">
+          <div class="spinner" style="width: 32px; height: 32px; border: 3px solid #F3F4F6; border-top-color: #7C1D2E; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        </div>
+      } @else {
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead style="background: #F9FAFB; border-bottom: 1px solid #E5E7EB;">
+            <tr>
+              <th style="padding: 16px; text-align: left; font-size: 12px; color: #6B7280;">FECHA</th>
+              <th style="padding: 16px; text-align: left; font-size: 12px; color: #6B7280;">REGISTRO</th>
+              <th style="padding: 16px; text-align: left; font-size: 12px; color: #6B7280;">USUARIO (AUTOR)</th>
+              <th style="padding: 16px; text-align: left; font-size: 12px; color: #6B7280;">ACCIÓN</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (l of logs(); track l.id) {
+              <tr style="border-bottom: 1px solid #F3F4F6;">
+                <td style="padding: 16px; font-size: 13px; color: #6B7280;">
+                  {{ l.timestamp | date:'dd MMM yyyy, HH:mm':'':'es-MX' }}
+                </td>
+                <td style="padding: 16px;">
+                  <div style="font-weight: 600; font-size: 14px; color: #111827;">{{ l.grade?.subject?.name }}</div>
+                  <div style="font-size: 12px; color: #6B7280;">Alumno: {{ l.grade?.student?.user?.firstName }} {{ l.grade?.student?.user?.lastName }}</div>
+                </td>
+                <td style="padding: 16px; font-size: 14px; color: #374151;">
+                  {{ l.user?.firstName }} {{ l.user?.lastName }}
+                  <span style="font-size: 11px; background: #E5E7EB; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">{{ l.user?.role }}</span>
+                </td>
+                <td style="padding: 16px; font-size: 14px;">
+                  <span style="color: #059669; font-weight: 500;"><i class="fa-solid fa-pen-to-square"></i> {{ l.action }}</span>
+                  <div style="font-size: 12px; color: #6B7280; margin-top: 2px;">{{ l.details }}</div>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              @for (log of logs(); track log.id) {
-                <tr class="trow">
-                  <td><span class="date-text">{{ log.createdAt | date:'dd/MM/yy HH:mm' }}</span></td>
-                  <td>
-                    <span class="s-name">{{ log.user?.firstName }} {{ log.user?.lastName }}</span>
-                    <span class="s-email">{{ log.user?.role }}</span>
-                  </td>
-                  <td>
-                    <span class="subject-name">{{ log.grade?.subject?.name ?? '#' + log.gradeId }}</span>
-                    <span class="subject-code">{{ log.grade?.student?.user?.firstName }} {{ log.grade?.student?.user?.lastName }}</span>
-                  </td>
-                  <td><span class="log-change">{{ log.change ?? log.action ?? '—' }}</span></td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        }
-      </div>
-    }
-  }
-
-  <!-- ══ MODAL CAPTURA/EDICIÓN ══ -->
-  @if (modalOpen()) {
-    <div class="modal-backdrop" (click)="closeModal()"></div>
-    <div class="modal">
-      <div class="modal-hd">
-        <h2>{{ editing() ? 'Editar parciales' : 'Capturar calificación' }}</h2>
-        <button class="icon-btn" (click)="closeModal()">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-
-      <form [formGroup]="form" (ngSubmit)="save()" class="modal-form">
-
-        @if (editing(); as g) {
-          <div class="edit-context">
-            <div class="ava ava-sm">{{ initials(g) }}</div>
-            <div>
-              <span class="s-name">{{ g.student?.user?.firstName }} {{ g.student?.user?.lastName }}</span>
-              <span class="s-email">{{ g.subject?.name }} · {{ g.period }}</span>
-            </div>
-          </div>
-        } @else {
-          <div class="form-row">
-            <div class="field-group">
-              <label class="field-label">Alumno</label>
-              <select class="field-input" formControlName="studentId">
-                <option [ngValue]="null" disabled>Selecciona alumno</option>
-                @for (s of students(); track s.id) {
-                  <option [ngValue]="s.id">{{ s.name }}</option>
-                }
-              </select>
-            </div>
-            <div class="field-group">
-              <label class="field-label">Materia</label>
-              <select class="field-input" formControlName="subjectId">
-                <option [ngValue]="null" disabled>Selecciona materia</option>
-                @for (sub of subjects(); track sub.id) {
-                  <option [ngValue]="sub.id">{{ sub.name }}</option>
-                }
-              </select>
-            </div>
-          </div>
-
-          <div class="field-group">
-            <label class="field-label">Periodo</label>
-            <input class="field-input" formControlName="period" placeholder="Ej: 2025-2026A">
-          </div>
-        }
-
-        <div class="form-row-3">
-          <div class="field-group">
-            <label class="field-label">Parcial 1</label>
-            <input class="field-input" type="number" min="0" max="100" step="0.1" formControlName="partial1" placeholder="0–100">
-          </div>
-          <div class="field-group">
-            <label class="field-label">Parcial 2</label>
-            <input class="field-input" type="number" min="0" max="100" step="0.1" formControlName="partial2" placeholder="0–100">
-          </div>
-          <div class="field-group">
-            <label class="field-label">Parcial 3</label>
-            <input class="field-input" type="number" min="0" max="100" step="0.1" formControlName="partial3" placeholder="0–100">
-          </div>
-        </div>
-
-        @if (formError()) {
-          <div class="form-err">
-            <i class="fa-solid fa-circle-exclamation"></i>
-            {{ formError() }}
-          </div>
-        }
-
-        <div class="modal-actions">
-          <button type="button" class="ghost-btn" (click)="closeModal()">Cancelar</button>
-          <button type="submit" class="primary-btn" [disabled]="form.invalid || saving()">
-            @if (saving()) { <span class="btn-spinner-sm"></span> Guardando... }
-            @else { Guardar }
-          </button>
-        </div>
-      </form>
+            }
+            @if (logs().length === 0) {
+              <tr><td colspan="4" style="padding: 48px; text-align: center; color: #9CA3AF;">No hay historial de auditoría.</td></tr>
+            }
+          </tbody>
+        </table>
+      }
     </div>
   }
-
-  <!-- Toast -->
-  @if (toastMsg()) {
-    <div class="toast" [class.toast-ok]="toastOk()" [class.toast-err]="!toastOk()">
-      <i class="fa-solid" [class.fa-circle-check]="toastOk()" [class.fa-circle-xmark]="!toastOk()"></i>
-      {{ toastMsg() }}
-    </div>
-  }
-
 </div>
+
+<!-- Toast -->
+@if (toastMsg()) {
+  <div class="toast" [class.success]="toastOk()" [class.error]="!toastOk()"
+       style="position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); padding: 12px 24px; border-radius: 12px; color: #fff; font-weight: 500; font-size: 14px; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 9999; animation: slideUp 0.3s ease;">
+    <i class="fa-solid" [class.fa-check-circle]="toastOk()" [class.fa-circle-exclamation]="!toastOk()"></i>
+    {{ toastMsg() }}
+  </div>
+}
+
+<style>
+  @keyframes slideUp { from { opacity: 0; transform: translate(-50%, 20px); } to { opacity: 1; transform: translate(-50%, 0); } }
+  .toast.success { background: #059669; }
+  .toast.error { background: #DC2626; }
+  
+  .chip { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; display: inline-block; }
+  .chip-green { background: #ECFDF5; color: #059669; }
+  .chip-yellow { background: #FEF3C7; color: #D97706; }
+  .chip-red { background: #FEF2F2; color: #DC2626; }
+  .chip-neutral { background: #F3F4F6; color: #6B7280; }
+  
+  .grid-input {
+    width: 60px; padding: 6px; border: 1px solid #E5E7EB; border-radius: 6px; text-align: center; font-weight: 600; font-size: 14px;
+  }
+  .grid-input:focus {
+    border-color: #7C1D2E; outline: none; box-shadow: 0 0 0 2px rgba(124, 29, 46, 0.1);
+  }
+</style>

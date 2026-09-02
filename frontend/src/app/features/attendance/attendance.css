@@ -291,6 +291,7 @@
   display: flex; justify-content: flex-end; gap: 10px;
   padding-top: 4px;
 }
+
 .primary-btn {
   display: inline-flex; align-items: center; gap: 8px;
   padding: 10px 20px; background: #7C1D2E; color: #fff;

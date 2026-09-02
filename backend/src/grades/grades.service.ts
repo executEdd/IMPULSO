@@ -384,6 +384,87 @@ export class GradesService {
     });
   }
 
+  async bulkUpsert(
+    bulkDto: {
+      subjectId: number;
+      period: string;
+      grades: {
+        studentId: number;
+        partial1?: number;
+        partial2?: number;
+        partial3?: number;
+      }[];
+    },
+    userId: number
+  ) {
+    const { subjectId, period, grades } = bulkDto;
+
+    return this.prisma.$transaction(async (tx) => {
+      let count = 0;
+      for (const item of grades) {
+        const existing = await tx.grade.findUnique({
+          where: {
+            studentId_subjectId_period: {
+              studentId: item.studentId,
+              subjectId,
+              period,
+            },
+          },
+        });
+
+        const p1 = item.partial1 !== undefined ? item.partial1 : (existing?.partial1 ?? undefined);
+        const p2 = item.partial2 !== undefined ? item.partial2 : (existing?.partial2 ?? undefined);
+        const p3 = item.partial3 !== undefined ? item.partial3 : (existing?.partial3 ?? undefined);
+        
+        const finalGrade = this.calculateFinalGrade(p1, p2, p3);
+        const status = this.determineStatus(finalGrade);
+
+        if (existing) {
+          const updateData: any = { finalGrade, status };
+          let changed = false;
+          
+          if (item.partial1 !== undefined && item.partial1 !== existing.partial1) {
+            updateData.partial1 = item.partial1;
+            changed = true;
+            await this.createGradeLog(existing.id, userId, "partial1", existing.partial1?.toString() ?? null, item.partial1?.toString() ?? null, "UPDATE", tx);
+          }
+          if (item.partial2 !== undefined && item.partial2 !== existing.partial2) {
+            updateData.partial2 = item.partial2;
+            changed = true;
+            await this.createGradeLog(existing.id, userId, "partial2", existing.partial2?.toString() ?? null, item.partial2?.toString() ?? null, "UPDATE", tx);
+          }
+          if (item.partial3 !== undefined && item.partial3 !== existing.partial3) {
+            updateData.partial3 = item.partial3;
+            changed = true;
+            await this.createGradeLog(existing.id, userId, "partial3", existing.partial3?.toString() ?? null, item.partial3?.toString() ?? null, "UPDATE", tx);
+          }
+
+          if (changed || existing.finalGrade !== finalGrade) {
+            await tx.grade.update({ where: { id: existing.id }, data: updateData });
+            count++;
+          }
+        } else {
+          const newGrade = await tx.grade.create({
+            data: {
+              studentId: item.studentId,
+              subjectId,
+              period,
+              partial1: item.partial1 ?? null,
+              partial2: item.partial2 ?? null,
+              partial3: item.partial3 ?? null,
+              finalGrade,
+              status
+            }
+          });
+          
+          await this.createGradeLog(newGrade.id, userId, "CREATE", null, "Creación Inicial", "CREATE", tx);
+          count++;
+        }
+      }
+      return { success: true, upsertedCount: count };
+    });
+  }
+
   async remove(id: number) {
     const existing = await this.prisma.grade.findUnique({ where: { id } });
     if (!existing) {

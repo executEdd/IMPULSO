@@ -1,4 +1,4 @@
-﻿import { Component, inject, signal, OnInit } from "@angular/core";
+import { Component, inject, signal, OnInit } from "@angular/core";
 import { FormBuilder, ReactiveFormsModule, Validators } from "@angular/forms";
 import { HttpClient } from "@angular/common/http";
 import { Router } from "@angular/router";
@@ -108,9 +108,9 @@ export class SetupWizardComponent implements OnInit {
     this.loading.set(true);
     const val = this.cycleForm.value;
     const payload = {
-      name: val.name,
+      cycleName: val.name,
       startDate: new Date(val.startDate!).toISOString(),
-      endDate: new Date(val.endDate!).toISOString(),
+      finishDate: new Date(val.endDate!).toISOString(),
       isActive: val.isActive
     };
     this.http.post<any>(`${API}/school-cycles`, payload).subscribe({
@@ -150,7 +150,14 @@ export class SetupWizardComponent implements OnInit {
     });
   }
 
-  createClassroom() {
+  successMsg = signal("");
+
+  showSuccess(msg: string) {
+    this.successMsg.set(msg);
+    setTimeout(() => this.successMsg.set(""), 3000);
+  }
+
+  createClassroom(addAnother = false) {
     if (this.classroomForm.invalid) return;
     this.loading.set(true);
     this.http.post<any>(`${API}/classrooms`, this.classroomForm.value).subscribe({
@@ -158,13 +165,18 @@ export class SetupWizardComponent implements OnInit {
         this.classroomId.set(res.id);
         this.classrooms.update(c => [...c, res]);
         this.loading.set(false);
-        this.nextStep();
+        if (addAnother) {
+          this.classroomForm.reset({ capacity: 30 });
+          this.showSuccess("Aula añadida. Puedes agregar otra.");
+        } else {
+          this.nextStep();
+        }
       },
       error: () => this.loading.set(false)
     });
   }
 
-  createGroup() {
+  createGroup(addAnother = false) {
     if (this.groupForm.invalid) return;
     this.loading.set(true);
     this.http.post<any>(`${API}/groups`, this.groupForm.value).subscribe({
@@ -172,13 +184,18 @@ export class SetupWizardComponent implements OnInit {
         this.groupId.set(res.id);
         this.groups.update(c => [...c, res]);
         this.loading.set(false);
-        this.nextStep();
+        if (addAnother) {
+          this.groupForm.reset({ gradeLevel: 1 });
+          this.showSuccess("Grupo añadido. Puedes agregar otro.");
+        } else {
+          this.nextStep();
+        }
       },
       error: () => this.loading.set(false)
     });
   }
 
-  createSubject() {
+  createSubject(addAnother = false) {
     if (this.subjectForm.invalid) return;
     this.loading.set(true);
     this.http.post<any>(`${API}/subjects`, this.subjectForm.value).subscribe({
@@ -186,8 +203,13 @@ export class SetupWizardComponent implements OnInit {
         this.subjectId.set(res.id);
         this.subjects.update(c => [...c, res]);
         this.loading.set(false);
-        this.prepareFinalStep();
-        this.nextStep();
+        if (addAnother) {
+          this.subjectForm.reset({ credits: 10 });
+          this.showSuccess("Materia añadida. Puedes agregar otra.");
+        } else {
+          this.prepareFinalStep();
+          this.nextStep();
+        }
       },
       error: () => this.loading.set(false)
     });
@@ -203,7 +225,7 @@ export class SetupWizardComponent implements OnInit {
     });
   }
 
-  finish() {
+  finish(addAnother = false) {
     if (this.classForm.invalid) return;
     this.loading.set(true);
     const v = this.classForm.value;
@@ -220,7 +242,18 @@ export class SetupWizardComponent implements OnInit {
     this.http.post(`${API}/classes`, payload).subscribe({
       next: () => {
         this.loading.set(false);
-        this.router.navigate(["/clases"]);
+        if (addAnother) {
+          // Mantener semestre y ciclo, limpiar los demás
+          this.classForm.patchValue({
+            subjectId: null,
+            groupId: null,
+            teacherId: null,
+            classroomId: null
+          });
+          this.showSuccess("Clase creada exitosamente. Ensambla otra.");
+        } else {
+          this.router.navigate(["/clases"]);
+        }
       },
       error: () => this.loading.set(false)
     });

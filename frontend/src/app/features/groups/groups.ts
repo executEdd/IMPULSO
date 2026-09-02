@@ -74,7 +74,7 @@ export class GroupsComponent implements OnInit {
 
   closeModal() { this.modalOpen.set(false); }
 
-  save() {
+  save(addAnother = false) {
     if (this.form.invalid || this.saving()) return;
     this.saving.set(true);
     this.formError.set('');
@@ -90,10 +90,15 @@ export class GroupsComponent implements OnInit {
     req.subscribe({
       next: () => {
         this.saving.set(false);
-        this.modalOpen.set(false);
         this.showToast(editing ? 'Grupo actualizado' : 'Grupo creado', true);
-        this.loading.set(true);
-        this.fetchAll();
+        if (addAnother && !editing) {
+           this.form.reset({ name: '', gradeLevel: 1, career: '' });
+           this.fetchAll();
+        } else {
+           this.modalOpen.set(false);
+           this.loading.set(true);
+           this.fetchAll();
+        }
       },
       error: (err) => {
         this.saving.set(false);

@@ -125,7 +125,7 @@ export class ClassesComponent implements OnInit {
 
   closeModal() { this.modalOpen.set(false); }
 
-  save() {
+  save(addAnother = false) {
     if (this.form.invalid || this.saving()) return;
     this.saving.set(true);
     this.formError.set('');
@@ -145,10 +145,19 @@ export class ClassesComponent implements OnInit {
     req.subscribe({
       next: () => {
         this.saving.set(false);
-        this.modalOpen.set(false);
         this.showToast(editing ? 'Clase actualizada' : 'Clase creada', true);
-        this.loading.set(true);
-        this.fetchAll();
+        if (addAnother && !editing) {
+          this.form.patchValue({
+            subjectId: null,
+            teacherId: null,
+            classroomId: null
+          });
+          this.fetchAll(); // refresca en segundo plano
+        } else {
+          this.modalOpen.set(false);
+          this.loading.set(true);
+          this.fetchAll();
+        }
       },
       error: (err) => {
         this.saving.set(false);

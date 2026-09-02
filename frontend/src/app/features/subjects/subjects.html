@@ -106,7 +106,7 @@
         </button>
       </div>
 
-      <form [formGroup]="form" (ngSubmit)="save()" class="modal-form">
+      <form [formGroup]="form" class="modal-form">
         <div class="form-row">
           <div class="field-group">
             <label class="field-label">Nombre</label>
@@ -148,7 +148,13 @@
 
         <div class="modal-actions">
           <button type="button" class="ghost-btn" (click)="closeModal()">Cancelar</button>
-          <button type="submit" class="primary-btn" [disabled]="form.invalid || saving()">
+          @if (!editing()) {
+            <button type="button" class="primary-btn" [disabled]="form.invalid || saving()" (click)="save(true)">
+              @if (saving()) { <span class="btn-spinner-sm"></span> }
+              @else { Guardar y añadir otra }
+            </button>
+          }
+          <button type="button" class="primary-btn" [disabled]="form.invalid || saving()" (click)="save(false)">
             @if (saving()) { <span class="btn-spinner-sm"></span> Guardando... }
             @else { Guardar }
           </button>
