@@ -401,11 +401,11 @@ export class AttendanceController {
       studentId,
       classId,
     });
-    res.setHeader("Content-Type", "text/csv; charset=latin1");
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader(
       "Content-Disposition",
       `attachment; filename="reporte_asistencias_${Date.now()}.csv"`,
     );
-    return res.end(csvContent);
+    res.end(csvContent);
   }
 }

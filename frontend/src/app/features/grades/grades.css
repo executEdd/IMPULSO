@@ -203,6 +203,18 @@
   border-radius: 10px; padding: 10px 14px;
 }
 
+/* ══ Botón Exportar ══ */
+.export-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 16px; background: #fff; color: #374151;
+  border: 1.5px solid #E5E7EB; border-radius: 10px;
+  font-size: 13px; font-weight: 600; font-family: inherit;
+  cursor: pointer; transition: all .15s;
+  white-space: nowrap;
+}
+.export-btn:hover { background: #F6F7F9; border-color: #D1D5DB; color: #1A1A2E; }
+.export-btn i { color: #059669; }
+
 /* ── Toast ── */
 .toast {
   position: fixed; bottom: 28px; right: 28px;
