@@ -10,6 +10,18 @@
         <i class="fa-solid fa-list-check"></i>
         {{ records().length }} registros
       </span>
+      <!-- Toggle vista lista / calendario -->
+      <div class="view-toggle">
+        <button class="toggle-btn" [class.active]="viewMode() === 'list'" (click)="viewMode.set('list')" title="Vista lista">
+          <i class="fa-solid fa-list"></i>
+        </button>
+        <button class="toggle-btn" [class.active]="viewMode() === 'calendar'" (click)="viewMode.set('calendar')" title="Vista calendario">
+          <i class="fa-solid fa-calendar-days"></i>
+        </button>
+      </div>
+      <button class="export-btn" (click)="exportCsv()">
+        <i class="fa-solid fa-file-csv"></i> Exportar
+      </button>
       @if (canMark) {
         <button class="primary-btn" (click)="openScan()">
           <i class="fa-solid fa-qrcode"></i>
@@ -72,16 +84,153 @@
     </div>
   }
 
-   <!-- Filtro por fecha -->
-   <div class="date-filter" style="margin: 16px 0; display: flex; align-items: center; gap: 12px;">
-     <mat-form-field appearance="fill" style="width: 250px;">
-       <mat-label>Filtrar por fecha</mat-label>
-       <input matInput [matDatepicker]="picker" (dateChange)="selectedDate.set($event.value)" placeholder="Selecciona una fecha">
-       <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
-       <mat-datepicker #picker></mat-datepicker>
-     </mat-form-field>
-     <button class="primary-btn" type="button" (click)="selectedDate.set(null)">Mostrar todo</button>
-   </div>
+   <!-- Filtro por fecha (solo vista lista) -->
+   @if (viewMode() === 'list') {
+     <div class="date-filter" style="margin: 16px 0; display: flex; align-items: center; gap: 12px;">
+       <mat-form-field appearance="fill" style="width: 250px;">
+         <mat-label>Filtrar por fecha</mat-label>
+         <input matInput [matDatepicker]="picker" (dateChange)="selectedDate.set($event.value)" placeholder="Selecciona una fecha">
+         <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+         <mat-datepicker #picker></mat-datepicker>
+       </mat-form-field>
+       <button class="primary-btn" type="button" (click)="selectedDate.set(null)">Mostrar todo</button>
+     </div>
+   }
+
+   <!-- ══ VISTA CALENDARIO ══ -->
+   @if (viewMode() === 'calendar') {
+     <div class="cal-wrapper">
+       <div class="cal-nav">
+         <button class="cal-nav-btn" (click)="prevMonth()">
+           <i class="fa-solid fa-chevron-left"></i>
+         </button>
+         <span class="cal-month-label">{{ monthLabel() }}</span>
+         <button class="cal-nav-btn" (click)="nextMonth()">
+           <i class="fa-solid fa-chevron-right"></i>
+         </button>
+         <button class="cal-today-btn" (click)="goToToday()">Hoy</button>
+       </div>
+
+        <div class="cal-grid">
+          @for (h of dayHeaders; track h) {
+            <div class="cal-header">{{ h }}</div>
+          }
+          @for (cell of calendarDays(); track $index) {
+            @if (cell.empty) {
+              <div class="cal-cell empty"></div>
+            } @else {
+              <div
+                class="cal-cell"
+                [class.today]="cell.date.toDateString() === todayStr"
+                [class.selected]="selectedDay()?.toDateString() === cell.date.toDateString()"
+                (click)="selectDay(cell.date)">
+                <span class="cal-day-num">{{ cell.day }}</span>
+                @if (dayRecordCount(cell.date); as count) {
+                  <div class="cal-badges">
+                    @if (dayCountByStatus(cell.date, 'PRESENT'); as c) {
+                      <span class="cal-badge badge-green"><i class="fa-solid fa-check"></i>{{ c }}</span>
+                    }
+                    @if (dayCountByStatus(cell.date, 'LATE'); as c) {
+                      <span class="cal-badge badge-yellow"><i class="fa-solid fa-clock"></i>{{ c }}</span>
+                    }
+                    @if (dayCountByStatus(cell.date, 'ABSENT'); as c) {
+                      <span class="cal-badge badge-red"><i class="fa-solid fa-xmark"></i>{{ c }}</span>
+                    }
+                    @if (dayCountByStatus(cell.date, 'JUSTIFIED'); as c) {
+                      <span class="cal-badge badge-blue"><i class="fa-solid fa-file-circle-check"></i>{{ c }}</span>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          }
+        </div>
+
+        <!-- Leyenda -->
+        <div class="cal-legend">
+          <span class="cal-legend-item"><span class="cal-badge badge-green"><i class="fa-solid fa-check"></i>2</span> Presente</span>
+          <span class="cal-legend-item"><span class="cal-badge badge-yellow"><i class="fa-solid fa-clock"></i>1</span> Tardanza</span>
+          <span class="cal-legend-item"><span class="cal-badge badge-red"><i class="fa-solid fa-xmark"></i>1</span> Ausente</span>
+          <span class="cal-legend-item"><span class="cal-badge badge-blue"><i class="fa-solid fa-file-circle-check"></i>1</span> Justificado</span>
+        </div>
+     </div>
+   }
+
+   <!-- ══ SIDE PANEL — Detalle del día ══ -->
+   @if (sidePanelOpen() && selectedDay()) {
+     <div class="panel-backdrop" (click)="closeSidePanel()"></div>
+     <div class="side-panel" (click)="$event.stopPropagation()">
+       <div class="panel-hd">
+         <div>
+          <h2 class="panel-title">{{ formatDayHeader(selectedDay()) }}</h2>
+          <p class="panel-sub">{{ dayRecords().length }} registro{{ dayRecords().length !== 1 ? 's' : '' }}</p>
+        </div>
+        <button class="icon-btn" (click)="closeSidePanel()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+       </div>
+
+       <!-- Stats del día -->
+       @if (dayRecords().length > 0) {
+         <div class="panel-stats">
+           <div class="stat-pill stat-green">
+             <i class="fa-solid fa-circle-check"></i> {{ dayStats().present }}
+           </div>
+           <div class="stat-pill stat-yellow">
+             <i class="fa-solid fa-clock"></i> {{ dayStats().late }}
+           </div>
+           <div class="stat-pill stat-red">
+             <i class="fa-solid fa-circle-xmark"></i> {{ dayStats().absent }}
+           </div>
+           @if (dayStats().justified > 0) {
+             <div class="stat-pill stat-justified">
+               <i class="fa-solid fa-file-circle-check"></i> {{ dayStats().justified }}
+             </div>
+           }
+         </div>
+       }
+
+       <div class="panel-body">
+         @if (dayRecords().length === 0) {
+           <div class="panel-empty">
+             <i class="fa-solid fa-calendar-xmark"></i>
+             <span>Sin registros este día</span>
+           </div>
+         } @else {
+           @for (r of dayRecords(); track r.id) {
+             <div class="panel-card">
+               <div class="panel-card-top">
+                 <div class="student-cell">
+                   <div class="ava ava-sm">{{ initials(r) }}</div>
+                   <div>
+                     <span class="s-name">{{ r.student?.user?.firstName }} {{ r.student?.user?.lastName }}</span>
+                     <span class="s-email">{{ r.student?.enrollmentId }}</span>
+                   </div>
+                 </div>
+                 <span class="chip {{ statusClass(r.status) }}">
+                   <i class="fa-solid {{ statusIcon(r.status) }}"></i>
+                   {{ statusLabel(r.status) }}
+                 </span>
+               </div>
+               <div class="panel-card-bottom">
+                 <span class="panel-card-subject">
+                   <i class="fa-solid fa-book"></i> {{ r.classes?.subject?.name ?? '—' }}
+                 </span>
+                 <span class="panel-card-time">
+                   <i class="fa-solid fa-clock"></i> {{ r.date | date:'HH:mm' }}
+                 </span>
+                 @if (r.notes) {
+                   <span class="panel-card-notes">
+                     <i class="fa-solid fa-comment-dots"></i> {{ r.notes }}
+                   </span>
+                 }
+               </div>
+             </div>
+           }
+         }
+       </div>
+     </div>
+   }
 
    <!-- Tabla -->
   @if (loading()) {

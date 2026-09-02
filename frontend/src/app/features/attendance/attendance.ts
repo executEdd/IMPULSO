@@ -9,6 +9,15 @@ import { MatInputModule } from '@angular/material/input';
 import { AuthService } from '../../core/services/auth.service';
 import { API } from '../../core/config/api.config';
 
+const MONTH_NAMES = [
+  'Enero','Febrero','Marzo','Abril','Mayo','Junio',
+  'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'
+];
+const DAY_NAMES = [
+  'domingo','lunes','martes','miércoles','jueves','viernes','sábado'
+];
+const DAY_HEADER = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+
 const DAY_LABELS: Record<string, string> = {
   MONDAY: 'Lunes', TUESDAY: 'Martes', WEDNESDAY: 'Miércoles',
   THURSDAY: 'Jueves', FRIDAY: 'Viernes', SATURDAY: 'Sábado'
@@ -44,6 +53,154 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       return rec.toDateString() === selected.toDateString();
     });
   });
+
+  // ── Vista Calendario ──
+  viewMode = signal<'list' | 'calendar'>('list');
+  currentYear  = signal(new Date().getFullYear());
+  currentMonth = signal(new Date().getMonth());
+  selectedDay  = signal<Date | null>(null);
+  sidePanelOpen = signal(false);
+
+  monthLabel = computed(() => `${MONTH_NAMES[this.currentMonth()]} ${this.currentYear()}`);
+  dayHeaders = DAY_HEADER;
+  todayStr = new Date().toDateString();
+
+  calendarDays = computed(() => {
+    const year  = this.currentYear();
+    const month = this.currentMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay  = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+
+    // Lunes=0 ... Domingo=6
+    let startOffset = (firstDay.getDay() + 6) % 7;
+    const cells: { day: number; date: Date; empty: boolean }[] = [];
+    for (let i = 0; i < startOffset; i++) {
+      cells.push({ day: 0, date: new Date(), empty: true });
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+      cells.push({ day: d, date: new Date(year, month, d), empty: false });
+    }
+    return cells;
+  });
+
+  dayRecords = computed(() => {
+    const sel = this.selectedDay();
+    if (!sel) return [];
+    return this.records().filter(r => {
+      const rec = new Date(r.date);
+      return rec.toDateString() === sel.toDateString();
+    });
+  });
+
+  dayStats = computed(() => {
+    const recs = this.dayRecords();
+    return {
+      total: recs.length,
+      present: recs.filter(r => r.status === 'PRESENT').length,
+      late:    recs.filter(r => r.status === 'LATE').length,
+      absent:  recs.filter(r => r.status === 'ABSENT').length,
+      justified: recs.filter(r => r.status === 'JUSTIFIED').length,
+    };
+  });
+
+  prevMonth() {
+    const m = this.currentMonth();
+    const y = this.currentYear();
+    if (m === 0) { this.currentMonth.set(11); this.currentYear.set(y - 1); }
+    else this.currentMonth.set(m - 1);
+  }
+  nextMonth() {
+    const m = this.currentMonth();
+    const y = this.currentYear();
+    if (m === 11) { this.currentMonth.set(0); this.currentYear.set(y + 1); }
+    else this.currentMonth.set(m + 1);
+  }
+  goToToday() {
+    const now = new Date();
+    this.currentYear.set(now.getFullYear());
+    this.currentMonth.set(now.getMonth());
+    this.selectDay(now);
+  }
+  selectDay(date: Date) {
+    this.selectedDay.set(date);
+    this.sidePanelOpen.set(true);
+  }
+  closeSidePanel() {
+    this.sidePanelOpen.set(false);
+  }
+
+  /** Returna el status dominante de un día para colorear el badge */
+  dayDominantStatus(date: Date): string {
+    const recs = this.records().filter(r => {
+      const rec = new Date(r.date);
+      return rec.toDateString() === date.toDateString();
+    });
+    if (recs.length === 0) return '';
+    if (recs.some(r => r.status === 'ABSENT'))  return 'ABSENT';
+    if (recs.some(r => r.status === 'LATE'))    return 'LATE';
+    if (recs.some(r => r.status === 'JUSTIFIED')) return 'JUSTIFIED';
+    return 'PRESENT';
+  }
+  dayStatusDot(date: Date): string {
+    const s = this.dayDominantStatus(date);
+    const m: Record<string, string> = {
+      PRESENT: 'dot-green', LATE: 'dot-yellow', ABSENT: 'dot-red', JUSTIFIED: 'dot-yellow'
+    };
+    return m[s] ?? '';
+  }
+
+  dayRecordCount(date: Date): number {
+    return this.records().filter(r => {
+      const rec = new Date(r.date);
+      return rec.toDateString() === date.toDateString();
+    }).length;
+  }
+  dayCountByStatus(date: Date, status: string): number {
+    return this.records().filter(r => {
+      const rec = new Date(r.date);
+      return rec.toDateString() === date.toDateString() && r.status === status;
+    }).length;
+  }
+
+  formatDayHeader(date: Date | null): string {
+    if (!date) return '';
+    const day = DAY_NAMES[date.getDay()];
+    const num = date.getDate();
+    const month = MONTH_NAMES[date.getMonth()];
+    const year = date.getFullYear();
+    return `${day} ${num} de ${month} ${year}`;
+  }
+
+  // ── Exportar CSV ──
+  exportCsv() {
+    const data = this.filteredRecords();
+    if (!data.length) return;
+
+    const esc = (v: string) => `"${(v ?? '').replace(/"/g, '""')}"`;
+    const rows: string[] = [];
+    rows.push('Alumno,Matricula,Materia,Fecha,Estado,Notas');
+
+    data.forEach(r => {
+      const name = `${r.student?.user?.firstName ?? ''} ${r.student?.user?.lastName ?? ''}`.trim();
+      const enrollment = r.student?.enrollmentId ?? '';
+      const subject = r.classes?.subject?.name ?? '';
+      const date = new Date(r.date).toLocaleDateString('es-MX');
+      const status = this.statusLabel(r.status);
+      const notes = r.notes ?? '';
+      rows.push([esc(name), esc(enrollment), esc(subject), esc(date), esc(status), esc(notes)].join(','));
+    });
+
+    const encoder = new TextEncoder();
+    const csvBytes = encoder.encode('\uFEFF' + rows.join('\n'));
+    const blob = new Blob([csvBytes], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `asistencia_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   marking = signal(false);
   // Registro Manual por Contraseña
