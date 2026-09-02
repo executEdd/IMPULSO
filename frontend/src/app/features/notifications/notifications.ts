@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DatePipe } from '@angular/common';
@@ -12,7 +12,7 @@ import { AuthService } from '../../core/services/auth.service';
   templateUrl: './notifications.html',
   styleUrl: './notifications.css'
 })
-export class NotificationsComponent implements OnInit {
+export class NotificationsComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
   private fb   = inject(FormBuilder);
   auth = inject(AuthService);
@@ -74,7 +74,8 @@ export class NotificationsComponent implements OnInit {
   }
 
   fetchHistory() {
-    this.http.get<any[]>(`${API}/notifications`).subscribe({
+    const endpoint = this.canSend ? `${API}/notifications` : `${API}/notifications/my-notifications`;
+    this.http.get<any[]>(endpoint).subscribe({
       next: data => { this.records.set(data ?? []); this.loading.set(false); },
       error: () => this.loading.set(false)
     });
@@ -122,7 +123,7 @@ export class NotificationsComponent implements OnInit {
     if (this.pushLoading()) return;
     this.pushLoading.set(true);
 
-    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+    if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
       this.showToast('Tu navegador no soporta Notificaciones Push', false);
       this.pushLoading.set(false);
       return;
@@ -137,21 +138,34 @@ export class NotificationsComponent implements OnInit {
 
       this.http.get<{ publicKey: string }>(`${API}/push/vapid-public-key`).subscribe({
         next: (res) => {
-          const mockToken = `web-push-token-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-          this.http.post(`${API}/push/register`, {
-            token: mockToken,
-            platform: 'WEB',
-            userAgent: navigator.userAgent
-          }).subscribe({
-            next: () => {
-              this.pushRegistered.set(true);
+          const key = this.urlBase64ToUint8Array(res.publicKey);
+          navigator.serviceWorker.ready.then(registration => {
+            registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: key,
+            }).then(subscription => {
+              const sub = subscription.toJSON() as any;
+              this.http.post(`${API}/push/register`, {
+                token: sub.endpoint,
+                platform: 'WEB_PUSH',
+                p256dh: sub.keys?.p256dh ?? '',
+                auth: sub.keys?.auth ?? '',
+                userAgent: navigator.userAgent,
+              }).subscribe({
+                next: () => {
+                  this.pushRegistered.set(true);
+                  this.pushLoading.set(false);
+                  this.showToast('¡Notificaciones Push activadas en este dispositivo!', true);
+                },
+                error: () => {
+                  this.pushLoading.set(false);
+                  this.showToast('Error al registrar token de notificaciones', false);
+                }
+              });
+            }).catch(() => {
               this.pushLoading.set(false);
-              this.showToast('¡Notificaciones Push activadas en este dispositivo!', true);
-            },
-            error: () => {
-              this.pushLoading.set(false);
-              this.showToast('Error al registrar token de notificaciones', false);
-            }
+              this.showToast('Error al suscribirse a notificaciones push', false);
+            });
           });
         },
         error: () => {
@@ -160,6 +174,17 @@ export class NotificationsComponent implements OnInit {
         }
       });
     });
+  }
+
+  private urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
   }
 
   send() {
@@ -210,12 +235,14 @@ export class NotificationsComponent implements OnInit {
     setTimeout(() => this.toastMsg.set(''), 3500);
   }
 
+  ngOnDestroy() {}
+
   statusClass(s: string) {
-    const m: Record<string, string> = { SENT: 'chip-green', PENDING: 'chip-yellow', FAILED: 'chip-red' };
+    const m: Record<string, string> = { SENT: 'chip-green', PENDING: 'chip-yellow', FAILED: 'chip-red', READ: 'chip-blue', SIMULATED: 'chip-gray' };
     return m[s] ?? 'chip-yellow';
   }
   statusLabel(s: string) {
-    const m: Record<string, string> = { SENT: 'Enviado', PENDING: 'Pendiente', FAILED: 'Fallido' };
+    const m: Record<string, string> = { SENT: 'Enviado', PENDING: 'Pendiente', FAILED: 'Fallido', READ: 'Leído', SIMULATED: 'Simulado' };
     return m[s] ?? s;
   }
   channelIcon(c: string) {

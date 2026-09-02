@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit, computed } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy, computed } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { DatePipe } from '@angular/common';
@@ -25,9 +25,10 @@ interface NavGroup {
   templateUrl: './shell.html',
   styleUrl: './shell.css'
 })
-export class ShellComponent implements OnInit {
+export class ShellComponent implements OnInit, OnDestroy {
   auth = inject(AuthService);
   private http = inject(HttpClient);
+  private pollingTimer: any;
 
   collapsed = signal(false);
 
@@ -177,6 +178,11 @@ export class ShellComponent implements OnInit {
 
   ngOnInit() {
     this.refreshUnread();
+    this.pollingTimer = setInterval(() => this.refreshUnread(), 30000);
+  }
+
+  ngOnDestroy() {
+    clearInterval(this.pollingTimer);
   }
   get initials(): string {
     const u = this.auth.user();

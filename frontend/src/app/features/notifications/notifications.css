@@ -75,7 +75,7 @@
   font-size: 13.5px; color: #374151; vertical-align: middle;
 }
 .custom-table tr:last-child td { border-bottom: none; }
-.custom-table tr:hover td { background: #FDF0F1/40; }
+.custom-table tr:hover td { background: rgba(253, 240, 241, 0.4); }
 
 .channel-chip {
   display: inline-flex; align-items: center; gap: 6px;
@@ -90,6 +90,18 @@
   display: inline-flex; align-items: center; gap: 6px;
   font-size: 12.5px; color: #4B5563; font-weight: 600;
 }
+
+/* Status chips */
+.status-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 99px;
+  font-size: 12px; font-weight: 600;
+}
+.chip-green { background: #D1FAE5; color: #065F46; }
+.chip-yellow { background: #FEF3C7; color: #92400E; }
+.chip-red { background: #FEE2E2; color: #991B1B; }
+.chip-blue { background: #DBEAFE; color: #1E40AF; }
+.chip-gray { background: #F3F4F6; color: #6B7280; }
 
 /* Form Card */
 .form-card {
