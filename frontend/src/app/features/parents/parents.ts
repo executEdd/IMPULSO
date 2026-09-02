@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
 import { API } from '../../core/config/api.config';
+import { normalizeText } from '../../core/utils/text.utils';
 
 @Component({
   selector: 'app-parents',
@@ -43,18 +44,18 @@ export class ParentsComponent implements OnInit {
   });
 
   filtered = computed(() => {
-    const q = this.search().toLowerCase();
+    const q = normalizeText(this.search());
     return this.all().filter(p =>
       !q ||
-      p.user?.firstName?.toLowerCase().includes(q) ||
-      p.user?.lastName?.toLowerCase().includes(q)  ||
-      p.user?.email?.toLowerCase().includes(q)     ||
-      p.phone?.toLowerCase().includes(q)            ||
-      p.address?.toLowerCase().includes(q)          ||
+      normalizeText(p.user?.firstName ?? '').includes(q) ||
+      normalizeText(p.user?.lastName ?? '').includes(q) ||
+      normalizeText(p.user?.email ?? '').includes(q) ||
+      normalizeText(p.phone ?? '').includes(q) ||
+      normalizeText(p.address ?? '').includes(q) ||
       p.children?.some((c: any) =>
-        c.user?.firstName?.toLowerCase().includes(q) ||
-        c.user?.lastName?.toLowerCase().includes(q)  ||
-        c.enrollmentId?.toLowerCase().includes(q)
+        normalizeText(c.user?.firstName ?? '').includes(q) ||
+        normalizeText(c.user?.lastName ?? '').includes(q) ||
+        normalizeText(c.enrollmentId ?? '').includes(q)
       )
     );
   });

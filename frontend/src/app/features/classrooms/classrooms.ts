@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
 import { API } from '../../core/config/api.config';
+import { normalizeText } from '../../core/utils/text.utils';
 
 @Component({
   selector: 'app-classrooms',
@@ -36,11 +37,11 @@ export class ClassroomsComponent implements OnInit {
   });
 
   filtered = computed(() => {
-    const q = this.search().toLowerCase();
+    const q = normalizeText(this.search());
     return this.all().filter(c =>
       !q ||
-      c.name?.toLowerCase().includes(q) ||
-      c.description?.toLowerCase().includes(q)
+      normalizeText(c.name ?? '').includes(q) ||
+      normalizeText(c.description ?? '').includes(q)
     );
   });
 

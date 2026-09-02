@@ -20,12 +20,6 @@
           <i class="fa-solid fa-calendar-days"></i>
         </button>
       </div>
-      @if (isAdmin) {
-        <button class="primary-btn" (click)="openCreate()">
-          <i class="fa-solid fa-plus"></i>
-          Nuevo horario
-        </button>
-      }
     </div>
   </header>
 
@@ -58,24 +52,12 @@
 
             <div class="class-list">
               @for (item of day.items; track item.id) {
-                <div class="class-item">
+                <div class="class-item" (click)="openScheduleDetail(item)">
                   <div class="class-item-top">
                     <div class="class-time">
                       <i class="fa-regular fa-clock"></i>
                       {{ item.startTime }} – {{ item.endTime }}
                     </div>
-                    @if (isAdmin) {
-                      <div class="class-actions">
-                        <button class="icon-btn-xs" title="Editar" (click)="openEdit(item)">
-                          <i class="fa-solid fa-pen"></i>
-                        </button>
-                        <button class="icon-btn-xs danger" title="Eliminar"
-                          [disabled]="deleting() === item.id"
-                          (click)="remove(item)">
-                          <i class="fa-solid fa-trash"></i>
-                        </button>
-                      </div>
-                    }
                   </div>
                   <div class="class-info">
                     <span class="class-subject">{{ item.class?.subject?.name ?? '—' }}</span>
@@ -98,7 +80,6 @@
     @if (viewMode() === 'calendar') {
       <div class="timetable-wrap">
         <div class="timetable-grid">
-          <!-- Header row -->
           <div class="tt-corner"></div>
           @for (day of weekDays; track day) {
             <div class="tt-day-header" [style.background]="dayColors[day]">
@@ -106,7 +87,6 @@
             </div>
           }
 
-          <!-- Time slot rows -->
           @for (slot of timeSlots; track slot) {
             <div class="tt-time-label">{{ slot }}</div>
             @for (day of weekDays; track day) {
@@ -129,85 +109,6 @@
         </div>
       </div>
     }
-  }
-
-  <!-- ══ MODAL ══ -->
-  @if (modalOpen()) {
-    <div class="modal-backdrop" (click)="closeModal()"></div>
-    <div class="modal">
-      <div class="modal-hd">
-        <h2>{{ editing() ? 'Editar horario' : 'Nuevo horario' }}</h2>
-        <button class="icon-btn" (click)="closeModal()">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-
-      <form [formGroup]="form" (ngSubmit)="save()" class="modal-form">
-
-        <div class="field-group">
-          <label class="field-label">Clase (materia · grupo)</label>
-          <select class="field-input" formControlName="classId">
-            <option [ngValue]="null" disabled>Selecciona clase</option>
-            @for (c of classes(); track c.id) {
-              <option [ngValue]="c.id">{{ classLabel(c) }}</option>
-            }
-          </select>
-        </div>
-
-        <div class="form-row">
-          <div class="field-group">
-            <label class="field-label">Día</label>
-            <select class="field-input" formControlName="dayOfWeek">
-              @for (d of dayOptions; track d.value) {
-                <option [value]="d.value">{{ d.label }}</option>
-              }
-            </select>
-          </div>
-          <div class="field-group">
-            <label class="field-label">Aula (opcional)</label>
-            <select class="field-input" formControlName="classroomId">
-              <option [ngValue]="null">Sin aula</option>
-              @for (r of classrooms(); track r.id) {
-                <option [ngValue]="r.id">{{ r.name }}</option>
-              }
-            </select>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="field-group">
-            <label class="field-label">Hora inicio</label>
-            <input class="field-input" type="time" formControlName="startTime">
-          </div>
-          <div class="field-group">
-            <label class="field-label">Hora fin</label>
-            <input class="field-input" type="time" formControlName="endTime">
-          </div>
-        </div>
-
-        @if (conflictWarning()) {
-          <div class="form-warn">
-            <i class="fa-solid fa-triangle-exclamation"></i>
-            {{ conflictWarning() }}
-          </div>
-        }
-
-        @if (formError()) {
-          <div class="form-err">
-            <i class="fa-solid fa-circle-exclamation"></i>
-            {{ formError() }}
-          </div>
-        }
-
-        <div class="modal-actions">
-          <button type="button" class="ghost-btn" (click)="closeModal()">Cancelar</button>
-          <button type="submit" class="primary-btn" [disabled]="form.invalid || saving()">
-            @if (saving()) { <span class="btn-spinner-sm"></span> Guardando... }
-            @else { Guardar }
-          </button>
-        </div>
-      </form>
-    </div>
   }
 
   <!-- ══ SIDE PANEL — Detalle del horario ══ -->
@@ -262,17 +163,6 @@
               <span class="info-label">Semestre</span>
               <span class="info-value">{{ s.class.semester.semesterName }}</span>
             </div>
-          </div>
-        }
-
-        @if (isAdmin) {
-          <div class="panel-actions">
-            <button class="ghost-btn" (click)="closeSidePanel(); openEdit(s)">
-              <i class="fa-solid fa-pen"></i> Editar
-            </button>
-            <button class="danger-btn" (click)="closeSidePanel(); remove(s)">
-              <i class="fa-solid fa-trash"></i> Eliminar
-            </button>
           </div>
         }
       </div>

@@ -13,9 +13,11 @@
     </div>
   } @else {
     <div class="profile-card">
-      <form [formGroup]="form" (ngSubmit)="save()" class="crud-form">
+      <form [formGroup]="form" (ngSubmit)="save()">
         
-        <h3 class="section-title">Datos Personales</h3>
+        <h3 class="section-title">
+          <i class="fa-solid fa-user"></i> Datos Personales
+        </h3>
         <div class="form-grid">
           <div class="fi">
             <label>Nombre(s)</label>
@@ -35,9 +37,11 @@
           </div>
         </div>
 
-        <h3 class="section-title mt-4">Seguridad</h3>
+        <h3 class="section-title mt-4">
+          <i class="fa-solid fa-shield-halved"></i> Seguridad
+        </h3>
         <div class="form-grid">
-          <div class="fi">
+          <div class="fi" style="grid-column: 1 / -1;">
             <label>Nueva Contraseña</label>
             <input type="password" formControlName="password" placeholder="Dejar en blanco para no cambiar">
             <small class="help-text">Si no deseas cambiar tu contraseña, deja este campo vacío.</small>
@@ -71,4 +75,3 @@
     </div>
   }
 </div>
-

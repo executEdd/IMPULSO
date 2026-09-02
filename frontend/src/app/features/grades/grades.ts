@@ -6,6 +6,7 @@ import { DatePipe } from '@angular/common';
 import { AuthService } from '../../core/services/auth.service';
 
 import { API } from '../../core/config/api.config';
+import { normalizeText } from '../../core/utils/text.utils';
 
 @Component({
   selector: 'app-grades',
@@ -44,12 +45,12 @@ export class GradesComponent implements OnInit {
   toastOk  = signal(true);
 
   filtered = computed(() => {
-    const q = this.search().toLowerCase();
+    const q = normalizeText(this.search());
     return this.all().filter(g =>
       !q ||
-      g.student?.user?.firstName?.toLowerCase().includes(q) ||
-      g.student?.user?.lastName?.toLowerCase().includes(q)  ||
-      g.subject?.name?.toLowerCase().includes(q)
+      normalizeText(g.student?.user?.firstName ?? '').includes(q) ||
+      normalizeText(g.student?.user?.lastName ?? '').includes(q) ||
+      normalizeText(g.subject?.name ?? '').includes(q)
     );
   });
 
