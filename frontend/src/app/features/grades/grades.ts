@@ -104,15 +104,36 @@ export class GradesComponent implements OnInit {
   }
 
   exportCsv() {
-    this.http.get(`${API}/grades/export/csv`, { responseType: 'arraybuffer', withCredentials: true }).subscribe(buf => {
-      const blob = new Blob([buf], { type: 'text/csv;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `calificaciones_${new Date().toISOString().slice(0, 10)}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
+    const data = this.filtered();
+    if (!data.length) return;
+
+    const esc = (v: string) => `"${(v ?? '').replace(/"/g, '""')}"`;
+    const rows: string[] = [];
+    rows.push('ID,Alumno,Matrícula,Grupo,Materia,Periodo,Parcial 1,Parcial 2,Parcial 3,Final,Estatus');
+
+    data.forEach(g => {
+      const studentName = esc(`${g.student?.user?.firstName ?? ''} ${g.student?.user?.lastName ?? ''}`.trim());
+      const enrollmentId = esc(g.student?.enrollmentId ?? '');
+      const groupName = esc(g.student?.group?.name ?? '');
+      const subjectName = esc(g.subject?.name ?? '');
+      const period = esc(g.period ?? '');
+      const p1 = g.partial1 ?? '';
+      const p2 = g.partial2 ?? '';
+      const p3 = g.partial3 ?? '';
+      const final_ = g.finalGrade ?? '';
+      const status = esc(g.status ?? '');
+      rows.push([g.id, studentName, enrollmentId, groupName, subjectName, period, p1, p2, p3, final_, status].join(','));
     });
+
+    const encoder = new TextEncoder();
+    const csvBytes = encoder.encode('\uFEFF' + rows.join('\n'));
+    const blob = new Blob([csvBytes], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `calificaciones_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   fetchGrades() {
