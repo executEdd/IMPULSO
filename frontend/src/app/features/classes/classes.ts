@@ -6,6 +6,7 @@ import { catchError } from 'rxjs/operators';
 import { AuthService } from '../../core/services/auth.service';
 
 import { API } from '../../core/config/api.config';
+import { normalizeText } from '../../core/utils/text.utils';
 
 @Component({
   selector: 'app-classes',
@@ -48,12 +49,12 @@ export class ClassesComponent implements OnInit {
   });
 
   filtered = computed(() => {
-    const q = this.search().toLowerCase();
+    const q = normalizeText(this.search());
     return this.all().filter(c =>
       !q ||
-      c.subject?.name?.toLowerCase().includes(q) ||
-      c.group?.name?.toLowerCase().includes(q)  ||
-      `${c.teacher?.user?.firstName} ${c.teacher?.user?.lastName}`.toLowerCase().includes(q)
+      normalizeText(c.subject?.name ?? '').includes(q) ||
+      normalizeText(c.group?.name ?? '').includes(q) ||
+      normalizeText(`${c.teacher?.user?.firstName} ${c.teacher?.user?.lastName}`).includes(q)
     );
   });
 

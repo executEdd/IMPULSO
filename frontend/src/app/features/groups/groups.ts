@@ -4,6 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
 
 import { API } from '../../core/config/api.config';
+import { normalizeText } from '../../core/utils/text.utils';
 
 @Component({
   selector: 'app-groups',
@@ -39,11 +40,11 @@ export class GroupsComponent implements OnInit {
   });
 
   filtered = computed(() => {
-    const q = this.search().toLowerCase();
+    const q = normalizeText(this.search());
     return this.all().filter(g =>
       !q ||
-      g.name?.toLowerCase().includes(q) ||
-      g.career?.toLowerCase().includes(q)
+      normalizeText(g.name ?? '').includes(q) ||
+      normalizeText(g.career ?? '').includes(q)
     );
   });
 

@@ -6,6 +6,7 @@ import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AuthService } from '../../core/services/auth.service';
 import { API } from '../../core/config/api.config';
+import { normalizeText } from '../../core/utils/text.utils';
 
 @Component({
   selector: 'app-students',
@@ -63,12 +64,12 @@ export class StudentsComponent implements OnInit {
 
   groupsList = signal<any[]>([]);
   filtered = computed(() => {
-    const q = this.search().toLowerCase();
+    const q = normalizeText(this.search());
     return this.all().filter(s =>
       !q ||
-      s.user?.firstName?.toLowerCase().includes(q) ||
-      s.user?.lastName?.toLowerCase().includes(q)  ||
-      s.enrollmentId?.toLowerCase().includes(q)
+      normalizeText(s.user?.firstName ?? '').includes(q) ||
+      normalizeText(s.user?.lastName ?? '').includes(q) ||
+      normalizeText(s.enrollmentId ?? '').includes(q)
     );
   });
 

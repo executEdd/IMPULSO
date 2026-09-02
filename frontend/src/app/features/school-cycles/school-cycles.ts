@@ -3,6 +3,7 @@ import { HttpClient } from "@angular/common/http";
 import { FormBuilder, ReactiveFormsModule, Validators } from "@angular/forms";
 import { AuthService } from "../../core/services/auth.service";
 import { API } from "../../core/config/api.config";
+import { normalizeText } from "../../core/utils/text.utils";
 import { DatePipe } from "@angular/common";
 
 
@@ -33,8 +34,8 @@ export class SchoolCyclesComponent implements OnInit {
   });
 
   filtered = computed(() => {
-    const q = this.search().toLowerCase();
-    return this.cycles().filter(c => c.cycleName?.toLowerCase().includes(q));
+    const q = normalizeText(this.search());
+    return this.cycles().filter(c => normalizeText(c.cycleName ?? '').includes(q));
   });
 
   ngOnInit() {
