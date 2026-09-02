@@ -265,15 +265,34 @@ export class StudentsComponent implements OnInit {
   }
 
   exportCsv() {
-    this.http.get(`${API}/users/export/students/csv`, { responseType: 'arraybuffer', withCredentials: true }).subscribe(buf => {
-      const blob = new Blob([buf], { type: 'text/csv;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `alumnos_${new Date().toISOString().slice(0, 10)}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
+    const data = this.all();
+    if (!data.length) return;
+
+    const esc = (v: string) => `"${(v ?? '').replace(/"/g, '""')}"`;
+    const rows: string[] = [];
+    rows.push('ID,Nombre,Apellidos,Correo,Matrícula,Grupo,Semáforo,Tutor,Correo Tutor');
+
+    data.forEach(s => {
+      const firstName = esc(s.user?.firstName ?? '');
+      const lastName = esc(s.user?.lastName ?? '');
+      const email = esc(s.user?.email ?? '');
+      const enrollmentId = esc(s.enrollmentId ?? '');
+      const groupName = esc(s.studentProfile?.group?.name ?? '');
+      const semaphore = esc(s.studentProfile?.semaphore ?? 'GREEN');
+      const parentName = esc(s.parent?.user ? `${s.parent.user.firstName ?? ''} ${s.parent.user.lastName ?? ''}`.trim() : '');
+      const parentEmail = esc(s.parent?.user?.email ?? '');
+      rows.push([s.id, firstName, lastName, email, enrollmentId, groupName, semaphore, parentName, parentEmail].join(','));
     });
+
+    const encoder = new TextEncoder();
+    const csvBytes = encoder.encode('\uFEFF' + rows.join('\n'));
+    const blob = new Blob([csvBytes], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `alumnos_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   fetchAll() {
