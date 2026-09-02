@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
@@ -14,6 +14,12 @@ const DAY_COLORS: Record<string, string> = {
   MONDAY: '#3B82F6', TUESDAY: '#8B5CF6', WEDNESDAY: '#10B981',
   THURSDAY: '#F59E0B', FRIDAY: '#7C1D2E', SATURDAY: '#6B7280'
 };
+
+const TIME_SLOTS: string[] = [];
+for (let h = 7; h <= 21; h++) {
+  TIME_SLOTS.push(`${String(h).padStart(2, '0')}:00`);
+}
+const WEEK_DAYS = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
 
 @Component({
   selector: 'app-schedules',
@@ -42,6 +48,26 @@ export class SchedulesComponent implements OnInit {
   deleting  = signal<number | null>(null);
   formError = signal('');
   conflictWarning = signal('');
+
+  // ── Vista Calendario ──
+  viewMode = signal<'list' | 'calendar'>('list');
+  selectedSchedule = signal<any | null>(null);
+  sidePanelOpen = signal(false);
+
+  timeSlots = TIME_SLOTS;
+  weekDays = WEEK_DAYS;
+  dayLabels = DAY_LABELS;
+  dayColors = DAY_COLORS;
+
+  calendarGrid = computed(() => {
+    const grid = new Map<string, any[]>();
+    for (const s of this.raw()) {
+      const key = `${s.dayOfWeek}-${s.startTime.substring(0, 2)}`;
+      if (!grid.has(key)) grid.set(key, []);
+      grid.get(key)!.push(s);
+    }
+    return grid;
+  });
 
   toastMsg = signal('');
   toastOk  = signal(true);
@@ -123,6 +149,54 @@ export class SchedulesComponent implements OnInit {
     const subj = c.subject?.name ?? `Clase #${c.id}`;
     const grp = c.group?.name ? ` · ${c.group.name}` : '';
     return `${subj}${grp}`;
+  }
+
+  // ── Calendar helpers ──
+  getSlotSchedules(day: string, hour: string): any[] {
+    return this.calendarGrid().get(`${day}-${hour}`) ?? [];
+  }
+
+  slotSpan(item: any): number {
+    const start = this.timeToMinutes(item.startTime);
+    const end = this.timeToMinutes(item.endTime);
+    const slotMinutes = 60;
+    return Math.max(1, Math.ceil((end - start) / slotMinutes));
+  }
+
+  blockTop(item: any): number {
+    const minutes = this.timeToMinutes(item.startTime);
+    const hourStart = parseInt(item.startTime.substring(0, 2), 10);
+    const offsetMinutes = minutes - (hourStart * 60);
+    return (offsetMinutes / 60) * 64;
+  }
+
+  blockHeight(item: any): number {
+    const start = this.timeToMinutes(item.startTime);
+    const end = this.timeToMinutes(item.endTime);
+    return Math.max(32, ((end - start) / 60) * 64);
+  }
+
+  private timeToMinutes(time: string): number {
+    const [h, m] = time.split(':').map(Number);
+    return h * 60 + m;
+  }
+
+  formatTimeRange(item: any): string {
+    return `${item.startTime} – ${item.endTime}`;
+  }
+
+  openScheduleDetail(item: any) {
+    this.selectedSchedule.set(item);
+    this.sidePanelOpen.set(true);
+  }
+
+  closeSidePanel() {
+    this.sidePanelOpen.set(false);
+  }
+
+  teacherName(item: any): string {
+    const u = item.class?.teacher?.user;
+    return u ? `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() : '—';
   }
 
   // ── CRUD ──
