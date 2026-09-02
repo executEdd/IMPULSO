@@ -1,4 +1,4 @@
-﻿<div class="page-wrap">
+<div class="page-wrap">
   <header class="page-hd">
     <div>
       <h1>Ciclos Escolares</h1>
@@ -56,9 +56,9 @@
             @for (c of filtered(); track c.id) {
               <tr>
                 <td class="bold-cell">#{{ c.id }}</td>
-                <td>{{ c.name }}</td>
+                <td>{{ c.cycleName }}</td>
                 <td class="mono">{{ c.startDate | date:'mediumDate' }}</td>
-                <td class="mono">{{ c.endDate | date:'mediumDate' }}</td>
+                <td class="mono">{{ c.finishDate | date:'mediumDate' }}</td>
                 <td>
                   <span class="status-badge" [class.active]="c.isActive" [class.inactive]="!c.isActive">
                     {{ c.isActive ? 'Activo' : 'Inactivo' }}
@@ -81,47 +81,49 @@
   }
 </div>
 
+<!-- Formatted modal block with design system classes and accessibility -->
 @if (modalOpen()) {
-  <div class="modal-backdrop" (click)="closeModal()">
-    <div class="modal-panel" (click)="$event.stopPropagation()">
+  <div class="modal-backdrop" (click)="closeModal()" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal" (click)="$event.stopPropagation()">
       <div class="modal-hd">
-        <h2>{{ editId() ? 'Editar' : 'Nuevo' }} Ciclo Escolar</h2>
-        <button class="close-btn" (click)="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+        <h2 id="modal-title" class="modal-title">{{ editId() ? 'Editar' : 'Nuevo' }} Ciclo Escolar</h2>
+        <button class="close-btn" (click)="closeModal()" aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <div class="modal-bd">
-        <form [formGroup]="form" (ngSubmit)="save()" class="crud-form">
-          <div class="form-grid">
-            <div class="fi">
-              <label>Nombre del Ciclo</label>
-              <input type="text" formControlName="name" placeholder="Ej. Enero - Junio 2026">
+        <form [formGroup]="form" class="modal-form" novalidate>
+          <div class="form-row">
+            <div class="field-group">
+              <label class="field-label" for="cycle-name">Nombre del Ciclo</label>
+              <input id="cycle-name" class="field-input" type="text" formControlName="name" placeholder="Ej. Enero - Junio 2026" required />
             </div>
 
-            <div class="fi">
-              <label>Fecha de Inicio</label>
-              <input type="date" formControlName="startDate">
+            <div class="field-group">
+              <label class="field-label" for="cycle-start">Fecha de Inicio</label>
+              <input id="cycle-start" class="field-input" type="date" formControlName="startDate" required />
             </div>
 
-            <div class="fi">
-              <label>Fecha de Fin</label>
-              <input type="date" formControlName="endDate">
+            <div class="field-group">
+              <label class="field-label" for="cycle-end">Fecha de Fin</label>
+              <input id="cycle-end" class="field-input" type="date" formControlName="endDate" required />
             </div>
 
-            <div class="fi checkbox-fi">
-              <label class="check-wrap">
-                <input type="checkbox" formControlName="isActive">
-                <span class="check-label">Ciclo Activo</span>
+            <div class="field-group checkbox-fi">
+              <label class="check-wrap" for="cycle-active">
+                <input id="cycle-active" type="checkbox" formControlName="isActive" />
+                <span>¿Es ciclo activo?</span>
               </label>
             </div>
           </div>
         </form>
       </div>
 
-      <div class="modal-ft">
-        <button type="button" class="btn-cancel" (click)="closeModal()">Cancelar</button>
-        <button type="button" class="btn-save" [disabled]="form.invalid" (click)="save()">
-          Guardar
-        </button>
+      <div class="modal-actions">
+        <button type="button" class="ghost-btn" (click)="closeModal()">Cancelar</button>
+        @if (!editId()) {
+          <button type="button" class="primary-btn" [disabled]="form.invalid" (click)="save(true)">Guardar y añadir otro</button>
+        }
+        <button type="button" class="primary-btn" [disabled]="form.invalid" (click)="save(false)">Guardar</button>
       </div>
     </div>
   </div>
