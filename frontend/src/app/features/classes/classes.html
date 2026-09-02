@@ -3,7 +3,7 @@
   <header class="page-hd">
     <div>
       <h1>Clases</h1>
-      <p>Asignación de materias a grupos, docentes y aulas</p>
+      <p>Asignación de materias a grupos, docentes, aulas y horarios</p>
     </div>
     <div class="hd-meta">
       <span class="count-badge">
@@ -50,6 +50,7 @@
               <th>Docente</th>
               <th>Aula</th>
               <th>Semestre</th>
+              <th>Horarios</th>
               @if (isAdmin) { <th style="width:90px"></th> }
             </tr>
           </thead>
@@ -73,6 +74,16 @@
                   } @else { <span class="muted">—</span> }
                 </td>
                 <td class="sem-cell">{{ c.semester?.semesterName ?? '—' }}</td>
+                <td>
+                  @if (c.schedules?.length) {
+                    <span class="chip chip-schedule">
+                      <i class="fa-solid fa-clock"></i>
+                      {{ c.schedules.length }} slot{{ c.schedules.length > 1 ? 's' : '' }}
+                    </span>
+                  } @else {
+                    <span class="chip chip-warn"><i class="fa-solid fa-triangle-exclamation"></i> Sin horario</span>
+                  }
+                </td>
                 @if (isAdmin) {
                   <td>
                     <div class="row-actions">
@@ -153,7 +164,7 @@
             }
           </div>
           <div class="field-group">
-            <label class="field-label">Aula (opcional)</label>
+            <label class="field-label">Aula general (opcional)</label>
             @if (classrooms().length > 0) {
               <select class="field-input" formControlName="classroomId">
                 <option [ngValue]="null">Sin aula</option>
@@ -170,9 +181,54 @@
         @if (!hasSemesters) {
           <div class="form-hint">
             <i class="fa-solid fa-circle-info"></i>
-            No hay semestres cargados aún; ingresa el ID manualmente (ver con el equipo de backend).
+            No hay semestres cargados aún; ingresa el ID manualmente.
           </div>
         }
+
+        <!-- Sección de Horarios -->
+        <div class="schedule-section">
+          <div class="schedule-section-hd">
+            <i class="fa-solid fa-calendar-days"></i>
+            <span>Horarios de la clase</span>
+          </div>
+
+          @if (localSchedules().length > 0) {
+            <div class="schedule-list">
+              @for (s of localSchedules(); track $index) {
+                <div class="schedule-item">
+                  <div class="schedule-item-info">
+                    <span class="schedule-day-badge">{{ dayLabel(s.dayOfWeek) }}</span>
+                    <span class="schedule-time">{{ s.startTime }} – {{ s.endTime }}</span>
+                  </div>
+                  <button type="button" class="icon-btn danger" (click)="removeSchedule($index)" title="Eliminar">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </div>
+              }
+            </div>
+          } @else {
+            <p class="schedule-empty">Sin horarios asignados</p>
+          }
+
+          <div class="schedule-add">
+            <div class="schedule-add-row">
+              <select class="field-input field-input-sm" [value]="scheduleDay()" (change)="scheduleDay.set($any($event.target).value)">
+                @for (d of dayOptions; track d.value) {
+                  <option [value]="d.value">{{ d.label }}</option>
+                }
+              </select>
+              <input type="time" class="field-input field-input-sm" [value]="scheduleStart()" (change)="scheduleStart.set($any($event.target).value)">
+              <span class="schedule-sep">–</span>
+              <input type="time" class="field-input field-input-sm" [value]="scheduleEnd()" (change)="scheduleEnd.set($any($event.target).value)">
+              <button type="button" class="icon-btn add-btn" (click)="addSchedule()" title="Agregar horario">
+                <i class="fa-solid fa-plus"></i>
+              </button>
+            </div>
+            @if (scheduleError()) {
+              <div class="schedule-err">{{ scheduleError() }}</div>
+            }
+          </div>
+        </div>
 
         @if (formError()) {
           <div class="form-err">
