@@ -1,6 +1,7 @@
 import { Component, inject, signal, OnInit, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { AuthService } from '../../core/services/auth.service';
 
@@ -9,46 +10,38 @@ import { API } from '../../core/config/api.config';
 @Component({
   selector: 'app-grades',
   standalone: true,
-  imports: [ReactiveFormsModule, DatePipe],
+  imports: [CommonModule, FormsModule, DatePipe],
   templateUrl: './grades.html',
   styleUrl: './grades.css'
 })
 export class GradesComponent implements OnInit {
   private http = inject(HttpClient);
-  private fb   = inject(FormBuilder);
   auth = inject(AuthService);
 
   loading = signal(true);
   all     = signal<any[]>([]);
   search  = signal('');
-  activeTab = signal<'grades' | 'logs'>('grades');
+  activeTab = signal<'list' | 'grid' | 'logs'>('grid');
 
   // logs (auditoría, solo admin)
   logs        = signal<any[]>([]);
   logsLoading = signal(false);
   logsLoaded  = false;
 
-  // modal captura/edición
-  modalOpen = signal(false);
-  editing   = signal<any | null>(null);
-  saving    = signal(false);
-  formError = signal('');
-
   // catálogos derivados
   students = signal<any[]>([]);
   subjects = signal<any[]>([]);
+  groups   = signal<any[]>([]);
+
+  // Estado Sábana (Grid)
+  gridGroup = signal<number | null>(null);
+  gridSubject = signal<number | null>(null);
+  gridPeriod = signal<string>('2025-2026A');
+  gridData = signal<any[]>([]);
+  saving = signal(false);
 
   toastMsg = signal('');
   toastOk  = signal(true);
-
-  form = this.fb.group({
-    studentId: [null as number | null, Validators.required],
-    subjectId: [null as number | null, Validators.required],
-    period:    ['2025-2026A', Validators.required],
-    partial1:  [null as number | null, [Validators.min(0), Validators.max(100)]],
-    partial2:  [null as number | null, [Validators.min(0), Validators.max(100)]],
-    partial3:  [null as number | null, [Validators.min(0), Validators.max(100)]],
-  });
 
   filtered = computed(() => {
     const q = this.search().toLowerCase();
@@ -66,7 +59,6 @@ export class GradesComponent implements OnInit {
   get isParent()  { return this.auth.user()?.role === 'PARENT'; }
   get canEdit()   { const r = this.auth.user()?.role; return r === 'ADMIN' || r === 'TEACHER'; }
 
-  /** Título y subtítulo del encabezado según rol */
   get pageTitle(): string {
     if (this.isStudent) return 'Mis Calificaciones';
     if (this.isParent)  return 'Boleta de mi Hijo/a';
@@ -76,25 +68,38 @@ export class GradesComponent implements OnInit {
   get pageSubtitle(): string {
     if (this.isStudent) return 'Consulta tus parciales y promedio por materia';
     if (this.isParent)  return 'Revisa el desempeño académico de tu hijo/a por materia y parcial';
-    if (this.isTeacher) return 'Captura y consulta parciales por alumno y materia';
-    return 'Consulta y captura de parciales por alumno y materia';
+    if (this.isTeacher) return 'Captura en formato sábana por grupo y materia';
+    return 'Consulta y captura masiva de calificaciones';
   }
 
   ngOnInit() {
     this.fetchGrades();
-    // Solo admin/maestro necesitan catálogos para capturar
     if (this.canEdit) {
       this.http.get<any[]>(`${API}/users`).subscribe({
-        next: users => this.students.set(
-          users.filter(u => u.role === 'STUDENT' && u.studentProfile)
-               .map(u => ({ id: u.studentProfile.id, name: `${u.firstName} ${u.lastName}` }))
-        ),
-        error: () => {}
+        next: users => {
+          this.students.set(
+            users.filter(u => u.role === 'STUDENT' && u.studentProfile)
+                 .map(u => ({ 
+                   id: u.studentProfile.id, 
+                   name: `${u.firstName} ${u.lastName}`,
+                   groupId: u.studentProfile.groupId,
+                   groupName: u.studentProfile.group?.name
+                 }))
+          );
+          const grps = new Map<number, any>();
+          this.students().forEach(s => {
+            if (s.groupId && !grps.has(s.groupId)) {
+              grps.set(s.groupId, { id: s.groupId, name: s.groupName });
+            }
+          });
+          this.groups.set(Array.from(grps.values()));
+        }
       });
       this.http.get<any[]>(`${API}/subjects`).subscribe({
-        next: subjects => this.subjects.set(subjects),
-        error: () => {}
+        next: subjects => this.subjects.set(subjects)
       });
+    } else {
+      this.activeTab.set('list');
     }
   }
 
@@ -105,29 +110,24 @@ export class GradesComponent implements OnInit {
   fetchGrades() {
     const user = this.auth.user();
     let url = `${API}/grades`;
-
     if (this.isStudent) {
       const studentId = user?.studentProfile?.id;
-      if (studentId) {
-        url = `${API}/grades/student/${studentId}`;
-      }
+      if (studentId) url = `${API}/grades/student/${studentId}`;
     } else if (this.isParent) {
       const childId = user?.parentProfile?.children?.[0]?.id;
-      if (childId) {
-        url = `${API}/grades/student/${childId}`;
-      }
+      if (childId) url = `${API}/grades/student/${childId}`;
     }
 
     this.http.get<any[]>(url).subscribe({
       next: data => {
         this.all.set(Array.isArray(data) ? data : []);
         this.loading.set(false);
+        if (this.canEdit) this.loadGrid();
       },
       error: () => this.loading.set(false)
     });
   }
 
-  // ── Tabs ──
   showLogs() {
     this.activeTab.set('logs');
     if (this.logsLoaded) return;
@@ -142,79 +142,68 @@ export class GradesComponent implements OnInit {
     });
   }
 
-  // ── Captura / edición ──
-  openCreate() {
-    this.editing.set(null);
-    this.formError.set('');
-    this.form.reset({ period: '2025-2026A' });
-    this.form.get('studentId')?.enable();
-    this.form.get('subjectId')?.enable();
-    this.modalOpen.set(true);
-  }
+  loadGrid() {
+    const gId = this.gridGroup();
+    const subId = this.gridSubject();
+    const period = this.gridPeriod();
+    
+    if (!gId || !subId || !period) {
+      this.gridData.set([]);
+      return;
+    }
 
-  openEdit(g: any) {
-    this.editing.set(g);
-    this.formError.set('');
-    this.form.patchValue({
-      studentId: g.studentId,
-      subjectId: g.subjectId,
-      period:    g.period ?? '2025-2026A',
-      partial1:  g.partial1,
-      partial2:  g.partial2,
-      partial3:  g.partial3,
+    const st = this.students().filter(s => s.groupId === gId);
+    const data = st.map(s => {
+      const existing = this.all().find(r => r.studentId === s.id && r.subjectId === subId && r.period === period);
+      return {
+        studentId: s.id,
+        name: s.name,
+        partial1: existing?.partial1 ?? null,
+        partial2: existing?.partial2 ?? null,
+        partial3: existing?.partial3 ?? null,
+        finalGrade: existing?.finalGrade ?? null
+      };
     });
-    // alumno y materia no se cambian al editar
-    this.form.get('studentId')?.disable();
-    this.form.get('subjectId')?.disable();
-    this.modalOpen.set(true);
+    this.gridData.set(data);
   }
 
-  closeModal() { this.modalOpen.set(false); }
-
-  save() {
-    if (this.form.invalid || this.saving()) return;
+  saveGrid() {
+    const subId = this.gridSubject();
+    const period = this.gridPeriod();
+    if (!subId || !period) return;
+    
     this.saving.set(true);
-    this.formError.set('');
-    const v = this.form.getRawValue();
-
-    const partials: any = {};
-    if (v.partial1 !== null && v.partial1 !== undefined) partials.partial1 = Number(v.partial1);
-    if (v.partial2 !== null && v.partial2 !== undefined) partials.partial2 = Number(v.partial2);
-    if (v.partial3 !== null && v.partial3 !== undefined) partials.partial3 = Number(v.partial3);
-
-    const editing = this.editing();
-    const req = editing
-      ? this.http.put(`${API}/grades/${editing.id}`, partials)
-      : this.http.post(`${API}/grades`, {
-          studentId: Number(v.studentId),
-          subjectId: Number(v.subjectId),
-          period: v.period,
-          ...partials
-        });
-
-    req.subscribe({
+    const payload = {
+      subjectId: subId,
+      period,
+      grades: this.gridData().map(row => ({
+        studentId: row.studentId,
+        partial1: (row.partial1 !== '' && row.partial1 !== null) ? Number(row.partial1) : undefined,
+        partial2: (row.partial2 !== '' && row.partial2 !== null) ? Number(row.partial2) : undefined,
+        partial3: (row.partial3 !== '' && row.partial3 !== null) ? Number(row.partial3) : undefined
+      }))
+    };
+    
+    this.http.post(`${API}/grades/bulk`, payload).subscribe({
       next: () => {
         this.saving.set(false);
-        this.modalOpen.set(false);
-        this.showToast(editing ? 'Calificación actualizada' : 'Calificación registrada', true);
-        this.loading.set(true);
-        this.logsLoaded = false;
+        this.showToast('Calificaciones guardadas', true);
         this.fetchGrades();
       },
       error: (err) => {
         this.saving.set(false);
-        const m = err?.error?.message;
-        this.formError.set(Array.isArray(m) ? m.join('. ') : (typeof m === 'string' ? m : 'Error al guardar'));
+        this.showToast('Error al guardar', false);
       }
     });
   }
 
-  // ── Helpers ──
+  // ── Helper Toasts & UI ──
   private showToast(msg: string, ok: boolean) {
     this.toastMsg.set(msg);
     this.toastOk.set(ok);
     setTimeout(() => this.toastMsg.set(''), 3500);
   }
+  
   gradeChip(val: number | null): string {
     if (val === null || val === undefined) return 'chip-neutral';
     if (val >= 9) return 'chip-green';
@@ -228,12 +217,14 @@ export class GradesComponent implements OnInit {
     };
     return m[s] ?? 'chip-yellow';
   }
+  
   statusLabel(s: string) {
     const m: Record<string, string> = {
       EXCELLENT: 'Excelente', REGULAR: 'Regular', IRREGULAR: 'Irregular'
     };
     return m[s] ?? s;
   }
+  
   initials(g: any) {
     return `${g.student?.user?.firstName?.[0] ?? ''}${g.student?.user?.lastName?.[0] ?? ''}`.toUpperCase();
   }
