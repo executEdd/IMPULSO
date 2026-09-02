@@ -22,6 +22,13 @@
             <i class="fa-solid fa-paper-plane"></i>
             Enviar Aviso
           </button>
+          <button
+            class="tab-btn"
+            [class.active]="activeTab() === 'global'"
+            (click)="activeTab.set('global')">
+            <i class="fa-solid fa-bullhorn"></i>
+            Aviso Global
+          </button>
         }
         <button
           class="tab-btn"
@@ -153,7 +160,58 @@
     </div>
   }
 
-  <!-- Pestaña 3: Ajustes de Notificaciones -->
+    <!-- Pestaña 3: Aviso Global -->
+  @if (activeTab() === 'global') {
+    <div class="form-card">
+      <div class="card-hd">
+        <h2>Enviar Aviso Global (Masivo)</h2>
+        <p>Envía un comunicado a toda la escuela o a grupos específicos de usuarios</p>
+      </div>
+
+      <form [formGroup]="globalForm" (ngSubmit)="sendGlobal()" class="send-form">
+        <div class="form-grid">
+
+          <div class="field-group">
+            <label class="field-label">Roles Destinatarios (Opcional)</label>
+            <select class="field-input" formControlName="targets" multiple size="4" style="height: auto;">
+              <option value="STUDENT">Todos los Alumnos</option>
+              <option value="PARENT">Todos los Padres de Familia</option>
+              <option value="TEACHER">Todos los Docentes</option>
+              <option value="ADMIN">Todos los Administradores</option>
+            </select>
+            <small class="help-text">Si no seleccionas nada, se enviará a TODOS los usuarios de la escuela.</small>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label">Canal de Envío *</label>
+            <select class="field-input" formControlName="channel">
+              <option value="IN_APP">Notificación en la App</option>
+              <option value="EMAIL">Correo Electrónico</option>
+              <option value="PUSH">Notificación Push (Celular)</option>
+            </select>
+          </div>
+
+          <div class="field-group fw">
+            <label class="field-label">Mensaje del Aviso Global *</label>
+            <textarea class="field-input" formControlName="content" rows="4" placeholder="Escribe el aviso masivo aquí..."></textarea>
+          </div>
+
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="primary-btn" [disabled]="globalForm.invalid || sending()">
+            @if (sending()) {
+              <span class="spinner-sm"></span> Procesando envío masivo...
+            } @else {
+              <i class="fa-solid fa-bullhorn"></i> Enviar a Todos
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+  }
+
+  <!-- Pestaña 4: Ajustes de Notificaciones -->
   @if (activeTab() === 'preferences') {
     <div class="prefs-grid">
 

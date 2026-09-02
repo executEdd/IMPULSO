@@ -1,0 +1,129 @@
+﻿<div class="page-wrap">
+  <header class="page-hd">
+    <div>
+      <h1>Ciclos Escolares</h1>
+      <p>Gestión de periodos académicos</p>
+    </div>
+    <div class="hd-meta">
+      <span class="count-badge">
+        <i class="fa-solid fa-calendar"></i>
+        {{ filtered().length }} ciclos
+      </span>
+      <button class="primary-btn" (click)="openModal()">
+        <i class="fa-solid fa-plus"></i>
+        Nuevo ciclo
+      </button>
+    </div>
+  </header>
+
+  <div class="toolbar-row">
+    <div class="search-wrap">
+      <i class="fa-solid fa-magnifying-glass search-icon"></i>
+      <input
+        class="search-input"
+        type="text"
+        placeholder="Buscar por nombre..."
+        (input)="search.set($any($event.target).value)">
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Cargando ciclos escolares...</p>
+    </div>
+  } @else if (filtered().length === 0) {
+    <div class="empty-state">
+      <i class="fa-solid fa-calendar-xmark empty-icon"></i>
+      <h3>No hay ciclos escolares</h3>
+      <p>No se encontraron ciclos con esos criterios.</p>
+    </div>
+  } @else {
+    <div class="table-card">
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th>Inicio</th>
+              <th>Fin</th>
+              <th>Estado</th>
+              <th class="actions-cell">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of filtered(); track c.id) {
+              <tr>
+                <td class="bold-cell">#{{ c.id }}</td>
+                <td>{{ c.name }}</td>
+                <td class="mono">{{ c.startDate | date:'mediumDate' }}</td>
+                <td class="mono">{{ c.endDate | date:'mediumDate' }}</td>
+                <td>
+                  <span class="status-badge" [class.active]="c.isActive" [class.inactive]="!c.isActive">
+                    {{ c.isActive ? 'Activo' : 'Inactivo' }}
+                  </span>
+                </td>
+                <td class="actions-cell">
+                  <button class="icon-btn edit" (click)="openModal(c)" title="Editar">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                  </button>
+                  <button class="icon-btn delete" (click)="deleteCycle(c.id)" title="Eliminar">
+                    <i class="fa-solid fa-trash-can"></i>
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+</div>
+
+@if (modalOpen()) {
+  <div class="modal-backdrop" (click)="closeModal()">
+    <div class="modal-panel" (click)="$event.stopPropagation()">
+      <div class="modal-hd">
+        <h2>{{ editId() ? 'Editar' : 'Nuevo' }} Ciclo Escolar</h2>
+        <button class="close-btn" (click)="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-bd">
+        <form [formGroup]="form" (ngSubmit)="save()" class="crud-form">
+          <div class="form-grid">
+            <div class="fi">
+              <label>Nombre del Ciclo</label>
+              <input type="text" formControlName="name" placeholder="Ej. Enero - Junio 2026">
+            </div>
+
+            <div class="fi">
+              <label>Fecha de Inicio</label>
+              <input type="date" formControlName="startDate">
+            </div>
+
+            <div class="fi">
+              <label>Fecha de Fin</label>
+              <input type="date" formControlName="endDate">
+            </div>
+
+            <div class="fi checkbox-fi">
+              <label class="check-wrap">
+                <input type="checkbox" formControlName="isActive">
+                <span class="check-label">Ciclo Activo</span>
+              </label>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-ft">
+        <button type="button" class="btn-cancel" (click)="closeModal()">Cancelar</button>
+        <button type="button" class="btn-save" [disabled]="form.invalid" (click)="save()">
+          Guardar
+        </button>
+      </div>
+    </div>
+  </div>
+}
+

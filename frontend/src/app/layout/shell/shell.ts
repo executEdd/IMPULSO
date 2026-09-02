@@ -151,6 +151,7 @@ export class ShellComponent implements OnInit {
           { label: 'Clases',    faIcon: 'fa-school',          route: '/clases'    },
           { label: 'Aulas',     faIcon: 'fa-door-open',       route: '/aulas'     },
           { label: 'Semestres', faIcon: 'fa-calendar-days',   route: '/semestres' },
+          { label: 'Ciclos',    faIcon: 'fa-calendar',        route: '/ciclos-escolares' },
         ]
       },
       {

@@ -16,7 +16,8 @@ export class LoginComponent {
 
   form = this.fb.group({
     email:    ['', [Validators.required, Validators.email]],
-    password: ['', Validators.required]
+    password: ['', Validators.required],
+    rememberMe: [false]
   });
 
   loading  = signal(false);
@@ -31,7 +32,7 @@ export class LoginComponent {
       PARENT:  { email: 'padre1@email.com',            password: 'parent123' }
     };
     const c = creds[role];
-    this.form.patchValue({ email: c.email, password: c.password });
+    this.form.patchValue({ email: c.email, password: c.password, rememberMe: false });
     this.submit();
   }
 
@@ -40,8 +41,8 @@ export class LoginComponent {
     this.errorMsg.set('');
     this.loading.set(true);
 
-    const { email, password } = this.form.value;
-    this.auth.login({ email: email!, password: password! }).subscribe({
+    const { email, password, rememberMe } = this.form.value;
+    this.auth.login({ email: email!, password: password!, rememberMe: !!rememberMe } as any).subscribe({
       next: () => this.router.navigate(['/dashboard']),
       error: (err) => {
         this.loading.set(false);

@@ -1,0 +1,74 @@
+﻿<div class="page-wrap">
+  <header class="page-hd">
+    <div>
+      <h1>Mi Perfil</h1>
+      <p>Actualiza tus datos personales y credenciales de acceso</p>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Cargando información...</p>
+    </div>
+  } @else {
+    <div class="profile-card">
+      <form [formGroup]="form" (ngSubmit)="save()" class="crud-form">
+        
+        <h3 class="section-title">Datos Personales</h3>
+        <div class="form-grid">
+          <div class="fi">
+            <label>Nombre(s)</label>
+            <input type="text" formControlName="firstName" placeholder="Tus nombres">
+          </div>
+          <div class="fi">
+            <label>Apellidos</label>
+            <input type="text" formControlName="lastName" placeholder="Tus apellidos">
+          </div>
+          <div class="fi">
+            <label>Correo Electrónico</label>
+            <input type="email" formControlName="email" placeholder="ejemplo@cbtis61.edu.mx">
+          </div>
+          <div class="fi">
+            <label>Teléfono</label>
+            <input type="tel" formControlName="phone" placeholder="10 dígitos">
+          </div>
+        </div>
+
+        <h3 class="section-title mt-4">Seguridad</h3>
+        <div class="form-grid">
+          <div class="fi">
+            <label>Nueva Contraseña</label>
+            <input type="password" formControlName="password" placeholder="Dejar en blanco para no cambiar">
+            <small class="help-text">Si no deseas cambiar tu contraseña, deja este campo vacío.</small>
+          </div>
+        </div>
+
+        @if (successMsg()) {
+          <div class="alert-success">
+            <i class="fa-solid fa-circle-check"></i>
+            {{ successMsg() }}
+          </div>
+        }
+        @if (errorMsg()) {
+          <div class="alert-error">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            {{ errorMsg() }}
+          </div>
+        }
+
+        <div class="form-actions">
+          <button type="submit" class="primary-btn" [disabled]="form.invalid || saving()">
+            @if (saving()) {
+              <span class="spinner-sm"></span> Guardando...
+            } @else {
+              <i class="fa-solid fa-save"></i> Guardar Cambios
+            }
+          </button>
+        </div>
+
+      </form>
+    </div>
+  }
+</div>
+
