@@ -34,7 +34,9 @@ export class GradesController {
 
   @Post("bulk")
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
-  @ApiOperation({ summary: "Capturar/Actualizar múltiples calificaciones en formato sábana" })
+  @ApiOperation({
+    summary: "Capturar/Actualizar múltiples calificaciones en formato sábana",
+  })
   async bulkUpsert(
     @Body() bulkDto: BulkUpsertGradesDto,
     @CurrentUser("id") userId: number,

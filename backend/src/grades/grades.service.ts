@@ -395,7 +395,7 @@ export class GradesService {
         partial3?: number;
       }[];
     },
-    userId: number
+    userId: number,
   ) {
     const { subjectId, period, grades } = bulkDto;
 
@@ -412,35 +412,80 @@ export class GradesService {
           },
         });
 
-        const p1 = item.partial1 !== undefined ? item.partial1 : (existing?.partial1 ?? undefined);
-        const p2 = item.partial2 !== undefined ? item.partial2 : (existing?.partial2 ?? undefined);
-        const p3 = item.partial3 !== undefined ? item.partial3 : (existing?.partial3 ?? undefined);
-        
+        const p1 =
+          item.partial1 !== undefined
+            ? item.partial1
+            : (existing?.partial1 ?? undefined);
+        const p2 =
+          item.partial2 !== undefined
+            ? item.partial2
+            : (existing?.partial2 ?? undefined);
+        const p3 =
+          item.partial3 !== undefined
+            ? item.partial3
+            : (existing?.partial3 ?? undefined);
+
         const finalGrade = this.calculateFinalGrade(p1, p2, p3);
         const status = this.determineStatus(finalGrade);
 
         if (existing) {
           const updateData: any = { finalGrade, status };
           let changed = false;
-          
-          if (item.partial1 !== undefined && item.partial1 !== existing.partial1) {
+
+          if (
+            item.partial1 !== undefined &&
+            item.partial1 !== existing.partial1
+          ) {
             updateData.partial1 = item.partial1;
             changed = true;
-            await this.createGradeLog(existing.id, userId, "partial1", existing.partial1?.toString() ?? null, item.partial1?.toString() ?? null, "UPDATE", tx);
+            await this.createGradeLog(
+              existing.id,
+              userId,
+              "partial1",
+              existing.partial1?.toString() ?? null,
+              item.partial1?.toString() ?? null,
+              "UPDATE",
+              tx,
+            );
           }
-          if (item.partial2 !== undefined && item.partial2 !== existing.partial2) {
+          if (
+            item.partial2 !== undefined &&
+            item.partial2 !== existing.partial2
+          ) {
             updateData.partial2 = item.partial2;
             changed = true;
-            await this.createGradeLog(existing.id, userId, "partial2", existing.partial2?.toString() ?? null, item.partial2?.toString() ?? null, "UPDATE", tx);
+            await this.createGradeLog(
+              existing.id,
+              userId,
+              "partial2",
+              existing.partial2?.toString() ?? null,
+              item.partial2?.toString() ?? null,
+              "UPDATE",
+              tx,
+            );
           }
-          if (item.partial3 !== undefined && item.partial3 !== existing.partial3) {
+          if (
+            item.partial3 !== undefined &&
+            item.partial3 !== existing.partial3
+          ) {
             updateData.partial3 = item.partial3;
             changed = true;
-            await this.createGradeLog(existing.id, userId, "partial3", existing.partial3?.toString() ?? null, item.partial3?.toString() ?? null, "UPDATE", tx);
+            await this.createGradeLog(
+              existing.id,
+              userId,
+              "partial3",
+              existing.partial3?.toString() ?? null,
+              item.partial3?.toString() ?? null,
+              "UPDATE",
+              tx,
+            );
           }
 
           if (changed || existing.finalGrade !== finalGrade) {
-            await tx.grade.update({ where: { id: existing.id }, data: updateData });
+            await tx.grade.update({
+              where: { id: existing.id },
+              data: updateData,
+            });
             count++;
           }
         } else {
@@ -453,11 +498,19 @@ export class GradesService {
               partial2: item.partial2 ?? null,
               partial3: item.partial3 ?? null,
               finalGrade,
-              status
-            }
+              status,
+            },
           });
-          
-          await this.createGradeLog(newGrade.id, userId, "CREATE", null, "Creación Inicial", "CREATE", tx);
+
+          await this.createGradeLog(
+            newGrade.id,
+            userId,
+            "CREATE",
+            null,
+            "Creación Inicial",
+            "CREATE",
+            tx,
+          );
           count++;
         }
       }
@@ -542,7 +595,7 @@ export class GradesService {
     });
 
     const csvString = sep + header + rows.join("\n");
-    const bom = Buffer.from([0xEF, 0xBB, 0xBF]);
+    const bom = Buffer.from([0xef, 0xbb, 0xbf]);
     return Buffer.concat([bom, Buffer.from(csvString, "utf-8")]);
   }
 }

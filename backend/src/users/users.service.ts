@@ -483,7 +483,7 @@ export class UsersService {
     });
 
     const csvString = sep + header + rows.join("\n");
-    const bom = Buffer.from([0xEF, 0xBB, 0xBF]);
+    const bom = Buffer.from([0xef, 0xbb, 0xbf]);
     return Buffer.concat([bom, Buffer.from(csvString, "utf-8")]);
   }
 

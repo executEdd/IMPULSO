@@ -1,9 +1,14 @@
-import { Injectable, BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma.service';
-import { CreateStudentDto } from './dto/create-student.dto';
-import { CreateStudentBulkDto } from './dto/create-student-bulk.dto';
-import * as bcrypt from 'bcryptjs';
-import { UserRole } from '../common/enums/roles.enum';
+import {
+  Injectable,
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from "@nestjs/common";
+import { PrismaService } from "../prisma.service";
+import { CreateStudentDto } from "./dto/create-student.dto";
+import { CreateStudentBulkDto } from "./dto/create-student-bulk.dto";
+import * as bcrypt from "bcryptjs";
+import { UserRole } from "../common/enums/roles.enum";
 
 @Injectable()
 export class StudentsService {
@@ -13,29 +18,46 @@ export class StudentsService {
     return this.prisma.$transaction(async (tx) => {
       // 1. Verify group exists
       const group = await tx.group.findUnique({ where: { id: dto.groupId } });
-      if (!group) throw new NotFoundException(`Group with ID ${dto.groupId} not found`);
+      if (!group)
+        throw new NotFoundException(`Group with ID ${dto.groupId} not found`);
 
       // 2. Check if student enrollmentId already exists
-      const existingStudent = await tx.studentProfile.findUnique({ where: { enrollmentId: dto.enrollmentId } });
-      if (existingStudent) throw new ConflictException(`Student with enrollment ${dto.enrollmentId} already exists`);
+      const existingStudent = await tx.studentProfile.findUnique({
+        where: { enrollmentId: dto.enrollmentId },
+      });
+      if (existingStudent)
+        throw new ConflictException(
+          `Student with enrollment ${dto.enrollmentId} already exists`,
+        );
 
-      const existingUser = await tx.user.findUnique({ where: { email: dto.studentEmail } });
-      if (existingUser) throw new ConflictException(`User with email ${dto.studentEmail} already exists`);
+      const existingUser = await tx.user.findUnique({
+        where: { email: dto.studentEmail },
+      });
+      if (existingUser)
+        throw new ConflictException(
+          `User with email ${dto.studentEmail} already exists`,
+        );
 
       // 3. Handle Parent
       let parentId: number;
-      
-      const parentEmailToUse = dto.parentEmail || `tutor_${dto.enrollmentId}@cbtis61.edu.mx`;
+
+      const parentEmailToUse =
+        dto.parentEmail || `tutor_${dto.enrollmentId}@cbtis61.edu.mx`;
 
       // Try to find existing parent by email
       const existingParentUser = await tx.user.findUnique({
         where: { email: parentEmailToUse },
-        include: { parentProfile: true }
+        include: { parentProfile: true },
       });
 
       if (existingParentUser) {
-        if (existingParentUser.role !== UserRole.PARENT || !existingParentUser.parentProfile) {
-          throw new BadRequestException(`User ${parentEmailToUse} exists but is not a PARENT`);
+        if (
+          existingParentUser.role !== UserRole.PARENT ||
+          !existingParentUser.parentProfile
+        ) {
+          throw new BadRequestException(
+            `User ${parentEmailToUse} exists but is not a PARENT`,
+          );
         }
         parentId = existingParentUser.parentProfile.id;
       } else {
@@ -60,19 +82,23 @@ export class StudentsService {
               groupId: dto.groupId,
               parentId: parentId,
               phone: dto.studentPhone,
-            }
-          }
+            },
+          },
         },
         include: {
-          studentProfile: true
-        }
+          studentProfile: true,
+        },
       });
 
       return newStudentUser;
     });
   }
 
-  private async createParent(tx: any, dto: CreateStudentDto, parentEmail: string): Promise<number> {
+  private async createParent(
+    tx: any,
+    dto: CreateStudentDto,
+    parentEmail: string,
+  ): Promise<number> {
     const parentPassword = dto.parentPassword || dto.parentPhone;
     const hashedPassword = await bcrypt.hash(parentPassword, 12);
 
@@ -87,10 +113,10 @@ export class StudentsService {
           create: {
             phone: dto.parentPhone,
             address: dto.parentAddress,
-          }
-        }
+          },
+        },
       },
-      include: { parentProfile: true }
+      include: { parentProfile: true },
     });
     return newParentUser.parentProfile.id;
   }
@@ -99,7 +125,7 @@ export class StudentsService {
     const results = {
       successful: 0,
       failed: 0,
-      errors: [] as string[]
+      errors: [] as string[],
     };
 
     for (let i = 0; i < bulkDto.students.length; i++) {
@@ -109,7 +135,9 @@ export class StudentsService {
         results.successful++;
       } catch (error: any) {
         results.failed++;
-        results.errors.push(`Row ${i + 1} (${student.enrollmentId}): ${error.message}`);
+        results.errors.push(
+          `Row ${i + 1} (${student.enrollmentId}): ${error.message}`,
+        );
       }
     }
 
@@ -120,8 +148,18 @@ export class StudentsService {
     return this.prisma.studentProfile.findMany({
       where: groupId ? { groupId } : undefined,
       include: {
-        user: { select: { id: true, firstName: true, lastName: true, email: true, isActive: true } },
-        group: { select: { id: true, name: true, career: true, gradeLevel: true } },
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            isActive: true,
+          },
+        },
+        group: {
+          select: { id: true, name: true, career: true, gradeLevel: true },
+        },
         parent: { include: { user: true } },
       },
     });
@@ -129,11 +167,13 @@ export class StudentsService {
 
   async remove(id: number) {
     // Delete user, which cascades to studentProfile
-    const profile = await this.prisma.studentProfile.findUnique({ where: { id } });
-    if (!profile) throw new NotFoundException('Student profile not found');
+    const profile = await this.prisma.studentProfile.findUnique({
+      where: { id },
+    });
+    if (!profile) throw new NotFoundException("Student profile not found");
 
     return this.prisma.user.delete({
-      where: { id: profile.userId }
+      where: { id: profile.userId },
     });
   }
 }
