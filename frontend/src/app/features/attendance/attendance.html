@@ -86,14 +86,23 @@
 
    <!-- Filtro por fecha (solo vista lista) -->
    @if (viewMode() === 'list') {
-     <div class="date-filter" style="margin: 16px 0; display: flex; align-items: center; gap: 12px;">
-       <mat-form-field appearance="fill" style="width: 250px;">
-         <mat-label>Filtrar por fecha</mat-label>
-         <input matInput [matDatepicker]="picker" (dateChange)="selectedDate.set($event.value)" placeholder="Selecciona una fecha">
+     <div class="date-filter-bar">
+       <div class="date-filter-label">
+         <i class="fa-solid fa-calendar-day"></i>
+         <span>Filtrar por día</span>
+       </div>
+       <mat-form-field appearance="outline" class="date-filter-field">
+         <mat-label>Selecciona una fecha</mat-label>
+         <input matInput [matDatepicker]="picker" (dateChange)="selectedDate.set($event.value)">
          <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
          <mat-datepicker #picker></mat-datepicker>
        </mat-form-field>
-       <button class="primary-btn" type="button" (click)="selectedDate.set(null)">Mostrar todo</button>
+       @if (selectedDate()) {
+         <button class="date-filter-clear" type="button" (click)="selectedDate.set(null)">
+           <i class="fa-solid fa-xmark"></i>
+           Limpiar
+         </button>
+       }
      </div>
    }
 
