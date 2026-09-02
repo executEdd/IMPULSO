@@ -62,7 +62,9 @@ export class SchedulesComponent implements OnInit {
   calendarGrid = computed(() => {
     const grid = new Map<string, any[]>();
     for (const s of this.raw()) {
-      const key = `${s.dayOfWeek}-${s.startTime.substring(0, 2)}`;
+      const match = s.startTime?.match(/^(\d{1,2})/);
+      const hour = match ? match[1].padStart(2, '0') : '00';
+      const key = `${s.dayOfWeek}-${hour}`;
       if (!grid.has(key)) grid.set(key, []);
       grid.get(key)!.push(s);
     }
@@ -165,7 +167,7 @@ export class SchedulesComponent implements OnInit {
 
   blockTop(item: any): number {
     const minutes = this.timeToMinutes(item.startTime);
-    const hourStart = parseInt(item.startTime.substring(0, 2), 10);
+    const hourStart = parseInt(item.startTime.match(/^(\d{1,2})/)?.[1] ?? '0', 10);
     const offsetMinutes = minutes - (hourStart * 60);
     return (offsetMinutes / 60) * 64;
   }
@@ -177,8 +179,9 @@ export class SchedulesComponent implements OnInit {
   }
 
   private timeToMinutes(time: string): number {
-    const [h, m] = time.split(':').map(Number);
-    return h * 60 + m;
+    const match = time?.match(/^(\d{1,2}):(\d{2})/);
+    if (!match) return 0;
+    return parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
   }
 
   formatTimeRange(item: any): string {

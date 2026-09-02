@@ -3,6 +3,7 @@
 .page-wrap {
   padding: 28px 32px; max-width: 1400px;
   display: flex; flex-direction: column; gap: 20px;
+  overflow-x: auto;
 }
 .page-hd { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .page-hd h1 { font-size: 22px; font-weight: 700; color: #1A1A2E; margin: 0 0 4px; letter-spacing: -0.3px; }
@@ -240,15 +241,16 @@
   background: #fff;
   border-radius: 16px;
   border: 1px solid #F0F2F5;
-  overflow-x: auto;
   padding-bottom: 8px;
+  overflow: visible;
 }
 
 .timetable-grid {
   display: grid;
   grid-template-columns: 64px repeat(6, 1fr);
+  grid-auto-rows: 64px;
   min-width: 780px;
-  border-collapse: collapse;
+  position: relative;
 }
 
 /* ── Corner cell ── */
@@ -286,28 +288,27 @@
 /* ── Cell ── */
 .tt-cell {
   position: relative;
-  height: 64px;
   border-right: 1px solid #F3F4F6;
   border-bottom: 1px solid #F3F4F6;
-  overflow: visible;
+  min-height: 64px;
+  padding: 0;
 }
 .tt-cell:hover { background: #FAFBFC; }
 
 /* ── Schedule block ── */
 .tt-block {
   position: absolute;
-  left: 3px; right: 3px;
+  left: 2px; right: 2px;
   border-radius: 8px;
   padding: 5px 7px;
   display: flex; flex-direction: column;
   gap: 1px;
   cursor: pointer;
-  overflow: hidden;
   box-shadow: 0 1px 4px rgba(0,0,0,0.12);
   transition: transform .12s, box-shadow .12s;
   z-index: 1;
   color: #fff;
-  min-height: 30px;
+  min-height: 28px;
 }
 .tt-block:hover {
   transform: scale(1.03);
