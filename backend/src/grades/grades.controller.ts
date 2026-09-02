@@ -21,6 +21,7 @@ import {
 import { GradesService } from "./grades.service";
 import { CreateGradeDto } from "./dto/create-grade.dto";
 import { UpdateGradeDto } from "./dto/update-grade.dto";
+import { BulkUpsertGradesDto } from "./dto/bulk-upsert-grades.dto";
 import { Roles } from "../common/decorators/roles.decorator";
 import { UserRole } from "../common/enums/roles.enum";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
@@ -30,6 +31,16 @@ import { CurrentUser } from "../common/decorators/current-user.decorator";
 @ApiBearerAuth()
 export class GradesController {
   constructor(private gradesService: GradesService) {}
+
+  @Post("bulk")
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  @ApiOperation({ summary: "Capturar/Actualizar múltiples calificaciones en formato sábana" })
+  async bulkUpsert(
+    @Body() bulkDto: BulkUpsertGradesDto,
+    @CurrentUser("id") userId: number,
+  ) {
+    return this.gradesService.bulkUpsert(bulkDto, userId);
+  }
 
   @Post()
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
