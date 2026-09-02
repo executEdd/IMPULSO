@@ -10,4 +10,10 @@ injectSpeedInsights();
 // Initialize Vercel Web Analytics
 inject();
 
-bootstrapApplication(App, appConfig).catch((err) => console.error(err));
+bootstrapApplication(App, appConfig)
+  .then(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
+  })
+  .catch((err) => console.error(err));
