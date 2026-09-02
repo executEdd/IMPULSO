@@ -265,7 +265,15 @@ export class StudentsComponent implements OnInit {
   }
 
   exportCsv() {
-    window.open(`${API}/users/export/students/csv`, '_blank');
+    this.http.get(`${API}/users/export/students/csv`, { responseType: 'arraybuffer', withCredentials: true }).subscribe(buf => {
+      const blob = new Blob([buf], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `alumnos_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
   }
 
   fetchAll() {

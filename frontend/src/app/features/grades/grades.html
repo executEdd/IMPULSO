@@ -20,8 +20,8 @@
       }
 
       @if (isAdmin || isTeacher) {
-        <button class="btn-primary" (click)="exportCsv()" style="background: #fff; color: #374151; border: 1.5px solid #E5E7EB;">
-          <i class="fa-solid fa-download"></i> Exportar
+        <button class="export-btn" (click)="exportCsv()">
+          <i class="fa-solid fa-file-csv"></i> Exportar
         </button>
       }
     </div>
