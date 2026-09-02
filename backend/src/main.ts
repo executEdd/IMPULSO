@@ -82,7 +82,7 @@ async function bootstrap() {
         (!!origin && allowedOrigins.indexOf(origin) !== -1) ||
         isVercelDeployment ||
         origin?.startsWith("http://localhost:") ||
-        origin === "https://localhost" ||
+        origin?.startsWith("https://localhost:") ||
         origin === "capacitor://localhost"
       ) {
         callback(null, true);
