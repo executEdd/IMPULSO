@@ -18,6 +18,7 @@ export class NotificationsComponent implements OnInit, OnDestroy {
   auth = inject(AuthService);
 
   get canSend() { const r = this.auth.user()?.role; return r === 'ADMIN' || r === 'TEACHER'; }
+  get isAdmin() { return this.auth.user()?.role === 'ADMIN'; }
   get isStudent() { return this.auth.user()?.role === 'STUDENT'; }
   get isParent()  { return this.auth.user()?.role === 'PARENT'; }
 
@@ -74,7 +75,7 @@ export class NotificationsComponent implements OnInit, OnDestroy {
   }
 
   fetchHistory() {
-    const endpoint = this.canSend ? `${API}/notifications` : `${API}/notifications/my-notifications`;
+    const endpoint = this.isAdmin ? `${API}/notifications` : `${API}/notifications/my-notifications`;
     this.http.get<any[]>(endpoint).subscribe({
       next: data => { this.records.set(data ?? []); this.loading.set(false); },
       error: () => this.loading.set(false)
