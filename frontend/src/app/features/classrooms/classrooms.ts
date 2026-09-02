@@ -79,7 +79,7 @@ export class ClassroomsComponent implements OnInit {
 
   closeModal() { this.modalOpen.set(false); }
 
-  save() {
+  save(addAnother = false) {
     if (this.form.invalid || this.saving()) return;
     this.saving.set(true);
     this.formError.set('');
@@ -97,10 +97,15 @@ export class ClassroomsComponent implements OnInit {
     req.subscribe({
       next: () => {
         this.saving.set(false);
-        this.modalOpen.set(false);
         this.showToast(editing ? 'Salón actualizado' : 'Salón registrado', true);
-        this.loading.set(true);
-        this.fetchAll();
+        if (addAnother && !editing) {
+          this.form.reset({ name: '', capacity: 30, description: '' });
+          this.fetchAll();
+        } else {
+          this.modalOpen.set(false);
+          this.loading.set(true);
+          this.fetchAll();
+        }
       },
       error: (err) => {
         this.saving.set(false);

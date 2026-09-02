@@ -165,6 +165,41 @@
 .empty-state span { font-size: 14px; font-weight: 500; }
 
 /* Wizard Styles */
+.wizard-actions button {
+  min-width: 120px;
+}
+.wizard-actions .secondary-btn {
+  padding: 9px 18px;
+  background: #E0E7FF;
+  color: #4338CA;
+  border: none;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.wizard-actions .secondary-btn:hover:not(:disabled) {
+  background: #C7D2FE;
+}
+.wizard-actions .secondary-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.success-toast {
+  margin: 0 auto 20px auto;
+  background: #059669;
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
+  animation: fadeIn 0.3s ease;
+}
 .wizard-container {
   max-width: 900px;
   margin: 0 auto;

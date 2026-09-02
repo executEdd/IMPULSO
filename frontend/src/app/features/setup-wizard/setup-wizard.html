@@ -45,6 +45,12 @@
       </div>
     </div>
 
+    @if (successMsg()) {
+      <div class="success-toast">
+        <i class="fa-solid fa-circle-check"></i> {{ successMsg() }}
+      </div>
+    }
+
     <!-- Step 1: Ciclo -->
     @if (currentStep() === 1) {
       <div class="step-content form-card">
@@ -134,7 +140,7 @@
         <h2>Paso 3: Crear Aula</h2>
         <p class="help-text mb-4">El espacio físico donde se impartirán las clases.</p>
         
-        <form [formGroup]="classroomForm" (ngSubmit)="createClassroom()" class="crud-form">
+        <form [formGroup]="classroomForm" class="crud-form">
           <div class="form-grid">
             <div class="field-group">
               <label class="field-label">Nombre/Número del Aula *</label>
@@ -159,8 +165,11 @@
           <div class="wizard-actions">
             <button type="button" class="ghost-btn" (click)="prevStep()"><i class="fa-solid fa-arrow-left"></i> Atrás</button>
             <button type="button" class="ghost-btn" (click)="skipStep()">Omitir</button>
-            <button type="submit" class="primary-btn" [disabled]="classroomForm.invalid || loading()">
-              @if(loading()) { <span class="spinner-sm"></span> } @else { Crear y Continuar <i class="fa-solid fa-arrow-right"></i> }
+            <button type="button" class="secondary-btn" [disabled]="classroomForm.invalid || loading()" (click)="createClassroom(true)">
+              @if(loading()) { <span class="spinner-sm"></span> } @else { Guardar y añadir otra }
+            </button>
+            <button type="button" class="primary-btn" [disabled]="classroomForm.invalid || loading()" (click)="createClassroom(false)">
+              @if(loading()) { <span class="spinner-sm"></span> } @else { Guardar y Continuar <i class="fa-solid fa-arrow-right"></i> }
             </button>
           </div>
         </form>
@@ -173,7 +182,7 @@
         <h2>Paso 4: Crear Grupo</h2>
         <p class="help-text mb-4">El grupo de alumnos (cohort) que tomará las clases.</p>
         
-        <form [formGroup]="groupForm" (ngSubmit)="createGroup()" class="crud-form">
+        <form [formGroup]="groupForm" class="crud-form">
           <div class="form-grid">
             <div class="field-group">
               <label class="field-label">Nombre del Grupo *</label>
@@ -201,8 +210,11 @@
           <div class="wizard-actions">
             <button type="button" class="ghost-btn" (click)="prevStep()"><i class="fa-solid fa-arrow-left"></i> Atrás</button>
             <button type="button" class="ghost-btn" (click)="skipStep()">Omitir</button>
-            <button type="submit" class="primary-btn" [disabled]="groupForm.invalid || loading()">
-              @if(loading()) { <span class="spinner-sm"></span> } @else { Crear y Continuar <i class="fa-solid fa-arrow-right"></i> }
+            <button type="button" class="secondary-btn" [disabled]="groupForm.invalid || loading()" (click)="createGroup(true)">
+              @if(loading()) { <span class="spinner-sm"></span> } @else { Guardar y añadir otro }
+            </button>
+            <button type="button" class="primary-btn" [disabled]="groupForm.invalid || loading()" (click)="createGroup(false)">
+              @if(loading()) { <span class="spinner-sm"></span> } @else { Guardar y Continuar <i class="fa-solid fa-arrow-right"></i> }
             </button>
           </div>
         </form>
@@ -215,7 +227,7 @@
         <h2>Paso 5: Crear Materia</h2>
         <p class="help-text mb-4">La asignatura que será impartida en la clase.</p>
         
-        <form [formGroup]="subjectForm" (ngSubmit)="createSubject()" class="crud-form">
+        <form [formGroup]="subjectForm" class="crud-form">
           <div class="form-grid">
             <div class="field-group">
               <label class="field-label">Nombre de la Materia *</label>
@@ -243,8 +255,11 @@
           <div class="wizard-actions">
             <button type="button" class="ghost-btn" (click)="prevStep()"><i class="fa-solid fa-arrow-left"></i> Atrás</button>
             <button type="button" class="ghost-btn" (click)="skipStep(); prepareFinalStep()">Omitir</button>
-            <button type="submit" class="primary-btn" [disabled]="subjectForm.invalid || loading()">
-              @if(loading()) { <span class="spinner-sm"></span> } @else { Crear y Continuar <i class="fa-solid fa-arrow-right"></i> }
+            <button type="button" class="secondary-btn" [disabled]="subjectForm.invalid || loading()" (click)="createSubject(true)">
+              @if(loading()) { <span class="spinner-sm"></span> } @else { Guardar y añadir otra }
+            </button>
+            <button type="button" class="primary-btn" [disabled]="subjectForm.invalid || loading()" (click)="createSubject(false)">
+              @if(loading()) { <span class="spinner-sm"></span> } @else { Guardar y Continuar <i class="fa-solid fa-arrow-right"></i> }
             </button>
           </div>
         </form>
@@ -257,7 +272,7 @@
         <h2>Paso 6: Ensamblar la Clase</h2>
         <p class="help-text mb-4">Por último, selecciona el Docente y verifica las relaciones para crear la Clase.</p>
         
-        <form [formGroup]="classForm" (ngSubmit)="finish()" class="crud-form">
+        <form [formGroup]="classForm" class="crud-form">
           <div class="form-grid">
             
             <div class="field-group">
@@ -332,8 +347,11 @@
           
           <div class="wizard-actions">
             <button type="button" class="ghost-btn" (click)="prevStep()"><i class="fa-solid fa-arrow-left"></i> Atrás</button>
-            <button type="submit" class="primary-btn" [disabled]="classForm.invalid || loading()">
-              @if(loading()) { <span class="spinner-sm"></span> } @else { <i class="fa-solid fa-check"></i> Finalizar y Crear Clase }
+            <button type="button" class="secondary-btn" [disabled]="classForm.invalid || loading()" (click)="finish(true)">
+              @if(loading()) { <span class="spinner-sm"></span> } @else { Crear Clase y Ensamblar Otra }
+            </button>
+            <button type="button" class="primary-btn" [disabled]="classForm.invalid || loading()" (click)="finish(false)">
+              @if(loading()) { <span class="spinner-sm"></span> } @else { <i class="fa-solid fa-check"></i> Finalizar y Salir }
             </button>
           </div>
         </form>
