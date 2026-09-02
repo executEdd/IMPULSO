@@ -155,7 +155,8 @@ export class SchedulesComponent implements OnInit {
 
   // ── Calendar helpers ──
   getSlotSchedules(day: string, hour: string): any[] {
-    return this.calendarGrid().get(`${day}-${hour}`) ?? [];
+    const h = hour.substring(0, 2);
+    return this.calendarGrid().get(`${day}-${h}`) ?? [];
   }
 
   slotSpan(item: any): number {
