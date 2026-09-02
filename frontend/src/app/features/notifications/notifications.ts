@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DatePipe } from '@angular/common';
@@ -12,12 +12,13 @@ import { AuthService } from '../../core/services/auth.service';
   templateUrl: './notifications.html',
   styleUrl: './notifications.css'
 })
-export class NotificationsComponent implements OnInit {
+export class NotificationsComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
   private fb   = inject(FormBuilder);
   auth = inject(AuthService);
 
   get canSend() { const r = this.auth.user()?.role; return r === 'ADMIN' || r === 'TEACHER'; }
+  get isAdmin() { return this.auth.user()?.role === 'ADMIN'; }
   get isStudent() { return this.auth.user()?.role === 'STUDENT'; }
   get isParent()  { return this.auth.user()?.role === 'PARENT'; }
 
@@ -36,7 +37,7 @@ export class NotificationsComponent implements OnInit {
   loading       = signal(true);
   sending       = signal(false);
   records       = signal<any[]>([]);
-  activeTab     = signal<'history' | 'send' | 'preferences'>('history');
+  activeTab     = signal<'history' | 'send' | 'global' | 'preferences'>('history');
 
   // Preferencias de notificación
   prefsLoading  = signal(false);
@@ -54,6 +55,12 @@ export class NotificationsComponent implements OnInit {
     content:       ['', [Validators.required, Validators.minLength(5)]]
   });
 
+  globalForm = this.fb.group({
+    channel:       ['IN_APP'],
+    content:       ['', [Validators.required, Validators.minLength(5)]],
+    targets:       [[] as string[]] // Optional roles
+  });
+
   channelsList = [
     { key: 'IN_APP',   label: 'Notificaciones en la App', icon: 'fa-bell', description: 'Alertas en tiempo real dentro del panel del sistema' },
     { key: 'EMAIL',    label: 'Correo Electrónico',      icon: 'fa-envelope', description: 'Avisos y boletines enviados a tu cuenta de correo' },
@@ -68,7 +75,8 @@ export class NotificationsComponent implements OnInit {
   }
 
   fetchHistory() {
-    this.http.get<any[]>(`${API}/notifications`).subscribe({
+    const endpoint = this.isAdmin ? `${API}/notifications` : `${API}/notifications/my-notifications`;
+    this.http.get<any[]>(endpoint).subscribe({
       next: data => { this.records.set(data ?? []); this.loading.set(false); },
       error: () => this.loading.set(false)
     });
@@ -134,7 +142,7 @@ export class NotificationsComponent implements OnInit {
           const mockToken = `web-push-token-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
           this.http.post(`${API}/push/register`, {
             token: mockToken,
-            platform: 'WEB',
+            platform: 'WEB_PUSH',
             userAgent: navigator.userAgent
           }).subscribe({
             next: () => {
@@ -173,18 +181,45 @@ export class NotificationsComponent implements OnInit {
     });
   }
 
+  sendGlobal() {
+    if (this.globalForm.invalid || this.sending()) return;
+    this.sending.set(true);
+    
+    const v = this.globalForm.value;
+    const payload = {
+      content: v.content,
+      channel: v.channel,
+      targetRoles: v.targets && v.targets.length > 0 ? v.targets : undefined
+    };
+
+    this.http.post(`${API}/notifications/global`, payload).subscribe({
+      next: (res: any) => {
+        this.showToast(`Aviso global enviado a ${res.count} usuarios`, true);
+        this.globalForm.reset({ channel: 'IN_APP', targets: [] });
+        this.sending.set(false);
+        this.fetchHistory();
+      },
+      error: () => {
+        this.showToast('Error al enviar el aviso global', false);
+        this.sending.set(false);
+      }
+    });
+  }
+
   private showToast(msg: string, ok: boolean) {
     this.toastMsg.set(msg);
     this.toastOk.set(ok);
     setTimeout(() => this.toastMsg.set(''), 3500);
   }
 
+  ngOnDestroy() {}
+
   statusClass(s: string) {
-    const m: Record<string, string> = { SENT: 'chip-green', PENDING: 'chip-yellow', FAILED: 'chip-red' };
+    const m: Record<string, string> = { SENT: 'chip-green', PENDING: 'chip-yellow', FAILED: 'chip-red', READ: 'chip-blue', SIMULATED: 'chip-gray' };
     return m[s] ?? 'chip-yellow';
   }
   statusLabel(s: string) {
-    const m: Record<string, string> = { SENT: 'Enviado', PENDING: 'Pendiente', FAILED: 'Fallido' };
+    const m: Record<string, string> = { SENT: 'Enviado', PENDING: 'Pendiente', FAILED: 'Fallido', READ: 'Leído', SIMULATED: 'Simulado' };
     return m[s] ?? s;
   }
   channelIcon(c: string) {

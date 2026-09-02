@@ -1,4 +1,4 @@
-import { NotificationStatus } from "@prisma/client";
+import { NotificationStatus, Prisma } from "@prisma/client";
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma.service";
 import { EmailTransport } from "./transports/email.transport";
@@ -20,13 +20,14 @@ export interface AlertRecipient {
 }
 
 export interface DispatchAlertInput {
-  alert: {
+  alert?: {
     id: number;
     studentId: number;
     type: string;
     priority: string;
     message: string;
   };
+  globalMessage?: string;
   recipients: AlertRecipient[];
   senderId: number;
   title?: string;
@@ -54,11 +55,18 @@ export class NotificationRouterService {
     ]);
   }
 
-  async dispatch(input: DispatchAlertInput): Promise<void> {
+  async dispatch(
+    input: DispatchAlertInput,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    const client = tx || this.prisma;
     const title = input.title || "Notificación CBTIS 61";
 
     for (const recipient of input.recipients) {
-      const recipientType = await this.inferRecipientType(recipient.userId);
+      const recipientType = await this.inferRecipientType(
+        recipient.userId,
+        client,
+      );
 
       for (const channel of recipient.channels) {
         const transports = this.transports.get(channel);
@@ -67,16 +75,17 @@ export class NotificationRouterService {
         }
 
         for (const transport of transports) {
-          const notification = await this.prisma.notification.create({
+          const content = input.alert?.message || input.globalMessage || "";
+          const notification = await client.notification.create({
             data: {
-              alertId: input.alert.id,
+              alertId: input.alert?.id || null,
               senderId: input.senderId,
               recipientType,
               recipientId: recipient.userId,
               channel:
                 transport.channel === "PUSH" ? channel : transport.channel,
               status: NotificationStatus.PENDING,
-              content: input.alert.message,
+              content,
             },
           });
 
@@ -86,13 +95,15 @@ export class NotificationRouterService {
             email: recipient.email,
             phone: recipient.phone,
             title,
-            body: input.alert.message,
-            data: {
-              alertId: input.alert.id,
-              studentId: input.alert.studentId,
-              type: input.alert.type,
-              priority: input.alert.priority,
-            },
+            body: content,
+            data: input.alert
+              ? {
+                  alertId: input.alert.id,
+                  studentId: input.alert.studentId,
+                  type: input.alert.type,
+                  priority: input.alert.priority,
+                }
+              : {},
           };
 
           // Fire-and-forget to avoid blocking the HTTP request.
@@ -107,8 +118,11 @@ export class NotificationRouterService {
     }
   }
 
-  private async inferRecipientType(userId: number): Promise<string> {
-    const user = await this.prisma.user.findUnique({
+  private async inferRecipientType(
+    userId: number,
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
+  ): Promise<string> {
+    const user = await client.user.findUnique({
       where: { id: userId },
       select: { role: true },
     });

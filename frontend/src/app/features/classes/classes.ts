@@ -6,6 +6,13 @@ import { catchError } from 'rxjs/operators';
 import { AuthService } from '../../core/services/auth.service';
 
 import { API } from '../../core/config/api.config';
+import { normalizeText } from '../../core/utils/text.utils';
+
+const DAY_LABELS: Record<string, string> = {
+  MONDAY: 'Lunes', TUESDAY: 'Martes', WEDNESDAY: 'Miércoles',
+  THURSDAY: 'Jueves', FRIDAY: 'Viernes', SATURDAY: 'Sábado', SUNDAY: 'Domingo'
+};
+const DAY_ORDER = ['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
 
 @Component({
   selector: 'app-classes',
@@ -23,12 +30,11 @@ export class ClassesComponent implements OnInit {
   all     = signal<any[]>([]);
   search  = signal('');
 
-  // catálogos
   subjects   = signal<any[]>([]);
   groups     = signal<any[]>([]);
   teachers   = signal<any[]>([]);
-  semesters  = signal<any[]>([]);   // derivados de clases existentes
-  classrooms = signal<any[]>([]);   // derivados de clases existentes
+  semesters  = signal<any[]>([]);
+  classrooms = signal<any[]>([]);
 
   modalOpen = signal(false);
   editing   = signal<any | null>(null);
@@ -39,6 +45,16 @@ export class ClassesComponent implements OnInit {
   toastMsg = signal('');
   toastOk  = signal(true);
 
+  // Horarios locales (se envían con la clase)
+  localSchedules = signal<any[]>([]);
+  scheduleDay    = signal('MONDAY');
+  scheduleStart  = signal('07:00');
+  scheduleEnd    = signal('08:30');
+  scheduleRoom   = signal<number | null>(null);
+  scheduleError  = signal('');
+
+  dayOptions = DAY_ORDER.map(d => ({ value: d, label: DAY_LABELS[d] }));
+
   form = this.fb.group({
     subjectId:   [null as number | null, Validators.required],
     groupId:     [null as number | null, Validators.required],
@@ -48,12 +64,12 @@ export class ClassesComponent implements OnInit {
   });
 
   filtered = computed(() => {
-    const q = this.search().toLowerCase();
+    const q = normalizeText(this.search());
     return this.all().filter(c =>
       !q ||
-      c.subject?.name?.toLowerCase().includes(q) ||
-      c.group?.name?.toLowerCase().includes(q)  ||
-      `${c.teacher?.user?.firstName} ${c.teacher?.user?.lastName}`.toLowerCase().includes(q)
+      normalizeText(c.subject?.name ?? '').includes(q) ||
+      normalizeText(c.group?.name ?? '').includes(q) ||
+      normalizeText(`${c.teacher?.user?.firstName} ${c.teacher?.user?.lastName}`).includes(q)
     );
   });
 
@@ -91,13 +107,15 @@ export class ClassesComponent implements OnInit {
     });
   }
 
-  /** Semestres y aulas no tienen endpoint propio; se derivan de las clases existentes */
   private deriveCatalogs() {
     const sem = new Map<number, any>();
     const rooms = new Map<number, any>();
     for (const c of this.all()) {
       if (c.semester?.id && !sem.has(c.semester.id)) sem.set(c.semester.id, c.semester);
       if (c.classroom?.id && !rooms.has(c.classroom.id)) rooms.set(c.classroom.id, c.classroom);
+      for (const s of c.schedules ?? []) {
+        if (s.classroom?.id && !rooms.has(s.classroom.id)) rooms.set(s.classroom.id, s.classroom);
+      }
     }
     this.semesters.set([...sem.values()]);
     this.classrooms.set([...rooms.values()]);
@@ -106,6 +124,8 @@ export class ClassesComponent implements OnInit {
   openCreate() {
     this.editing.set(null);
     this.formError.set('');
+    this.localSchedules.set([]);
+    this.resetScheduleFields();
     this.form.reset({ subjectId: null, groupId: null, teacherId: null, semesterId: null, classroomId: null });
     this.modalOpen.set(true);
   }
@@ -113,6 +133,13 @@ export class ClassesComponent implements OnInit {
   openEdit(c: any) {
     this.editing.set(c);
     this.formError.set('');
+    this.localSchedules.set((c.schedules ?? []).map((s: any) => ({
+      dayOfWeek: s.dayOfWeek,
+      startTime: s.startTime,
+      endTime: s.endTime,
+      classroomId: s.classroomId ?? null,
+    })));
+    this.resetScheduleFields();
     this.form.patchValue({
       subjectId:   c.subjectId ?? c.subject?.id ?? null,
       groupId:     c.groupId ?? c.group?.id ?? null,
@@ -125,7 +152,60 @@ export class ClassesComponent implements OnInit {
 
   closeModal() { this.modalOpen.set(false); }
 
-  save() {
+  // ── Horarios locales ──
+  private resetScheduleFields() {
+    this.scheduleDay.set('MONDAY');
+    this.scheduleStart.set('07:00');
+    this.scheduleEnd.set('08:30');
+    this.scheduleRoom.set(null);
+    this.scheduleError.set('');
+  }
+
+  private timeToMinutes(t: string): number {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  }
+
+  addSchedule() {
+    const day = this.scheduleDay();
+    const start = this.scheduleStart();
+    const end = this.scheduleEnd();
+    const room = this.scheduleRoom();
+
+    if (!day || !start || !end) {
+      this.scheduleError.set('Completa día, hora inicio y hora fin');
+      return;
+    }
+    if (this.timeToMinutes(start) >= this.timeToMinutes(end)) {
+      this.scheduleError.set('La hora de inicio debe ser menor que la hora de fin');
+      return;
+    }
+
+    // Verificar choques locales
+    const existing = this.localSchedules();
+    for (const s of existing) {
+      if (s.dayOfWeek !== day) continue;
+      if (!(start < s.endTime && s.startTime < end)) continue;
+      if (room && s.classroomId === room) {
+        this.scheduleError.set(`El aula ya está ocupada ${DAY_LABELS[day]} ${s.startTime}–${s.endTime}`);
+        return;
+      }
+    }
+
+    this.localSchedules.update(list => [...list, { dayOfWeek: day, startTime: start, endTime: end, classroomId: room }]);
+    this.resetScheduleFields();
+  }
+
+  removeSchedule(index: number) {
+    this.localSchedules.update(list => list.filter((_, i) => i !== index));
+  }
+
+  dayLabel(day: string): string {
+    return DAY_LABELS[day] ?? day;
+  }
+
+  // ── Save ──
+  save(addAnother = false) {
     if (this.form.invalid || this.saving()) return;
     this.saving.set(true);
     this.formError.set('');
@@ -135,6 +215,7 @@ export class ClassesComponent implements OnInit {
       groupId:    Number(v.groupId),
       teacherId:  Number(v.teacherId),
       semesterId: Number(v.semesterId),
+      schedules:  this.localSchedules(),
     };
     if (v.classroomId) body.classroomId = Number(v.classroomId);
 
@@ -145,10 +226,16 @@ export class ClassesComponent implements OnInit {
     req.subscribe({
       next: () => {
         this.saving.set(false);
-        this.modalOpen.set(false);
         this.showToast(editing ? 'Clase actualizada' : 'Clase creada', true);
-        this.loading.set(true);
-        this.fetchAll();
+        if (addAnother && !editing) {
+          this.form.patchValue({ subjectId: null, teacherId: null, classroomId: null });
+          this.localSchedules.set([]);
+          this.fetchAll();
+        } else {
+          this.modalOpen.set(false);
+          this.loading.set(true);
+          this.fetchAll();
+        }
       },
       error: (err) => {
         this.saving.set(false);
@@ -161,7 +248,7 @@ export class ClassesComponent implements OnInit {
   remove(c: any) {
     if (this.deleting()) return;
     const label = `${c.subject?.name ?? 'Clase'} — ${c.group?.name ?? ''}`;
-    if (!confirm(`¿Eliminar la clase "${label}"?`)) return;
+    if (!confirm(`¿Eliminar la clase "${label}"? Esto también eliminará sus horarios y asistencias.`)) return;
     this.deleting.set(c.id);
     this.http.delete(`${API}/classes/${c.id}`).subscribe({
       next: () => {

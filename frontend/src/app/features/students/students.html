@@ -10,11 +10,15 @@
         <i class="fa-solid fa-user-graduate"></i>
         {{ filtered().length }} alumnos
       </span>
-      <button class="secondary-btn" (click)="exportCsv()" title="Exportar Padrón de Alumnos a CSV">
+      <button class="export-btn" (click)="exportCsv()" title="Exportar Padrón de Alumnos a CSV">
         <i class="fa-solid fa-file-csv"></i>
         Exportar CSV
       </button>
       @if (isAdmin) {
+        <button class="import-btn" (click)="openBulkImport()">
+          <i class="fa-solid fa-file-import"></i>
+          Importar alumnos
+        </button>
         <button class="primary-btn" (click)="openCreate()">
           <i class="fa-solid fa-plus"></i>
           Nuevo alumno
@@ -277,7 +281,7 @@
     </aside>
   }
 
-  <!-- ══ MODAL ALTA/EDICIÓN ══ -->
+  <!-- MODAL ALTA/EDICIÓN -->
   @if (modalOpen()) {
     <div class="modal-backdrop" (click)="closeModal()"></div>
     <div class="modal">
@@ -288,39 +292,76 @@
         </button>
       </div>
 
-      <form [formGroup]="form" (ngSubmit)="save()" class="modal-form">
+      <form [formGroup]="form" (ngSubmit)="save()" class="modal-form" style="max-height: 70vh; overflow-y: auto; padding-right: 8px;">
+        <!-- STUDENT INFO -->
+        <h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:4px; font-size:14px; color:#7C1D2E;">Datos del Alumno</h3>
         <div class="form-row">
           <div class="field-group">
-            <label class="field-label">Nombre(s)</label>
-            <input class="field-input" formControlName="firstName" placeholder="Ej: María">
+            <label class="field-label">Nombre(s) *</label>
+            <input class="field-input" formControlName="studentFirstName" placeholder="Ej: María">
           </div>
           <div class="field-group">
-            <label class="field-label">Apellidos</label>
-            <input class="field-input" formControlName="lastName" placeholder="Ej: García López">
+            <label class="field-label">Apellidos *</label>
+            <input class="field-input" formControlName="studentLastName" placeholder="Ej: García López">
           </div>
-        </div>
-
-        <div class="field-group">
-          <label class="field-label">Correo institucional</label>
-          <input class="field-input" type="email" formControlName="email" placeholder="alumno@cbtis61.edu.mx">
         </div>
 
         <div class="form-row">
           <div class="field-group">
-            <label class="field-label">Matrícula</label>
+            <label class="field-label">Matrícula *</label>
             <input class="field-input" formControlName="enrollmentId" placeholder="Ej: 24080001">
           </div>
           <div class="field-group">
-            <label class="field-label">Teléfono (opcional)</label>
-            <input class="field-input" formControlName="phone" placeholder="10 dígitos">
+            <label class="field-label">Grupo *</label>
+            <select class="field-input" formControlName="groupId">
+              <option [ngValue]="null">-- Selecciona un grupo --</option>
+              @for (g of groupsList(); track g.id) {
+                <option [value]="g.id">{{ g.name }} - {{ g.career }}</option>
+              }
+            </select>
           </div>
         </div>
 
+        <div class="form-row">
+          <div class="field-group">
+            <label class="field-label">Correo electrónico *</label>
+            <input class="field-input" type="email" formControlName="studentEmail" placeholder="alumno@cbtis61.edu.mx">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Teléfono (opcional)</label>
+            <input class="field-input" formControlName="studentPhone" placeholder="10 dígitos">
+          </div>
+        </div>
+        
         <div class="field-group">
           <label class="field-label">
-            {{ editing() ? 'Nueva contraseña (dejar vacío para no cambiar)' : 'Contraseña' }}
+            {{ editing() ? 'Nueva contraseña (vacío para no cambiar)' : 'Contraseña (opcional, auto: matrícula)' }}
           </label>
-          <input class="field-input" type="password" formControlName="password" placeholder="Mínimo 6 caracteres">
+          <input class="field-input" type="password" formControlName="studentPassword" placeholder="Mínimo 6 caracteres">
+        </div>
+
+        <!-- PARENT INFO -->
+        <h3 style="margin-top:20px; border-bottom:1px solid #eee; padding-bottom:4px; font-size:14px; color:#7C1D2E;">Datos del Tutor</h3>
+        <div class="form-row">
+          <div class="field-group">
+            <label class="field-label">Nombre(s) tutor *</label>
+            <input class="field-input" formControlName="parentFirstName" placeholder="Ej: Carlos">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Apellidos tutor *</label>
+            <input class="field-input" formControlName="parentLastName" placeholder="Ej: García">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field-group">
+            <label class="field-label">Teléfono tutor *</label>
+            <input class="field-input" formControlName="parentPhone" placeholder="10 dígitos">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Correo tutor (opcional)</label>
+            <input class="field-input" type="email" formControlName="parentEmail" placeholder="Si tiene cuenta existente, ponlo aquí">
+          </div>
         </div>
 
         @if (formError()) {
@@ -330,14 +371,84 @@
           </div>
         }
 
-        <div class="modal-actions">
+        <div class="modal-actions" style="margin-top:20px; position: sticky; bottom: 0; background: white; padding-top: 10px; border-top: 1px solid #eee;">
           <button type="button" class="ghost-btn" (click)="closeModal()">Cancelar</button>
           <button type="submit" class="primary-btn" [disabled]="form.invalid || saving()">
             @if (saving()) { <span class="btn-spinner-sm"></span> Guardando... }
-            @else { {{ editing() ? 'Guardar cambios' : 'Registrar alumno' }} }
+            @else { {{ editing() ? 'Guardar cambios' : 'Registrar alumno y tutor' }} }
           </button>
         </div>
       </form>
+    </div>
+  }
+
+  <!-- MODAL CARGA MASIVA -->
+  @if (bulkImportOpen()) {
+    <div class="modal-backdrop" (click)="closeBulkImport()"></div>
+    <div class="modal">
+      <div class="modal-hd">
+        <h2>Importar Alumnos (CSV)</h2>
+        <button class="icon-btn" (click)="closeBulkImport()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="modal-body" style="padding: 24px;">
+        <p class="import-instructions">
+          Sube un archivo CSV con las siguientes columnas en la primera fila (puedes usar mayúsculas o minúsculas):
+        </p>
+        <div class="csv-format-box">
+          Nombre Alumno, Apellidos Alumno, Correo, Matricula, Grupo, Telefono, Nombre Tutor, Apellidos Tutor, Telefono Tutor, Correo Tutor
+        </div>
+        
+        @if (!importFile()) {
+          <label class="file-drop-zone"
+                 [class.drag-over]="isDragging()"
+                 (dragover)="onDragOver($event)"
+                 (dragleave)="onDragLeave($event)"
+                 (drop)="onDrop($event)">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <h4 class="file-drop-text">Haz clic para subir archivo CSV</h4>
+            <p class="file-drop-subtext">o arrastra el archivo aquí</p>
+            <input type="file" accept=".csv" (change)="onFileChange($event)" class="file-input-hidden">
+          </label>
+        } @else {
+          <div class="file-selected">
+            <div class="file-selected-info">
+              <i class="fa-solid fa-file-csv"></i>
+              <span>{{ importFile()?.name }}</span>
+            </div>
+            <button class="remove-file-btn" (click)="removeFile()" title="Quitar archivo">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
+        }
+        
+        @if (importResult()) {
+          <div class="import-results">
+            <strong><i class="fa-solid fa-circle-check"></i> Resultados de importación:</strong><br>
+            <div style="margin-top: 6px;">
+              - Exitosos: <strong>{{ importResult().successful }}</strong><br>
+              - Fallidos: <strong>{{ importResult().failed }}</strong>
+            </div>
+            @if (importResult().errors?.length) {
+              <div class="import-errors">
+                <ul>
+                  @for (err of importResult().errors; track $index) {
+                    <li>{{ err }}</li>
+                  }
+                </ul>
+              </div>
+            }
+          </div>
+        }
+      </div>
+      <div class="modal-actions" style="padding: 16px 24px; border-top: 1px solid #f0f2f5;">
+        <button type="button" class="ghost-btn" (click)="closeBulkImport()">Cancelar</button>
+        <button type="button" class="primary-btn" [disabled]="!importFile() || importLoading()" (click)="uploadCsv()">
+          @if (importLoading()) { <span class="btn-spinner-sm"></span> Procesando... }
+          @else { <i class="fa-solid fa-upload"></i> Subir e Importar }
+        </button>
+      </div>
     </div>
   }
 

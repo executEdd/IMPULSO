@@ -624,7 +624,7 @@ describe("AttendanceModule (e2e)", () => {
         classScheduleId,
       });
 
-    expect(scanRes.status).toBe(400);
+    expect(scanRes.status).toBe(403);
     expect(scanRes.body.message.message || scanRes.body.message).toBe(
       "No está autorizado para registrar asistencia en esta clase. El docente no coincide con el horario asignado.",
     );

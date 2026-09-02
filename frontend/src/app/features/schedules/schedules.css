@@ -3,11 +3,12 @@
 .page-wrap {
   padding: 28px 32px; max-width: 1400px;
   display: flex; flex-direction: column; gap: 20px;
+  overflow-x: auto;
 }
 .page-hd { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .page-hd h1 { font-size: 22px; font-weight: 700; color: #1A1A2E; margin: 0 0 4px; letter-spacing: -0.3px; }
 .page-hd p  { font-size: 13.5px; color: #9CA3AF; margin: 0; }
-.hd-meta    { display: flex; align-items: center; }
+.hd-meta    { display: flex; align-items: center; gap: 10px; }
 .count-badge {
   display: inline-flex; align-items: center; gap: 7px;
   padding: 7px 14px; background: #fff; border: 1px solid #F0F2F5;
@@ -212,3 +213,191 @@
 .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 56px 20px; color: #9CA3AF; }
 .empty-state i { font-size: 30px; }
 .empty-state span { font-size: 14px; font-weight: 500; }
+
+/* ── Toggle de vista ── */
+.view-toggle {
+  display: flex;
+  background: #F3F4F6;
+  border-radius: 9px;
+  padding: 2px;
+  gap: 2px;
+}
+.toggle-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border: none; border-radius: 7px;
+  background: transparent; color: #9CA3AF; font-size: 13px;
+  cursor: pointer; transition: all .15s;
+}
+.toggle-btn.active {
+  background: #fff; color: #7C1D2E;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+.toggle-btn:hover:not(.active) { color: #374151; }
+
+/* ═══════════════════════════════════
+   TIMETABLE — Vista calendario
+   ═══════════════════════════════════ */
+.timetable-wrap {
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #F0F2F5;
+  padding-bottom: 8px;
+  overflow: visible;
+}
+
+.timetable-grid {
+  display: grid;
+  grid-template-columns: 64px repeat(6, 1fr);
+  grid-auto-rows: 64px;
+  min-width: 780px;
+  position: relative;
+}
+
+/* ── Corner cell ── */
+.tt-corner {
+  position: sticky; left: 0; z-index: 3;
+  background: #F9FAFB;
+  border-bottom: 2px solid #E5E7EB;
+  border-right: 1px solid #F0F2F5;
+}
+
+/* ── Day header ── */
+.tt-day-header {
+  position: sticky; top: 0; z-index: 2;
+  padding: 14px 8px;
+  text-align: center;
+  font-size: 13px; font-weight: 700; color: #fff;
+  border-bottom: 2px solid #E5E7EB;
+  letter-spacing: 0.3px;
+}
+
+/* ── Time label ── */
+.tt-time-label {
+  position: sticky; left: 0; z-index: 2;
+  padding: 0 10px;
+  height: 64px;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding-top: 2px;
+  background: #F9FAFB;
+  border-right: 1px solid #F0F2F5;
+  border-bottom: 1px solid #F3F4F6;
+  font-size: 11.5px; font-weight: 600; color: #9CA3AF;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Cell ── */
+.tt-cell {
+  position: relative;
+  border-right: 1px solid #F3F4F6;
+  border-bottom: 1px solid #F3F4F6;
+  min-height: 64px;
+  padding: 0;
+}
+.tt-cell:hover { background: #FAFBFC; }
+
+/* ── Schedule block ── */
+.tt-block {
+  position: absolute;
+  left: 2px; right: 2px;
+  border-radius: 8px;
+  padding: 5px 7px;
+  display: flex; flex-direction: column;
+  gap: 1px;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+  transition: transform .12s, box-shadow .12s;
+  z-index: 1;
+  color: #fff;
+  min-height: 28px;
+}
+.tt-block:hover {
+  transform: scale(1.03);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+  z-index: 5;
+}
+.tt-block-time {
+  font-size: 10px; font-weight: 700;
+  opacity: 0.9;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+.tt-block-subject {
+  font-size: 11.5px; font-weight: 700;
+  line-height: 1.2;
+  overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+.tt-block-group {
+  font-size: 10px; font-weight: 600;
+  opacity: 0.85;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+
+/* ═══════════════════════════════════
+   SIDE PANEL — Detalle del horario
+   ═══════════════════════════════════ */
+.panel-backdrop {
+  position: fixed; inset: 0; z-index: 110;
+  background: rgba(15,15,30,0.4);
+  animation: fadeIn .2s ease-out;
+}
+.side-panel {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: 400px; max-width: 92vw; z-index: 120;
+  background: #fff;
+  box-shadow: -8px 0 32px rgba(0,0,0,0.15);
+  animation: panelSlideIn .25s cubic-bezier(.22,1,.36,1);
+  display: flex; flex-direction: column;
+}
+@keyframes panelSlideIn {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+.panel-hd {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: 24px 24px 18px;
+  border-bottom: 1px solid #F0F2F5;
+}
+.panel-title { font-size: 18px; font-weight: 700; color: #1A1A2E; margin: 0 0 4px; }
+.panel-sub   { font-size: 13px; color: #9CA3AF; margin: 0; }
+.panel-body {
+  flex: 1; overflow-y: auto;
+  padding: 20px 24px;
+  display: flex; flex-direction: column; gap: 16px;
+}
+.panel-info-row {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 14px 16px;
+  background: #F9FAFB; border-radius: 12px;
+  border: 1px solid #F3F4F6;
+}
+.panel-info-row i {
+  font-size: 16px; color: #7C1D2E;
+  margin-top: 2px; flex-shrink: 0;
+}
+.panel-info-row div {
+  display: flex; flex-direction: column; gap: 2px;
+}
+.info-label {
+  font-size: 11px; font-weight: 600; color: #9CA3AF;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.info-value {
+  font-size: 14px; font-weight: 600; color: #1A1A2E;
+}
+.panel-actions {
+  display: flex; gap: 10px;
+  margin-top: 10px;
+  padding-top: 18px;
+  border-top: 1px solid #F0F2F5;
+}
+.danger-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 18px;
+  background: #FEE2E2; color: #DC2626;
+  border: none; border-radius: 10px;
+  font-size: 13.5px; font-weight: 600; font-family: inherit;
+  cursor: pointer; transition: background .15s;
+}
+.danger-btn:hover { background: #FECACA; }

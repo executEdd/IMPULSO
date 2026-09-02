@@ -129,7 +129,7 @@
         <button class="modal-close" (click)="closeModal()"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
-      <form [formGroup]="form" (ngSubmit)="save()">
+      <form [formGroup]="form" class="modal-form">
         <div class="modal-body">
           @if (formError()) {
             <div class="form-error">
@@ -155,7 +155,13 @@
 
         <div class="modal-footer">
           <button type="button" class="btn-sec" (click)="closeModal()">Cancelar</button>
-          <button type="submit" class="btn-primary" [disabled]="form.invalid || saving()">
+          @if (!editing()) {
+            <button type="button" class="btn-primary" [disabled]="form.invalid || saving()" (click)="save(true)">
+              @if (saving()) { <i class="fa-solid fa-spinner fa-spin"></i> }
+              @else { Guardar y añadir otra }
+            </button>
+          }
+          <button type="button" class="btn-primary" [disabled]="form.invalid || saving()" (click)="save(false)">
             @if (saving()) {
               <i class="fa-solid fa-spinner fa-spin"></i> Guardando...
             } @else {

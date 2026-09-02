@@ -56,8 +56,15 @@ export class MyQrComponent implements OnInit, OnDestroy {
     if (ms <= 0) return 'Expirado';
     const s = Math.floor(ms / 1000);
     const m = Math.floor(s / 60);
-    const rem = s % 60;
-    return m > 0 ? `${m}m ${rem}s` : `${rem}s`;
+    const h = Math.floor(m / 60);
+    const remM = m % 60;
+    const remS = s % 60;
+    
+    const hh = h.toString().padStart(2, '0');
+    const mm = remM.toString().padStart(2, '0');
+    const ss = remS.toString().padStart(2, '0');
+    
+    return `${hh}:${mm}:${ss}`;
   });
 
   ngOnInit() {

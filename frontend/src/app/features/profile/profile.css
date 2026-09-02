@@ -1,0 +1,145 @@
+/* ── Perfil ── */
+
+.page-wrap {
+  padding: 28px 32px; max-width: 1400px;
+  display: flex; flex-direction: column; gap: 20px;
+}
+.page-hd { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.page-hd h1 { font-size: 22px; font-weight: 700; color: #1A1A2E; margin: 0 0 4px; letter-spacing: -0.3px; }
+.page-hd p  { font-size: 13.5px; color: #9CA3AF; margin: 0; }
+
+/* ── Card del perfil ── */
+.profile-card {
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #F0F2F5;
+  padding: 32px;
+  max-width: 720px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+}
+
+/* ── Secciones ── */
+.section-title {
+  font-size: 15px; font-weight: 700; color: #7C1D2E;
+  margin: 0 0 20px; padding-bottom: 12px;
+  border-bottom: 2px solid #F3F4F6;
+  display: flex; align-items: center; gap: 8px;
+}
+.section-title i { font-size: 14px; }
+.mt-4 { margin-top: 32px; }
+
+/* ── Grid del formulario ── */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+/* ── Campo de formulario ── */
+.fi {
+  display: flex; flex-direction: column; gap: 6px;
+}
+.fi label {
+  font-size: 12.5px; font-weight: 600; color: #374151;
+  letter-spacing: 0.2px;
+}
+.fi input,
+.fi select {
+  padding: 11px 14px;
+  border: 1.5px solid #E5E7EB; border-radius: 10px;
+  font-size: 14px; font-family: inherit; color: #1A1A2E;
+  background: #FAFAFA;
+  outline: none; width: 100%;
+  transition: border-color .15s, box-shadow .15s, background .15s;
+  box-sizing: border-box;
+}
+.fi input:focus,
+.fi select:focus {
+  border-color: #7C1D2E;
+  box-shadow: 0 0 0 3px rgba(124,29,46,0.08);
+  background: #fff;
+}
+.fi input::placeholder { color: #C4C9D4; }
+.fi input:disabled {
+  background: #F3F4F6; color: #9CA3AF; cursor: not-allowed;
+}
+
+/* ── Texto de ayuda ── */
+.help-text {
+  font-size: 12px; color: #9CA3AF; margin-top: 2px;
+  line-height: 1.4;
+}
+
+/* ── Alertas ── */
+.alert-success {
+  display: flex; align-items: center; gap: 10px;
+  background: #ECFDF5; border: 1px solid #A7F3D0;
+  color: #065F46; border-radius: 10px;
+  padding: 12px 16px; margin-top: 24px;
+  font-size: 13.5px; font-weight: 500;
+}
+.alert-success i { font-size: 16px; color: #059669; }
+.alert-error {
+  display: flex; align-items: center; gap: 10px;
+  background: #FEF2F2; border: 1px solid #FECACA;
+  color: #991B1B; border-radius: 10px;
+  padding: 12px 16px; margin-top: 24px;
+  font-size: 13.5px; font-weight: 500;
+}
+.alert-error i { font-size: 16px; color: #DC2626; }
+
+/* ── Acciones ── */
+.form-actions {
+  margin-top: 28px;
+  display: flex; justify-content: flex-end;
+  padding-top: 20px;
+  border-top: 1px solid #F3F4F6;
+}
+
+/* ── Botones ── */
+.primary-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 22px; background: #7C1D2E; color: #fff;
+  border: none; border-radius: 10px;
+  font-size: 14px; font-weight: 600; font-family: inherit;
+  cursor: pointer; transition: background .15s, transform .15s;
+  box-shadow: 0 2px 8px rgba(124,29,46,0.25);
+}
+.primary-btn:hover:not(:disabled) { background: #5A0F1E; transform: translateY(-1px); }
+.primary-btn:disabled { background: #C4C9D4; cursor: not-allowed; box-shadow: none; }
+.primary-btn i { font-size: 14px; }
+
+.spinner-sm {
+  width: 14px; height: 14px;
+  border: 2px solid rgba(255,255,255,.35);
+  border-top-color: #fff; border-radius: 50%;
+  animation: spin .7s linear infinite;
+  display: inline-block;
+}
+
+/* ── Loading ── */
+.loading-state {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 12px; padding: 64px 20px; color: #9CA3AF;
+}
+.loading-state p { font-size: 14px; font-weight: 500; margin: 0; }
+.spinner {
+  width: 36px; height: 36px;
+  border: 3px solid #F3F4F6; border-top-color: #7C1D2E;
+  border-radius: 50%; animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Toast ── */
+.toast {
+  position: fixed; bottom: 28px; right: 28px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 20px; border-radius: 12px;
+  font-size: 14px; font-weight: 600; color: #fff;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  animation: toastIn .3s cubic-bezier(.22,1,.36,1); z-index: 200;
+}
+.toast-ok  { background: #059669; }
+.toast-err { background: #DC2626; }
+@keyframes toastIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }

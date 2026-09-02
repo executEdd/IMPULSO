@@ -39,11 +39,13 @@ export class AuthController {
   ) {
     const { accessToken, user } = await this.authService.login(loginDto);
 
+    const maxAge = loginDto.rememberMe ? 15 * ONE_DAY_MS : ONE_DAY_MS;
+
     res.cookie(ACCESS_TOKEN_COOKIE, accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      maxAge: ONE_DAY_MS,
+      maxAge,
     });
 
     return { accessToken, user };

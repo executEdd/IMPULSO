@@ -4,6 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
 
 import { API } from '../../core/config/api.config';
+import { normalizeText } from '../../core/utils/text.utils';
 
 @Component({
   selector: 'app-subjects',
@@ -40,11 +41,11 @@ export class SubjectsComponent implements OnInit {
   });
 
   filtered = computed(() => {
-    const q = this.search().toLowerCase();
+    const q = normalizeText(this.search());
     return this.all().filter(s =>
       !q ||
-      s.name?.toLowerCase().includes(q) ||
-      s.code?.toLowerCase().includes(q)
+      normalizeText(s.name ?? '').includes(q) ||
+      normalizeText(s.code ?? '').includes(q)
     );
   });
 
@@ -89,7 +90,7 @@ export class SubjectsComponent implements OnInit {
 
   closeModal() { this.modalOpen.set(false); }
 
-  save() {
+  save(addAnother = false) {
     if (this.form.invalid || this.saving()) return;
     this.saving.set(true);
     this.formError.set('');
@@ -106,10 +107,15 @@ export class SubjectsComponent implements OnInit {
     req.subscribe({
       next: () => {
         this.saving.set(false);
-        this.modalOpen.set(false);
         this.showToast(editing ? 'Materia actualizada' : 'Materia creada', true);
-        this.loading.set(true);
-        this.fetchAll();
+        if (addAnother && !editing) {
+          this.form.reset({ name: '', code: '', description: '', credits: null, teacherId: null });
+          this.fetchAll();
+        } else {
+          this.modalOpen.set(false);
+          this.loading.set(true);
+          this.fetchAll();
+        }
       },
       error: (err) => {
         this.saving.set(false);

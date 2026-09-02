@@ -24,6 +24,7 @@ import {
 } from "@nestjs/swagger";
 import { NotificationsService } from "./notifications.service";
 import { CreateNotificationDto } from "./dto/create-notification.dto";
+import { CreateGlobalNotificationDto } from "./dto/create-global-notification.dto";
 import { NotificationResponseDto } from "./dto/notification-response.dto";
 import { SendManualNotificationDto } from "./dto/send-manual-notification.dto";
 import { Roles } from "../common/decorators/roles.decorator";
@@ -55,6 +56,20 @@ export class NotificationsController {
     @CurrentUser("id") senderId: number,
   ) {
     return this.notificationsService.create(createNotificationDto, senderId);
+  }
+
+  @Post("global")
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: "Enviar un aviso global a toda la escuela o roles específicos",
+  })
+  @ApiCreatedResponse({ description: "Aviso global enviado exitosamente." })
+  @ApiBadRequestResponse({ description: "Error de validación." })
+  async sendGlobal(
+    @Body() dto: CreateGlobalNotificationDto,
+    @CurrentUser("id") adminId: number,
+  ) {
+    return this.notificationsService.sendGlobalNotification(adminId, dto);
   }
 
   @Get()

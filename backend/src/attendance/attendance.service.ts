@@ -9,14 +9,29 @@ import {
   SemaphoreStatus,
   AlertType,
   AlertPriority,
+  Prisma,
+  Semester,
+  StudentProfile,
+  User,
+  Alert,
 } from "@prisma/client";
 import { PrismaService } from "../prisma.service";
 import { NotificationRouterService } from "../notifications/notification-router.service";
 import { QrScanDto } from "./dto/qr-scan.dto";
 import { ManualAttendanceDto } from "./dto/manual-attendance.dto";
+import { CreateAttendanceDto } from "./dto/create-attendance.dto";
+import { CorrectAttendanceDto } from "./dto/correct-attendance.dto";
 import { UserRole } from "../common/enums/roles.enum";
 import * as bcrypt from "bcryptjs";
 import { QrService } from "../qr/qr.service";
+import {
+  IAuthenticatedUser,
+  IStudentAttendanceStats,
+  IMexicoCityTimeInfo,
+  ISemaphoreSummaryResponse,
+  IGroupSemaphoreSummary,
+  AttendanceWithDetails,
+} from "./interfaces";
 
 @Injectable()
 export class AttendanceService {
@@ -26,7 +41,7 @@ export class AttendanceService {
     private qrService: QrService,
   ) {}
 
-  private getMexicoCityTimeInfo(date: Date) {
+  public getMexicoCityTimeInfo(date: Date): IMexicoCityTimeInfo {
     const formattedDateStr = new Intl.DateTimeFormat("en-US", {
       timeZone: "America/Mexico_City",
       year: "numeric",
@@ -60,8 +75,8 @@ export class AttendanceService {
       "FRIDAY",
       "SATURDAY",
     ];
-    const tempDate = new Date(localYear, localMonth, localDay);
-    const currentDay = days[tempDate.getDay()];
+    const tempDate = new Date(Date.UTC(localYear, localMonth, localDay));
+    const currentDay = days[tempDate.getUTCDay()];
 
     const currentTime = `${hours.padStart(2, "0")}:${minutes.padStart(2, "0")}`;
 
@@ -100,11 +115,14 @@ export class AttendanceService {
     return current >= start - 15 && current <= end + 15;
   }
 
-  async verifyStudentAccess(user: any, studentId: number) {
-    if (user.role === "ADMIN" || user.role === "TEACHER") {
+  async verifyStudentAccess(
+    user: IAuthenticatedUser,
+    studentId: number,
+  ): Promise<void> {
+    if (user.role === UserRole.ADMIN || user.role === UserRole.TEACHER) {
       return;
     }
-    if (user.role === "STUDENT") {
+    if (user.role === UserRole.STUDENT) {
       if (user.studentProfile?.id !== studentId) {
         throw new ForbiddenException(
           "No autorizado para acceder a este alumno",
@@ -112,7 +130,7 @@ export class AttendanceService {
       }
       return;
     }
-    if (user.role === "PARENT") {
+    if (user.role === UserRole.PARENT) {
       if (!user.parentProfile) {
         throw new ForbiddenException(
           "No autorizado: Perfil de tutor no encontrado",
@@ -132,6 +150,116 @@ export class AttendanceService {
       return;
     }
     throw new ForbiddenException("Rol no reconocido");
+  }
+
+  private async resolveActiveSemester(
+    tx?: Prisma.TransactionClient,
+  ): Promise<Semester | null> {
+    const client = tx || this.prisma;
+    const now = new Date();
+
+    const active = await client.semester.findFirst({
+      where: {
+        startDate: { lte: now },
+        finishDate: { gte: now },
+      },
+      orderBy: { startDate: "desc" },
+    });
+
+    if (active) return active;
+
+    return client.semester.findFirst({
+      orderBy: { finishDate: "desc" },
+    });
+  }
+
+  private async resolveSenderId(
+    providedSenderId?: number,
+    tx?: Prisma.TransactionClient,
+  ): Promise<number> {
+    if (providedSenderId) return providedSenderId;
+    const client = tx || this.prisma;
+    const admin = await client.user.findFirst({
+      where: { role: UserRole.ADMIN, isActive: true },
+      select: { id: true },
+      orderBy: { id: "asc" },
+    });
+    if (admin) return admin.id;
+    const fallback = await client.user.findFirst({
+      where: { isActive: true },
+      select: { id: true },
+      orderBy: { id: "asc" },
+    });
+    return fallback?.id || 1;
+  }
+
+  public calculateAttendanceMetrics(
+    attendances: Array<{ status: AttendanceStatus }>,
+    currentSemester?: {
+      id: number;
+      semesterName: string;
+      startDate: Date;
+    } | null,
+    todayEnd?: Date,
+  ): IStudentAttendanceStats {
+    let present = 0;
+    let absent = 0;
+    let late = 0;
+    let justified = 0;
+
+    for (const a of attendances) {
+      switch (a.status) {
+        case AttendanceStatus.PRESENT:
+          present++;
+          break;
+        case AttendanceStatus.ABSENT:
+          absent++;
+          break;
+        case AttendanceStatus.LATE:
+          late++;
+          break;
+        case AttendanceStatus.JUSTIFIED:
+          justified++;
+          break;
+      }
+    }
+
+    const totalClasses = attendances.length;
+    const effectiveAbsences = absent + Math.floor(late / 3);
+    const evaluableClasses = totalClasses - justified;
+
+    const attendanceRate =
+      evaluableClasses > 0
+        ? Math.round(
+            ((evaluableClasses - effectiveAbsences) / evaluableClasses) * 10000,
+          ) / 100
+        : 100.0;
+
+    let semaphore: SemaphoreStatus;
+    if (effectiveAbsences >= 3) {
+      semaphore = SemaphoreStatus.RED;
+    } else if (effectiveAbsences === 2 || attendanceRate < 80.0) {
+      semaphore = SemaphoreStatus.YELLOW;
+    } else {
+      semaphore = SemaphoreStatus.GREEN;
+    }
+
+    return {
+      absences: absent,
+      present,
+      late,
+      justified,
+      effectiveAbsences,
+      totalClasses,
+      attendanceRate,
+      semaphore,
+      evaluatedPeriod: {
+        semesterId: currentSemester?.id ?? 0,
+        semesterName: currentSemester?.semesterName ?? "N/A",
+        startDate: currentSemester?.startDate ?? new Date(0),
+        evaluatedUntil: todayEnd ?? new Date(),
+      },
+    };
   }
 
   async scanQr(qrScanDto: QrScanDto, teacherId: number) {
@@ -189,7 +317,7 @@ export class AttendanceService {
             subject: true,
             teacher: {
               include: {
-                user: { select: { firstName: true, lastName: true } },
+                user: { select: { id: true, firstName: true, lastName: true } },
               },
             },
             group: true,
@@ -204,9 +332,9 @@ export class AttendanceService {
       throw new NotFoundException("Horario de clase no encontrado");
     }
 
-    // 4. Validar que el docente que escanea sea el asignado a la clase
+    // 4. Validar que el docente que escanea sea el asignado a la clase (403 ForbiddenException)
     if (schedule.class.teacherId !== teacherId) {
-      throw new BadRequestException(
+      throw new ForbiddenException(
         "No está autorizado para registrar asistencia en esta clase. El docente no coincide con el horario asignado.",
       );
     }
@@ -234,9 +362,10 @@ export class AttendanceService {
       );
     }
 
-    // 9. Registrar asistencia y limpiar el QR token en una transacción
+    const teacherUserId = schedule.class.teacher?.user?.id;
+
+    // 8. Registrar asistencia y recalcular semáforo en transacción
     return this.prisma.$transaction(async (tx) => {
-      // 8. Verificar que no haya asistencia duplicada para hoy dentro de la transacción
       const existingAttendance = await tx.attendance.findFirst({
         where: {
           studentId: student.id,
@@ -254,7 +383,7 @@ export class AttendanceService {
         );
       }
 
-      return tx.attendance.create({
+      const created = await tx.attendance.create({
         data: {
           studentId: student.id,
           classId: schedule.class.id,
@@ -278,6 +407,10 @@ export class AttendanceService {
           },
         },
       });
+
+      await this.recalculateStudentSemaphore(student.id, tx, teacherUserId);
+
+      return created;
     });
   }
 
@@ -303,7 +436,15 @@ export class AttendanceService {
 
     const schedule = await this.prisma.classSchedule.findUnique({
       where: { id: classScheduleId },
-      include: { class: { include: { group: true, subject: true } } },
+      include: {
+        class: {
+          include: {
+            group: true,
+            subject: true,
+            teacher: { select: { userId: true } },
+          },
+        },
+      },
     });
 
     if (!schedule)
@@ -343,7 +484,7 @@ export class AttendanceService {
         );
       }
 
-      return tx.attendance.create({
+      const created = await tx.attendance.create({
         data: {
           studentId,
           classId: schedule.class.id,
@@ -359,6 +500,10 @@ export class AttendanceService {
           classes: { include: { subject: true } },
         },
       });
+
+      await this.recalculateStudentSemaphore(studentId, tx, userId);
+
+      return created;
     });
   }
 
@@ -379,6 +524,7 @@ export class AttendanceService {
           include: {
             subject: true,
             group: true,
+            teacher: { select: { userId: true } },
           },
         },
       },
@@ -389,7 +535,9 @@ export class AttendanceService {
     }
 
     if (schedule.class.teacherId !== teacherId) {
-      throw new BadRequestException("No autorizado para esta clase");
+      throw new ForbiddenException(
+        "No está autorizado para registrar asistencia en esta clase. El docente no coincide con el horario asignado.",
+      );
     }
 
     if (schedule.dayOfWeek !== currentDay) {
@@ -402,18 +550,6 @@ export class AttendanceService {
       include: {
         user: { select: { firstName: true, lastName: true } },
         group: true,
-        parent: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true,
-              },
-            },
-          },
-        },
       },
     });
 
@@ -425,7 +561,9 @@ export class AttendanceService {
       throw new BadRequestException("El alumno no pertenece a este grupo");
     }
 
-    const result = await this.prisma.$transaction(async (tx) => {
+    const teacherUserId = schedule.class.teacher?.userId;
+
+    const attendance = await this.prisma.$transaction(async (tx) => {
       // Verificar duplicado dentro de la transacción
       const existing = await tx.attendance.findFirst({
         where: {
@@ -441,7 +579,7 @@ export class AttendanceService {
         );
       }
       // Registrar falta
-      const attendance = await tx.attendance.create({
+      const created = await tx.attendance.create({
         data: {
           studentId,
           classId: schedule.class.id,
@@ -451,97 +589,127 @@ export class AttendanceService {
         },
       });
 
-      // MOTOR DE ALERTAS: Verificar regla de las 3 faltas
-      const alertResult = await this.checkAndTriggerAttendanceAlert(
-        studentId,
-        student,
-        tx,
-      );
+      // MOTOR DE ALERTAS: Recalcular semáforo
+      await this.recalculateStudentSemaphore(studentId, tx, teacherUserId);
 
-      return { attendance, alertResult };
+      return created;
     });
-
-    // Dispatch notifications after the transaction commits.
-    if (result.alertResult) {
-      await this.dispatchAttendanceAlert(result.alertResult, student);
-    }
 
     return {
       success: true,
       message: `Falta registrada para ${student.user.firstName} ${student.user.lastName}`,
-      attendance: result.attendance,
+      attendance,
     };
   }
 
-  private async checkAndTriggerAttendanceAlert(
+  async recalculateStudentSemaphore(
     studentId: number,
-    student: any,
-    tx?: any,
-  ): Promise<{ alert: any; absencesCount: number; admins: any[] } | null> {
+    tx?: Prisma.TransactionClient,
+    senderId?: number,
+  ): Promise<SemaphoreStatus> {
     const client = tx || this.prisma;
 
-    // Contar faltas del periodo actual (últimos 30 días como periodo de referencia)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const absencesCount = await client.attendance.count({
-      where: {
-        studentId,
-        status: AttendanceStatus.ABSENT,
-        date: { gte: thirtyDaysAgo },
+    const student = await client.studentProfile.findUnique({
+      where: { id: studentId },
+      include: {
+        user: { select: { id: true, firstName: true, lastName: true } },
+        group: { select: { id: true, name: true } },
+        parent: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
       },
     });
 
-    // Si alcanza 3 faltas, activar semáforo rojo y alertas
-    if (absencesCount >= 3) {
-      const currentStudentProfile = await client.studentProfile.findUnique({
-        where: { id: studentId },
-        select: { semaphore: true },
-      });
+    if (!student) {
+      throw new NotFoundException("Alumno no encontrado");
+    }
 
-      if (currentStudentProfile?.semaphore === SemaphoreStatus.RED) {
-        return null;
-      }
+    const previousSemaphore = student.semaphore;
+    const stats = await this.getStudentAbsenceCount(studentId, client);
+    const newSemaphore = stats.semaphore;
 
-      const admins = await client.user.findMany({
-        where: { role: "ADMIN", isActive: true },
-      });
-
-      // Actualizar semáforo a ROJO
+    if (previousSemaphore !== newSemaphore) {
       await client.studentProfile.update({
         where: { id: studentId },
-        data: { semaphore: SemaphoreStatus.RED },
+        data: { semaphore: newSemaphore },
       });
+    }
 
-      // Crear alerta prioritaria
+    if (
+      newSemaphore === SemaphoreStatus.RED &&
+      previousSemaphore !== SemaphoreStatus.RED
+    ) {
       const alert = await client.alert.create({
         data: {
           studentId,
           type: AlertType.ATTENDANCE,
           priority: AlertPriority.CRITICAL,
-          message: `ALERTA CRÍTICA: El alumno ${student.user.firstName} ${student.user.lastName} ha acumulado ${absencesCount} faltas. Se activa Semáforo Rojo.`,
+          message: `ALERTA CRÍTICA: El alumno ${student.user.firstName} ${student.user.lastName} ha acumulado ${stats.effectiveAbsences} faltas efectivas (Tasa: ${stats.attendanceRate}%). Se activa Semáforo Rojo.`,
         },
       });
 
-      return { alert, absencesCount, admins };
+      const admins = await client.user.findMany({
+        where: { role: UserRole.ADMIN, isActive: true },
+      });
+
+      const effectiveSenderId = await this.resolveSenderId(senderId, client);
+
+      const alertResult = {
+        alert,
+        effectiveAbsences: stats.effectiveAbsences,
+        admins,
+      };
+
+      await this.dispatchAttendanceAlert(
+        alertResult,
+        student,
+        effectiveSenderId,
+        tx,
+      );
     }
 
-    return null;
+    return newSemaphore;
   }
 
   private async dispatchAttendanceAlert(
-    alertResult: { alert: any; absencesCount: number; admins: any[] },
-    student: any,
+    alertResult: {
+      alert: Alert;
+      effectiveAbsences: number;
+      admins: User[];
+    },
+    student: {
+      user: { firstName: string; lastName: string };
+      group?: { name: string } | null;
+      parent?: {
+        phone?: string | null;
+        user?: { id: number; email: string } | null;
+      } | null;
+    },
+    senderId: number,
+    tx?: Prisma.TransactionClient,
   ): Promise<void> {
-    const { alert, absencesCount, admins } = alertResult;
-
-    const recipients = [];
+    const { alert, effectiveAbsences, admins } = alertResult;
+    const recipients: Array<{
+      userId: number;
+      email?: string;
+      phone?: string;
+      channels: string[];
+    }> = [];
 
     if (student.parent?.user) {
       recipients.push({
         userId: student.parent.user.id,
         email: student.parent.user.email,
-        phone: student.parent.phone,
+        phone: student.parent.phone || undefined,
         channels: ["EMAIL", "SMS"],
       });
     }
@@ -554,18 +722,24 @@ export class AttendanceService {
       });
     }
 
-    await this.notificationRouter.dispatch({
+    const payload = {
       alert: {
         id: alert.id,
         studentId: alert.studentId,
         type: alert.type,
         priority: alert.priority,
-        message: `Semáforo Rojo: ${student.user.firstName} ${student.user.lastName} (${student.group.name}) - ${absencesCount} faltas acumuladas.`,
+        message: `Semáforo Rojo: ${student.user.firstName} ${student.user.lastName} (${student.group?.name || "Sin grupo"}) - ${effectiveAbsences} faltas acumuladas.`,
       },
       recipients,
-      senderId: 1,
+      senderId,
       title: "Alerta CBTIS 61",
-    });
+    };
+
+    if (tx) {
+      await this.notificationRouter.dispatch(payload, tx);
+    } else {
+      await this.notificationRouter.dispatch(payload);
+    }
   }
 
   async findAll(filters?: {
@@ -573,18 +747,12 @@ export class AttendanceService {
     classId?: number;
     classScheduleId?: number;
     date?: Date;
-  }) {
-    const where: any = {};
+  }): Promise<AttendanceWithDetails[]> {
+    const where: Prisma.AttendanceWhereInput = {};
     if (filters?.studentId) where.studentId = filters.studentId;
     if (filters?.classId) where.classId = filters.classId;
     if (filters?.classScheduleId) {
-      where.classes = {
-        schedules: {
-          some: {
-            id: filters.classScheduleId,
-          },
-        },
-      };
+      where.classScheduleId = filters.classScheduleId;
     }
     if (filters?.date) {
       const { todayStart, todayEnd } = this.getMexicoCityTimeInfo(filters.date);
@@ -608,57 +776,310 @@ export class AttendanceService {
                 user: { select: { firstName: true, lastName: true } },
               },
             },
+            group: true,
+            classroom: true,
             schedules: true,
+          },
+        },
+        classSchedule: {
+          include: {
             classroom: true,
           },
         },
-      },
-      orderBy: { date: "desc" },
-    });
-  }
-
-  async findByStudent(studentId: number) {
-    return this.prisma.attendance.findMany({
-      where: { studentId },
-      include: {
-        classes: {
+        logs: {
           include: {
-            subject: true,
-            schedules: true,
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
           },
+          orderBy: { timestamp: "desc" },
         },
       },
       orderBy: { date: "desc" },
     });
   }
 
-  async getStudentAbsenceCount(studentId: number) {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  async findByStudent(studentId: number): Promise<AttendanceWithDetails[]> {
+    return this.prisma.attendance.findMany({
+      where: { studentId },
+      include: {
+        student: {
+          include: {
+            user: { select: { firstName: true, lastName: true } },
+            group: true,
+          },
+        },
+        classes: {
+          include: {
+            subject: true,
+            teacher: {
+              include: {
+                user: { select: { firstName: true, lastName: true } },
+              },
+            },
+            group: true,
+            classroom: true,
+            schedules: true,
+          },
+        },
+        classSchedule: {
+          include: {
+            classroom: true,
+          },
+        },
+        logs: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+          },
+          orderBy: { timestamp: "desc" },
+        },
+      },
+      orderBy: { date: "desc" },
+    });
+  }
 
-    const absences = await this.prisma.attendance.count({
-      where: {
-        studentId,
-        status: AttendanceStatus.ABSENT,
-        date: { gte: thirtyDaysAgo },
+  async correctAttendance(
+    id: number,
+    dto: CorrectAttendanceDto,
+    user: IAuthenticatedUser,
+  ): Promise<AttendanceWithDetails> {
+    const attendance = await this.prisma.attendance.findUnique({
+      where: { id },
+      include: {
+        classes: {
+          include: {
+            teacher: true,
+          },
+        },
       },
     });
 
-    const totalClasses = await this.prisma.attendance.count({
-      where: {
-        studentId,
-        date: { gte: thirtyDaysAgo },
+    if (!attendance) {
+      throw new NotFoundException(
+        `Registro de asistencia con ID ${id} no encontrado`,
+      );
+    }
+
+    if (user.role === UserRole.TEACHER) {
+      if (attendance.classes?.teacherId !== user.teacherProfile?.id) {
+        throw new ForbiddenException(
+          "No está autorizado para corregir la asistencia de esta clase. No es el docente asignado.",
+        );
+      }
+    }
+
+    const previousStatus = attendance.status;
+
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Registrar entrada en el log de auditoría
+      await tx.attendanceLog.create({
+        data: {
+          attendanceId: id,
+          userId: user.id,
+          previousStatus,
+          newStatus: dto.status,
+          reason: dto.reason,
+        },
+      });
+
+      // 2. Actualizar estado y notas de la asistencia
+      const updatedNotes = dto.notes
+        ? attendance.notes
+          ? `${attendance.notes} | Corrección: ${dto.notes}`
+          : `Corrección: ${dto.notes}`
+        : attendance.notes;
+
+      const updated = await tx.attendance.update({
+        where: { id },
+        data: {
+          status: dto.status,
+          notes: updatedNotes,
+        },
+        include: {
+          student: {
+            include: {
+              user: { select: { firstName: true, lastName: true } },
+              group: true,
+            },
+          },
+          classes: {
+            include: {
+              subject: true,
+              teacher: {
+                include: {
+                  user: { select: { firstName: true, lastName: true } },
+                },
+              },
+              group: true,
+              classroom: true,
+              schedules: true,
+            },
+          },
+          classSchedule: {
+            include: {
+              classroom: true,
+            },
+          },
+          logs: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                },
+              },
+            },
+            orderBy: { timestamp: "desc" },
+          },
+        },
+      });
+
+      // 3. Recalcular el semáforo del alumno automáticamente
+      await this.recalculateStudentSemaphore(attendance.studentId, tx, user.id);
+
+      return updated;
+    });
+  }
+
+  async create(
+    dto: CreateAttendanceDto,
+    user: IAuthenticatedUser,
+  ): Promise<AttendanceWithDetails> {
+    const schedule = await this.prisma.classSchedule.findUnique({
+      where: { id: dto.classScheduleId },
+      include: {
+        class: {
+          include: {
+            teacher: true,
+          },
+        },
       },
     });
 
-    return {
-      absences,
-      totalClasses,
-      attendanceRate:
-        totalClasses > 0
-          ? (((totalClasses - absences) / totalClasses) * 100).toFixed(2)
-          : "0.00",
+    if (!schedule) {
+      throw new NotFoundException("Horario de clase no encontrado");
+    }
+
+    if (
+      user.role === UserRole.TEACHER &&
+      schedule.class.teacherId !== user.teacherProfile?.id
+    ) {
+      throw new ForbiddenException(
+        "No está autorizado para registrar asistencias en esta clase",
+      );
+    }
+
+    const attendanceDate = dto.date ? new Date(dto.date) : new Date();
+
+    return this.prisma.$transaction(async (tx) => {
+      const created = await tx.attendance.create({
+        data: {
+          studentId: dto.studentId,
+          classId: dto.classId,
+          classScheduleId: dto.classScheduleId,
+          status: dto.status,
+          date: attendanceDate,
+          qrToken: dto.qrToken,
+          notes: dto.notes,
+        },
+        include: {
+          student: {
+            include: {
+              user: { select: { firstName: true, lastName: true } },
+              group: true,
+            },
+          },
+          classes: {
+            include: {
+              subject: true,
+              teacher: {
+                include: {
+                  user: { select: { firstName: true, lastName: true } },
+                },
+              },
+              group: true,
+              classroom: true,
+              schedules: true,
+            },
+          },
+          classSchedule: {
+            include: {
+              classroom: true,
+            },
+          },
+          logs: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true,
+                },
+              },
+            },
+            orderBy: { timestamp: "desc" },
+          },
+        },
+      });
+
+      await this.recalculateStudentSemaphore(dto.studentId, tx, user.id);
+
+      return created;
+    });
+  }
+
+  async getStudentAbsenceCount(
+    studentId: number,
+    tx?: Prisma.TransactionClient,
+  ): Promise<IStudentAttendanceStats> {
+    const client = tx || this.prisma;
+
+    const student = await client.studentProfile.findUnique({
+      where: { id: studentId },
+      select: { id: true },
+    });
+
+    if (!student) {
+      throw new NotFoundException(`Alumno con ID ${studentId} no encontrado`);
+    }
+
+    const semester = await this.resolveActiveSemester(client);
+    const now = new Date();
+    const { todayEnd } = this.getMexicoCityTimeInfo(now);
+
+    const dateFilter: Prisma.DateTimeFilter = {
+      lte: todayEnd,
     };
+    if (semester?.startDate) {
+      dateFilter.gte = semester.startDate;
+    }
+
+    const attendances = await client.attendance.findMany({
+      where: {
+        studentId,
+        date: dateFilter,
+      },
+      select: {
+        status: true,
+      },
+    });
+
+    return this.calculateAttendanceMetrics(attendances, semester, todayEnd);
   }
 
   async getRedSemaphoreStudents() {
@@ -689,7 +1110,9 @@ export class AttendanceService {
     });
   }
 
-  async resetSemaphore(studentId: number) {
+  async resetSemaphore(
+    studentId: number,
+  ): Promise<{ success: boolean; message: string; student: StudentProfile }> {
     const student = await this.prisma.studentProfile.findUnique({
       where: { id: studentId },
     });
@@ -710,11 +1133,14 @@ export class AttendanceService {
     };
   }
 
-  async exportCsv(filters?: { studentId?: number; classId?: number }) {
+  async exportCsv(filters?: {
+    studentId?: number;
+    classId?: number;
+  }): Promise<Buffer> {
     const records = await this.findAll(filters);
     const sep = "sep=,\n";
     const header = "ID,Fecha,Alumno,Matrícula,Grupo,Materia,Estado,Notas\n";
-    const rows = records.map((r: any) => {
+    const rows = records.map((r: AttendanceWithDetails) => {
       const dateStr = r.date
         ? new Date(r.date).toISOString().split("T")[0]
         : "";
@@ -728,10 +1154,11 @@ export class AttendanceService {
     });
 
     const csvString = sep + header + rows.join("\n");
-    return Buffer.from(csvString, "latin1");
+    const bom = Buffer.from([0xef, 0xbb, 0xbf]);
+    return Buffer.concat([bom, Buffer.from(csvString, "utf-8")]);
   }
 
-  async getSemaphoreSummary() {
+  async getSemaphoreSummary(): Promise<ISemaphoreSummaryResponse> {
     const students = await this.prisma.studentProfile.findMany({
       select: {
         id: true,
@@ -746,17 +1173,7 @@ export class AttendanceService {
     let yellowCount = 0;
     let redCount = 0;
 
-    const groupMap = new Map<
-      number,
-      {
-        groupId: number;
-        groupName: string;
-        total: number;
-        green: number;
-        yellow: number;
-        red: number;
-      }
-    >();
+    const groupMap = new Map<number, IGroupSemaphoreSummary>();
 
     for (const s of students) {
       if (s.semaphore === SemaphoreStatus.GREEN) greenCount++;

@@ -18,6 +18,7 @@ model User {
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
   adminProfile            AdminProfile?
+  attendanceLogs          AttendanceLog[]
   gradeLogs               GradeLog[]
   notificationPreferences NotificationPreference[]
   notifications           Notification[]           @relation("NotificationSender")
@@ -141,12 +142,29 @@ model Attendance {
   qrToken         String?
   notes           String?
   createdAt       DateTime         @default(now())
+  logs            AttendanceLog[]
   classes         Class            @relation(fields: [classId], references: [id])
   classSchedule   ClassSchedule    @relation(fields: [classScheduleId], references: [id])
   student         StudentProfile   @relation(fields: [studentId], references: [id])
 
   @@unique([studentId, classScheduleId, date])
   @@map("attendances")
+}
+
+model AttendanceLog {
+  id             Int              @id @default(autoincrement())
+  attendanceId   Int
+  userId         Int
+  previousStatus AttendanceStatus
+  newStatus      AttendanceStatus
+  reason         String
+  timestamp      DateTime         @default(now())
+  attendance     Attendance       @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  user           User             @relation(fields: [userId], references: [id])
+
+  @@index([attendanceId])
+  @@index([userId])
+  @@map("attendance_logs")
 }
 
 model Grade {
@@ -200,7 +218,7 @@ model Alert {
 
 model Notification {
   id            Int                @id @default(autoincrement())
-  alertId       Int
+  alertId       Int?
   senderId      Int
   recipientType String
   recipientId   Int
@@ -210,7 +228,7 @@ model Notification {
   createdAt     DateTime           @default(now())
   metadata      Json?
   status        NotificationStatus @default(PENDING)
-  alert         Alert              @relation(fields: [alertId], references: [id])
+  alert         Alert?             @relation(fields: [alertId], references: [id])
   sender        User               @relation("NotificationSender", fields: [senderId], references: [id])
 
   @@index([recipientId, status])

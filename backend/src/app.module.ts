@@ -20,6 +20,8 @@ import { RolesGuard } from "./common/guards/roles.guard";
 import { QrModule } from "./qr/qr.module";
 import { SemestersModule } from "./semesters/semesters.module";
 import { ClassroomsModule } from "./classrooms/classrooms.module";
+import { SchoolCyclesModule } from "./school-cycles/school-cycles.module";
+import { StudentsModule } from "./students/students.module";
 
 @Module({
   imports: [
@@ -49,6 +51,8 @@ import { ClassroomsModule } from "./classrooms/classrooms.module";
     QrModule,
     SemestersModule,
     ClassroomsModule,
+    SchoolCyclesModule,
+    StudentsModule,
   ],
   controllers: [],
   providers: [

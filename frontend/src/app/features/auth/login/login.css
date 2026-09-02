@@ -486,3 +486,66 @@
   .panel-right { padding: 24px; background: #fff; }
   .form-card { box-shadow: none; padding: 0; max-width: 100%; }
 }
+
+/* Custom Animated Checkbox */
+.remember-wrap {
+  margin-top: 5px;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+.custom-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+.custom-checkbox-label input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+.custom-checkbox {
+  position: relative;
+  height: 18px;
+  width: 18px;
+  background-color: var(--mat-sys-surface-variant);
+  border: 1px solid #c0c6c9;
+  border-radius: 4px;
+  transition: all 0.2s ease-in-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.checkbox-text {
+  font-size: 0.9rem;
+  color: #5C6B73;
+  transition: color 0.2s;
+}
+.custom-checkbox-label:hover .custom-checkbox {
+  border-color: var(--vino-light);
+}
+.custom-checkbox-label input:checked ~ .custom-checkbox {
+  background-color: var(--vino);
+  border-color: var(--vino);
+}
+.custom-checkbox-label input:checked ~ .checkbox-text {
+  color: var(--vino-dark);
+  font-weight: 500;
+}
+.custom-checkbox svg {
+  width: 12px;
+  height: 12px;
+}
+.custom-checkbox svg polyline {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  transition: stroke-dashoffset 0.3s cubic-bezier(0.65, 0, 0.45, 1);
+}
+.custom-checkbox-label input:checked ~ .custom-checkbox svg polyline {
+  stroke-dashoffset: 0;
+}
+
