@@ -72,7 +72,18 @@
     </div>
   }
 
-  <!-- Tabla -->
+   <!-- Filtro por fecha -->
+   <div class="date-filter" style="margin: 16px 0; display: flex; align-items: center; gap: 12px;">
+     <mat-form-field appearance="fill" style="width: 250px;">
+       <mat-label>Filtrar por fecha</mat-label>
+       <input matInput [matDatepicker]="picker" (dateChange)="selectedDate.set($event.value)" placeholder="Selecciona una fecha">
+       <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+       <mat-datepicker #picker></mat-datepicker>
+     </mat-form-field>
+     <button class="primary-btn" type="button" (click)="selectedDate.set(null)">Mostrar todo</button>
+   </div>
+
+   <!-- Tabla -->
   @if (loading()) {
     <div class="table-card">
       <div class="loading-box"><div class="spinner"></div></div>
@@ -96,7 +107,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (r of records(); track r.id) {
+            @for (r of filteredRecords(); track r.id) {
               <tr class="trow">
                 <td>
                   <div class="student-cell">
