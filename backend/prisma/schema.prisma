@@ -142,10 +142,10 @@ model Attendance {
   qrToken         String?
   notes           String?
   createdAt       DateTime         @default(now())
+  logs            AttendanceLog[]
   classes         Class            @relation(fields: [classId], references: [id])
   classSchedule   ClassSchedule    @relation(fields: [classScheduleId], references: [id])
   student         StudentProfile   @relation(fields: [studentId], references: [id])
-  logs            AttendanceLog[]
 
   @@unique([studentId, classScheduleId, date])
   @@map("attendances")
