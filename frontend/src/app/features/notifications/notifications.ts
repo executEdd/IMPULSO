@@ -139,8 +139,18 @@ export class NotificationsComponent implements OnInit, OnDestroy {
 
       this.http.get<{ publicKey: string }>(`${API}/push/vapid-public-key`).subscribe({
         next: (res) => {
+          console.log('VAPID key from server:', res.publicKey);
           const key = this.urlBase64ToUint8Array(res.publicKey);
-          navigator.serviceWorker.ready.then(registration => {
+          console.log('Converted key length:', key.length, 'bytes');
+          console.log('SW controller:', navigator.serviceWorker?.controller?.scriptURL ?? 'none');
+
+          const readyTimeout = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Service Worker no se activó en 10s')), 10000)
+          );
+
+          Promise.race([navigator.serviceWorker.ready, readyTimeout]).then(registration => {
+            console.log('SW scope:', registration.scope);
+            console.log('PushManager available:', !!registration.pushManager);
             registration.pushManager.subscribe({
               userVisibleOnly: true,
               applicationServerKey: key,
