@@ -1154,7 +1154,8 @@ export class AttendanceService {
     });
 
     const csvString = sep + header + rows.join("\n");
-    return Buffer.from(csvString, "latin1");
+    const bom = Buffer.from([0xEF, 0xBB, 0xBF]);
+    return Buffer.concat([bom, Buffer.from(csvString, "utf-8")]);
   }
 
   async getSemaphoreSummary(): Promise<ISemaphoreSummaryResponse> {
