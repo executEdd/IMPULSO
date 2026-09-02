@@ -86,7 +86,7 @@
           </select>
         </div>
         <div>
-          <button class="btn-primary" [disabled]="!gridGroup() || !gridSubject() || saving()" (click)="saveGrid()">
+          <button class="primary-btn" [disabled]="!gridGroup() || !gridSubject() || saving()" (click)="saveGrid()">
             @if(saving()){ <i class="fa-solid fa-spinner fa-spin"></i> Guardando... }
             @else { <i class="fa-solid fa-save"></i> Guardar Calificaciones }
           </button>
