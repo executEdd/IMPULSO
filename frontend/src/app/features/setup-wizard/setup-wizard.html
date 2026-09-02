@@ -165,8 +165,8 @@
           <div class="wizard-actions">
             <button type="button" class="ghost-btn" (click)="prevStep()"><i class="fa-solid fa-arrow-left"></i> Atrás</button>
             <button type="button" class="ghost-btn" (click)="skipStep()">Omitir</button>
-            <button type="button" class="secondary-btn" [disabled]="classroomForm.invalid || loading()" (click)="createClassroom(true)">
-              @if(loading()) { <span class="spinner-sm"></span> } @else { Guardar y añadir otra }
+            <button type="button" class="primary-btn" [disabled]="classroomForm.invalid || loading()" (click)="createClassroom(true)">
+              @if(loading()) { <span class="spinner-sm"></span> } @else { Guardar y añadir otra <i class="fa-solid fa-plus"></i> }
             </button>
             <button type="button" class="primary-btn" [disabled]="classroomForm.invalid || loading()" (click)="createClassroom(false)">
               @if(loading()) { <span class="spinner-sm"></span> } @else { Guardar y Continuar <i class="fa-solid fa-arrow-right"></i> }
@@ -210,8 +210,8 @@
           <div class="wizard-actions">
             <button type="button" class="ghost-btn" (click)="prevStep()"><i class="fa-solid fa-arrow-left"></i> Atrás</button>
             <button type="button" class="ghost-btn" (click)="skipStep()">Omitir</button>
-            <button type="button" class="secondary-btn" [disabled]="groupForm.invalid || loading()" (click)="createGroup(true)">
-              @if(loading()) { <span class="spinner-sm"></span> } @else { Guardar y añadir otro }
+            <button type="button" class="primary-btn" [disabled]="groupForm.invalid || loading()" (click)="createGroup(true)">
+              @if(loading()) { <span class="spinner-sm"></span> } @else { Guardar y añadir otro <i class="fa-solid fa-plus"></i> }
             </button>
             <button type="button" class="primary-btn" [disabled]="groupForm.invalid || loading()" (click)="createGroup(false)">
               @if(loading()) { <span class="spinner-sm"></span> } @else { Guardar y Continuar <i class="fa-solid fa-arrow-right"></i> }
@@ -255,8 +255,8 @@
           <div class="wizard-actions">
             <button type="button" class="ghost-btn" (click)="prevStep()"><i class="fa-solid fa-arrow-left"></i> Atrás</button>
             <button type="button" class="ghost-btn" (click)="skipStep(); prepareFinalStep()">Omitir</button>
-            <button type="button" class="secondary-btn" [disabled]="subjectForm.invalid || loading()" (click)="createSubject(true)">
-              @if(loading()) { <span class="spinner-sm"></span> } @else { Guardar y añadir otra }
+            <button type="button" class="primary-btn" [disabled]="subjectForm.invalid || loading()" (click)="createSubject(true)">
+              @if(loading()) { <span class="spinner-sm"></span> } @else { Guardar y añadir otra <i class="fa-solid fa-plus"></i> }
             </button>
             <button type="button" class="primary-btn" [disabled]="subjectForm.invalid || loading()" (click)="createSubject(false)">
               @if(loading()) { <span class="spinner-sm"></span> } @else { Guardar y Continuar <i class="fa-solid fa-arrow-right"></i> }
@@ -347,8 +347,8 @@
           
           <div class="wizard-actions">
             <button type="button" class="ghost-btn" (click)="prevStep()"><i class="fa-solid fa-arrow-left"></i> Atrás</button>
-            <button type="button" class="secondary-btn" [disabled]="classForm.invalid || loading()" (click)="finish(true)">
-              @if(loading()) { <span class="spinner-sm"></span> } @else { Crear Clase y Ensamblar Otra }
+            <button type="button" class="primary-btn" [disabled]="classForm.invalid || loading()" (click)="finish(true)">
+              @if(loading()) { <span class="spinner-sm"></span> } @else { Crear Clase y Ensamblar Otra <i class="fa-solid fa-plus"></i> }
             </button>
             <button type="button" class="primary-btn" [disabled]="classForm.invalid || loading()" (click)="finish(false)">
               @if(loading()) { <span class="spinner-sm"></span> } @else { <i class="fa-solid fa-check"></i> Finalizar y Salir }
