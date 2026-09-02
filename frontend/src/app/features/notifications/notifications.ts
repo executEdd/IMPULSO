@@ -158,20 +158,25 @@ export class NotificationsComponent implements OnInit, OnDestroy {
                   this.pushLoading.set(false);
                   this.showToast('¡Notificaciones Push activadas en este dispositivo!', true);
                 },
-                error: () => {
-                  this.pushLoading.set(false);
-                  this.showToast('Error al registrar token de notificaciones', false);
-                }
+              error: (err: any) => {
+                console.error('Push register API error:', err);
+                this.pushLoading.set(false);
+                const msg = err?.error?.message ?? err?.message ?? String(err);
+                this.showToast(`Error al registrar: ${msg}`, false);
+              }
               });
-            }).catch(() => {
+            }).catch((err: any) => {
+              console.error('Push subscribe error:', err);
               this.pushLoading.set(false);
-              this.showToast('Error al suscribirse a notificaciones push', false);
+              const msg = err?.message ?? String(err);
+              this.showToast(`Error push: ${msg}`, false);
             });
           });
         },
-        error: () => {
+        error: (err: any) => {
+          console.error('VAPID key fetch error:', err);
           this.pushLoading.set(false);
-          this.showToast('No se pudo obtener la clave VAPID de notificaciones', false);
+          this.showToast('No se pudo obtener la clave VAPID', false);
         }
       });
     });
