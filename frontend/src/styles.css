@@ -116,6 +116,51 @@ app-root {
 /* Form field */
 .mat-mdc-form-field { width: 100%; }
 
+/* Datepicker popup */
+.mat-datepicker-content {
+  background: #fff !important;
+  border-radius: 14px !important;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.12) !important;
+  border: 1px solid #F0F2F5 !important;
+}
+.mat-calendar {
+  background: #fff !important;
+}
+.mat-calendar-header {
+  padding: 12px 16px 4px !important;
+}
+.mat-calendar-table {
+  border-collapse: separate;
+  border-spacing: 2px;
+}
+.mat-calendar-body-cell {
+  border-radius: 10px !important;
+  width: 36px !important;
+  height: 36px !important;
+}
+.mat-calendar-body-cell-content {
+  border-radius: 10px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+}
+.mat-calendar-body-selected {
+  background: #7C1D2E !important;
+  color: #fff !important;
+}
+.mat-calendar-body-today:not(.mat-calendar-body-selected) {
+  border: 1.5px solid #7C1D2E !important;
+  color: #7C1D2E !important;
+  font-weight: 700 !important;
+}
+.mat-mdc-datepicker-toggle {
+  color: #7C1D2E !important;
+}
+.mat-mdc-select-panel {
+  background: #fff !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.12) !important;
+}
+
 /* Spinner container */
 .loading-overlay {
   display: flex; align-items: center; justify-content: center;
