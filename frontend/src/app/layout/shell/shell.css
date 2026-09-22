@@ -358,3 +358,55 @@
 .sidebar-collapsed .main-area {
   margin-left: 60px;
 }
+
+
+/* --------------------------------
+   RESPONSIVE DESIGN (MOBILE & TABLET)
+-------------------------------- */
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+    width: 256px !important;
+    min-width: 256px !important;
+  }
+  
+  .app-shell:not(.sidebar-collapsed) .sidebar {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0,0,0,0.15);
+  }
+  
+  .sidebar-collapsed .sidebar {
+    transform: translateX(-100%);
+  }
+
+  .main-area, .sidebar-collapsed .main-area {
+    margin-left: 0 !important;
+  }
+  
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 45;
+    animation: fadeIn 0.2s;
+  }
+
+  /* Make topbar elements more compact */
+  .topbar {
+    padding: 0 16px;
+  }
+  
+  .brand-name {
+    display: block !important;
+  }
+  
+  /* Tables and cards inside main content should be scrollable horizontally */
+  .card-table-wrapper {
+    overflow-x: auto;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
