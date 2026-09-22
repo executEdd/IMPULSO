@@ -1,5 +1,7 @@
 <div class="app-shell" [class.sidebar-collapsed]="collapsed()">
-
+  @if (!collapsed()) {
+    <div class="sidebar-backdrop" (click)="toggle()"></div>
+  }
   <!-- ══ SIDEBAR ══ -->
   <aside class="sidebar">
 

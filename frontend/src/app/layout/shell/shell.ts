@@ -1,5 +1,5 @@
 import { Component, inject, signal, OnInit, OnDestroy, computed } from '@angular/core';
-import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { DatePipe } from '@angular/common';
 import { AuthService } from '../../core/services/auth.service';
@@ -30,8 +30,15 @@ export class ShellComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
   private pollingTimer: any;
 
-  collapsed = signal(false);
+  collapsed = signal(typeof window !== 'undefined' ? window.innerWidth <= 768 : false);
 
+  constructor(private router: Router) {
+    this.router.events.subscribe(() => {
+      if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+        this.collapsed.set(true);
+      }
+    });
+  }
   unreadCount = signal(0);
   notifs      = signal<any[]>([]);
   notifOpen   = signal(false);
